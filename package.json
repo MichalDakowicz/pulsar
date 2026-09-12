@@ -59,6 +59,7 @@
     "build:web": "expo export -p web --output-dir dist --clear",
     "deploy:web": "npm run build:web && firebase deploy --only hosting",
     "lint": "expo lint",
+    "icons": "node ./scripts/generate-icons.mjs",
     "test": "jest"
   },
   "jest": {
