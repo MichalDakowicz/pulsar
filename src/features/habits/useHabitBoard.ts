@@ -59,11 +59,13 @@ export type HabitBoard = {
   today: string;
   hoursLeft: number;
   loading: boolean;
+  /** A failed read — most often the schema has not been applied yet. */
+  error: unknown;
 };
 
 export function useHabitBoard(): HabitBoard {
-  const { active, loading: habitsLoading } = useHabits();
-  const { byHabit, amounts, loading: entriesLoading } = useEntries();
+  const { active, loading: habitsLoading, error: habitsError } = useHabits();
+  const { byHabit, amounts, loading: entriesLoading, error: entriesError } = useEntries();
 
   const today = dateKey();
   // Recomputed on every render rather than held in state: the only consumer is
@@ -153,6 +155,7 @@ export function useHabitBoard(): HabitBoard {
     today,
     hoursLeft,
     loading: habitsLoading || entriesLoading,
+    error: habitsError ?? entriesError ?? null,
   };
 }
 

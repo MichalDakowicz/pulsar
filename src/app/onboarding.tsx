@@ -41,24 +41,36 @@ export default function Onboarding() {
   const create = useCreateHabit();
   const { updateSettings } = useHabitSettings();
   const [step, setStep] = useState(0);
+  const [busy, setBusy] = useState(false);
   const [name, setName] = useState('');
   const [time, setTime] = useState<string | null>('07:30');
 
   const finish = async (withHabit: boolean) => {
-    // The stamp goes down either way: someone who skipped the tour has still
-    // seen it, and showing it again on the next launch is how a first run turns
-    // into a nag.
-    await updateSettings({ onboardedAt: new Date().toISOString() });
-    if (withHabit && name) {
-      const state = {
-        ...blankBuilder(),
-        name,
-        window: time ? ('exact' as const) : ('anytime' as const),
-        times: time ? [time] : [],
-      };
-      await create.mutateAsync(toHabitDraft({ ...state, pledge: suggestedPledge(state) }));
-      say('committed. day one starts now.');
+    if (busy) return;
+    setBusy(true);
+    try {
+      if (withHabit && name) {
+        const state = {
+          ...blankBuilder(),
+          name,
+          window: time ? ('exact' as const) : ('anytime' as const),
+          times: time ? [time] : [],
+        };
+        await create.mutateAsync(toHabitDraft({ ...state, pledge: suggestedPledge(state) }));
+        say('committed. day one starts now.');
+      }
+    } catch (error) {
+      // Saying nothing here is what makes the button look broken. Stay on the
+      // step so the habit that was just built is not thrown away.
+      say(error instanceof Error ? error.message : 'that did not save. try again in a moment.');
+      setBusy(false);
+      return;
     }
+
+    // The stamp is a convenience, not a gate: someone who has seen the tour
+    // should not see it again, but failing to record that must never strand
+    // them on it. Fire and forget, and leave either way.
+    void updateSettings({ onboardedAt: new Date().toISOString() }).catch(() => {});
     router.replace('/');
   };
 
@@ -130,7 +142,11 @@ export default function Onboarding() {
                   “{suggestedPledge({ ...blankBuilder(), name: name || 'this habit' })}”
                 </Text>
               </View>
-              <HoldButton label="hold to commit" onComplete={() => void finish(true)} />
+              <HoldButton
+                label={busy ? 'starting it…' : 'hold to commit'}
+                onComplete={() => void finish(true)}
+                disabled={busy}
+              />
             </View>
           )}
         </View>
@@ -145,16 +161,7 @@ export default function Onboarding() {
             <Text className="text-sm font-semibold text-muted-foreground">{step === 0 ? 'skip' : 'back'}</Text>
           </Pressable>
 
-          {step === 2 ? (
-            <Pressable
-              accessibilityRole="button"
-              accessibilityLabel="skip the pledge and start with no habit"
-              onPress={() => void finish(false)}
-              className="flex-1 items-center py-3.5"
-            >
-              <Text className="text-sm font-semibold text-muted-foreground">skip the pledge</Text>
-            </Pressable>
-          ) : (
+          {step === 2 ? null : (
             <View className="flex-1">
               <Pressable
                 accessibilityRole="button"

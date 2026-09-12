@@ -4,7 +4,7 @@ import { Pressable, ScrollView, Text, View } from 'react-native';
 
 import { ContentShell } from '@/components/layout/ContentShell';
 import { ScreenTop } from '@/components/layout/ScreenTop';
-import { EmptyState, LoadingState, SectionHeader, Stat } from '@/components/ui/states';
+import { EmptyState, ErrorState, LoadingState, SectionHeader, Stat } from '@/components/ui/states';
 import { HabitRow } from '@/features/habits/HabitRow';
 import { RiskBanner } from '@/features/habits/RiskBanner';
 import { SiblingStreaks } from '@/features/habits/SiblingStreaks';
@@ -17,6 +17,7 @@ import { useNavBarSpace } from '@/hooks/useNavBarSpace';
 import { MAX_W } from '@/hooks/useResponsive';
 import { dateKey, formatDayLong } from '@/lib/dates';
 import { TOKEN_CAP } from '@/lib/tokens';
+import { readError } from '@/lib/utils';
 
 /**
  * Today. The only screen that has to work in four seconds while standing up, so
@@ -47,6 +48,18 @@ export default function TodayScreen() {
       <View className="flex-1 bg-background">
         <ScreenTop />
         <LoadingState />
+      </View>
+    );
+  }
+
+  // A failed read is not an empty account. Saying "no habits yet" over a
+  // database that never answered is the lie that sends someone off to rebuild
+  // habits they already have.
+  if (board.error) {
+    return (
+      <View className="flex-1 bg-background">
+        <ScreenTop />
+        <ErrorState message={readError(board.error)} />
       </View>
     );
   }
