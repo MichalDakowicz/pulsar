@@ -54,7 +54,7 @@ export function useHabits() {
     };
   }, [user, queryClient, queryKey]);
 
-  const habits = query.data ?? [];
+  const habits = useMemo(() => query.data ?? [], [query.data]);
   const active = useMemo(() => habits.filter((habit) => !habit.archivedAt), [habits]);
   const archived = useMemo(() => habits.filter((habit) => habit.archivedAt), [habits]);
 

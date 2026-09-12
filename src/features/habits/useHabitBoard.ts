@@ -55,6 +55,7 @@ export type HabitBoard = {
   perfectToday: boolean;
   tokens: number;
   tokensToNext: number;
+  tokensSpent: number;
   today: string;
   hoursLeft: number;
   loading: boolean;
@@ -148,6 +149,7 @@ export function useHabitBoard(): HabitBoard {
     perfectToday: isPerfectToday(schedules, byHabit, today),
     tokens: tokens.tokens,
     tokensToNext: tokens.toNext,
+    tokensSpent: tokens.spent,
     today,
     hoursLeft,
     loading: habitsLoading || entriesLoading,

@@ -1,5 +1,5 @@
 import { useColorScheme } from 'nativewind';
-import { createContext, useContext, useEffect, useMemo, useState } from 'react';
+import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
 import { Platform, View } from 'react-native';
 import { createMMKV } from 'react-native-mmkv';
 
@@ -24,44 +24,41 @@ const ThemeContext = createContext<ThemeContextValue>({
   setTheme: () => {},
 });
 
+function cachedTheme(): ThemePref {
+  const stored = storage.getString(THEME_KEY);
+  return stored === 'dark' || stored === 'light' || stored === 'system' ? stored : DEFAULT_THEME;
+}
+
 /**
- * The theme, which is shared with the three sibling apps through
- * `user_settings.theme` — picking light here picks light in Radar too, on
- * purpose (docs/shared-database.md).
+ * The theme, shared with the three sibling apps through `user_settings.theme` —
+ * picking light here picks light in Radar too, on purpose
+ * (docs/shared-database.md).
  *
- * MMKV still holds a copy, and it is not redundant: the server row arrives a
- * network round-trip after the first paint, and a cold start that flashes dark
- * before settling on light is worse than a cache that is occasionally a session
- * out of date.
+ * The server row is the value, not a copy of it: `useUserSettings` updates its
+ * cache optimistically, so a tap is instant without this holding state of its
+ * own. MMKV is only consulted for the first frame, because the row arrives a
+ * round trip after the first paint and a cold start that flashes dark before
+ * settling on light is worse than a cache one session out of date.
  */
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
   const { colorScheme, setColorScheme } = useColorScheme();
-  const { settings, updateSettings } = useUserSettings();
-  const [theme, setThemeState] = useState<ThemePref>(() => {
-    const stored = storage.getString(THEME_KEY);
-    return stored === 'dark' || stored === 'light' || stored === 'system' ? stored : DEFAULT_THEME;
-  });
+  const { settings, loading, updateSettings } = useUserSettings();
+  const [initial] = useState(cachedTheme);
 
-  // The server row wins once it lands, because it is the one the other three
-  // apps read.
-  useEffect(() => {
-    if (settings.theme === theme) return;
-    storage.set(THEME_KEY, settings.theme);
-    setThemeState(settings.theme);
-    // Only the shared row may drive this effect; adding `theme` would make the
-    // local pick immediately fight the stale server value it has not saved yet.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [settings.theme]);
+  const theme: ThemePref = loading ? initial : settings.theme;
 
   useEffect(() => {
     setColorScheme(theme);
+    storage.set(THEME_KEY, theme);
   }, [theme, setColorScheme]);
 
-  const setTheme = (next: ThemePref) => {
-    storage.set(THEME_KEY, next);
-    setThemeState(next);
-    void updateSettings({ theme: next });
-  };
+  const setTheme = useCallback(
+    (next: ThemePref) => {
+      storage.set(THEME_KEY, next);
+      void updateSettings({ theme: next });
+    },
+    [updateSettings],
+  );
 
   const resolvedTheme: 'dark' | 'light' = colorScheme === 'light' ? 'light' : 'dark';
 
@@ -76,7 +73,7 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
     }
   }, [resolvedTheme]);
 
-  const value = useMemo(() => ({ theme, resolvedTheme, setTheme }), [theme, resolvedTheme]);
+  const value = useMemo(() => ({ theme, resolvedTheme, setTheme }), [theme, resolvedTheme, setTheme]);
 
   return (
     <ThemeContext.Provider value={value}>
