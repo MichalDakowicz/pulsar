@@ -14,7 +14,8 @@ import {
 
 import { Field } from '@/components/ui/controls';
 import { useToast } from '@/components/ui/Toast';
-import { signInWithEmail, signUpWithEmail } from '@/features/auth/authActions';
+import { signInWithEmail, signInWithGoogle, signUpWithEmail } from '@/features/auth/authActions';
+import { GoogleIcon } from '@/features/auth/GoogleIcon';
 import { useAuth } from '@/features/auth/AuthProvider';
 import { MAX_W, useIsDesktop } from '@/hooks/useResponsive';
 import { COLORS } from '@/theme/colors';
@@ -30,20 +31,23 @@ export default function Login() {
 
   if (user) return <Redirect href={'/' as Href} />;
 
-  const submit = async () => {
-    if (!email || !password) {
-      say('an email and a password, and you are in.');
-      return;
-    }
+  const run = async (action: () => Promise<void>) => {
     setBusy(true);
     try {
-      if (mode === 'signIn') await signInWithEmail(email, password);
-      else await signUpWithEmail(email, password);
+      await action();
     } catch (error) {
       say(error instanceof Error ? error.message : 'that did not work.');
     } finally {
       setBusy(false);
     }
+  };
+
+  const submit = () => {
+    if (!email || !password) {
+      say('an email and a password, and you are in.');
+      return;
+    }
+    void run(() => (mode === 'signIn' ? signInWithEmail(email, password) : signUpWithEmail(email, password)));
   };
 
   return (
@@ -75,6 +79,28 @@ export default function Login() {
             className={isDesktop ? 'w-full gap-3 rounded-2xl border border-border bg-card p-8' : 'w-full gap-3'}
             style={{ maxWidth: MAX_W.form }}
           >
+            {/* Google first: it is the one most people already used to make the
+                account in one of the other three apps. */}
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel="continue with google"
+              onPress={() => void run(signInWithGoogle)}
+              disabled={busy}
+              className="flex-row items-center justify-center gap-2.5 rounded-full bg-foreground py-3.5"
+              style={{ opacity: busy ? 0.6 : 1 }}
+            >
+              <GoogleIcon size={18} />
+              <Text className="text-sm font-semibold text-background">continue with google</Text>
+            </Pressable>
+
+            <View className="my-1 flex-row items-center gap-3">
+              <View className="h-px flex-1 bg-border" />
+              <Text className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">
+                or
+              </Text>
+              <View className="h-px flex-1 bg-border" />
+            </View>
+
             <Field
               value={email}
               onChangeText={setEmail}

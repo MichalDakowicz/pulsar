@@ -4,6 +4,7 @@
 
 ### Added
 
+- Sign in with google, or with the email and password you already use in the other three
 - Today: check a habit off with a swipe or a press and hold, and undo it from the toast
 - Today: a ring that counts only the habits actually due today, so a rest day is not a miss
 - Today: habits that are not scheduled today collapse under a "not due today" row
