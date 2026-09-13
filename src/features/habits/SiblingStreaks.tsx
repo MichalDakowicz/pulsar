@@ -21,8 +21,9 @@ import { supabase } from '@/lib/supabase';
  * Read-only, and nothing here writes a row (docs/shared-database.md). Radar
  * publishes its own figure to `user_settings.current_streak` for its evening
  * notification, so that one is just read. Lidar publishes nothing, so its
- * figure is derived from the page ledger it does write — a second-hand number,
- * which is why the goal it is scored against is adjustable in Settings.
+ * figure is derived from the page ledger it does write, scored against the
+ * assumed weekly goal in `lib/siblingGoals` — a second-hand number, and read
+ * as one: this strip is a glance at another app, not a scoreboard.
  *
  * The strip renders nothing at all when neither sibling has anything to say. An
  * empty row of zeroes on Today would be worse than no row: it reads as two
