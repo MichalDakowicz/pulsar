@@ -92,16 +92,35 @@ export function flattenByWeekday(weeks: WallWeek[]): WallCell[] {
 }
 
 /**
- * Held share of the days that actually came due inside the wall — the "% of
- * days" under each tile. Rest and future days are excluded from both halves,
- * so a weekday habit is scored out of weekdays.
+ * Whether a cell's outcome is settled, and so may be scored.
+ *
+ * Today is not. A held habit paints `held` the moment it is checked off, while
+ * one still open paints `future` and drops out of the count entirely — so
+ * counting today lets it into the numerator without ever letting it into the
+ * denominator. That is not a rounding error, it is a one-sided estimator: the
+ * rate can only ever be flattered by it, and unchecking a habit shortens
+ * nothing because the cell goes back to `future` rather than to `missed`.
+ *
+ * Excluding the whole day is the only version that is honest in both
+ * directions. `endOn` is passed rather than read from the clock so the maths
+ * stays testable.
  */
-export function wallRate(weeks: WallWeek[]): number {
+function settled(cell: WallCell, endOn: string): boolean {
+  if (cell.state === 'rest' || cell.state === 'future') return false;
+  return cell.day < endOn;
+}
+
+/**
+ * Held share of the days that actually came due inside the wall — the "% of
+ * days" under each tile. Rest, future and today are excluded from both halves,
+ * so a weekday habit is scored out of settled weekdays.
+ */
+export function wallRate(weeks: WallWeek[], endOn: string = dateKey()): number {
   let held = 0;
   let due = 0;
   for (const week of weeks) {
     for (const cell of week.cells) {
-      if (cell.state === 'rest' || cell.state === 'future') continue;
+      if (!settled(cell, endOn)) continue;
       due += 1;
       if (cell.state === 'held') held += 1;
     }
@@ -114,12 +133,12 @@ export function wallRate(weeks: WallWeek[]): number {
  * the week is where my streaks die", which is the only question a shape like
  * that is actually good at.
  */
-export function weekdayShape(weeks: WallWeek[]): number[] {
+export function weekdayShape(weeks: WallWeek[], endOn: string = dateKey()): number[] {
   const held = new Array(7).fill(0);
   const due = new Array(7).fill(0);
   for (const week of weeks) {
     for (const cell of week.cells) {
-      if (cell.state === 'rest' || cell.state === 'future') continue;
+      if (!settled(cell, endOn)) continue;
       const index = weekdayIndex(cell.day);
       due[index] += 1;
       if (cell.state === 'held') held[index] += 1;
