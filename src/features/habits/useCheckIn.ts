@@ -100,5 +100,22 @@ export function useCheckIn(perfectCount: number) {
     [clearEntry],
   );
 
-  return { hold, freeze, repair, skip, clear, tokens };
+  /**
+   * Taking today's answer back from the row itself, rather than from a toast
+   * that has already gone. Lighter haptic than the check-in on purpose: undoing
+   * is a correction, and it should not feel like an achievement.
+   *
+   * Only ever reached for a held or set-aside day — `canUndoToday` is what
+   * decides that, and a frozen or repaired day never offers the gesture.
+   */
+  const undo = useCallback(
+    async (habit: Habit) => {
+      if (Platform.OS !== 'web') void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+      await clearEntry.mutateAsync({ habitId: habit.id });
+      say(`${habit.name} back on today.`);
+    },
+    [clearEntry, say],
+  );
+
+  return { hold, freeze, repair, skip, clear, undo, tokens };
 }

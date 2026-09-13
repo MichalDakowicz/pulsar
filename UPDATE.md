@@ -22,4 +22,5 @@
 - Reminders: a streak warning at 21:00 that reads your pledge back to you
 - Settings: how hard pulsar pushes, follow-ups, streak warnings and quiet hours
 - Tapping a reminder opens the habit; tapping a streak warning opens the rescue screen
+- Today: swipe a checked-off row back the other way to undo it, in either check-in mode
 - Settings: privacy and theme, shared with radar, lidar and sonar

@@ -4,7 +4,7 @@ import { useEntries } from '@/features/habits/useEntries';
 import { useHabits } from '@/features/habits/useHabits';
 import { useTokens } from '@/features/habits/useTokens';
 import { addDays, dateKey, hoursToMidnight } from '@/lib/dates';
-import { dayProgress, dayState, effectiveRule } from '@/lib/habit';
+import { canUndoToday, dayProgress, dayState, effectiveRule } from '@/lib/habit';
 import { hasRebuilt, isPerfectToday, perfectDays, type HabitSchedule } from '@/lib/perfect';
 import { isTargetDay } from '@/lib/schedule';
 import { computeStreak, hitRate, isAtRisk, repairableDays, type EntryMap, type StreakResult } from '@/lib/streak';
@@ -45,6 +45,8 @@ export type HabitBoard = {
   resting: BoardHabit[];
   dueCount: number;
   doneCount: number;
+  /** Rows whose answer can still be taken back for free — drives the undo hint. */
+  undoableCount: number;
   /** The one habit whose streak can still be saved tonight, or null. */
   atRisk: BoardHabit | null;
   bestStreak: number;
@@ -142,6 +144,7 @@ export function useHabitBoard(): HabitBoard {
     resting,
     dueCount: open.length + done.length,
     doneCount: done.filter((row) => row.today === 'held' || row.today === 'repaired').length,
+    undoableCount: done.filter((row) => canUndoToday(row.today)).length,
     atRisk,
     bestStreak: rows.reduce((max, row) => Math.max(max, row.streak.best, row.streak.current), 0),
     longestLive: rows.reduce((max, row) => Math.max(max, row.streak.current), 0),

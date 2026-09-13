@@ -16,6 +16,7 @@ import { useHabitSettings } from '@/hooks/useHabitSettings';
 import { useNavBarSpace } from '@/hooks/useNavBarSpace';
 import { MAX_W } from '@/hooks/useResponsive';
 import { dateKey, formatDayLong } from '@/lib/dates';
+import { canUndoToday, todayHint } from '@/lib/habit';
 import { TOKEN_CAP } from '@/lib/tokens';
 import { readError } from '@/lib/utils';
 
@@ -119,15 +120,11 @@ export default function TodayScreen() {
             <View className="border-y border-border/50 px-4 py-5">
               <SectionHeader
                 title="today"
-                // The hint describes the gesture that is actually wired up, and
-                // disappears once there is nothing left to check off.
-                meta={
-                  board.open.length === 0
-                    ? undefined
-                    : settings.checkinMode === 'hold'
-                      ? 'press and hold a row'
-                      : 'swipe a row across'
-                }
+                // The hint describes the gesture that is actually wired up. Once
+                // everything is checked off the only gesture left is the one
+                // that takes it back, so the hint becomes that rather than
+                // vanishing — which is when people most want it.
+                meta={todayHint(settings.checkinMode, board.open.length, board.undoableCount)}
               />
 
               {board.dueCount === 0 ? (
@@ -144,6 +141,7 @@ export default function TodayScreen() {
                       onOpen={() => router.navigate(`/habit/${row.habit.id}`)}
                       onHold={() => void checkIn.hold(row.habit, row.streak.current + 1)}
                       onSkip={row.today === 'due' ? () => void checkIn.skip(row.habit) : undefined}
+                      onUndo={canUndoToday(row.today) ? () => void checkIn.undo(row.habit) : undefined}
                     />
                   ))}
                 </View>

@@ -27,6 +27,11 @@ type HabitRowProps = {
   onOpen: () => void;
   /** Only passed on a row that can still be set aside, so the control can vanish. */
   onSkip?: () => void;
+  /**
+   * Only passed on a row whose answer can be taken back for free — see
+   * `canUndoToday`. A frozen or repaired day spent a token and is not one.
+   */
+  onUndo?: () => void;
 };
 
 /**
@@ -37,10 +42,12 @@ type HabitRowProps = {
  * one and the row shows only that one's affordance — a row that says "swipe"
  * and also responds to a long press is a row nobody trusts.
  *
- * A resolved row is inert. There is nothing to swipe, the fill is already full,
- * and the only control left is the one that opens the habit.
+ * Undo is the same gesture backwards, and it is offered in both modes: it is a
+ * different action rather than a second way to check in, so it competes with
+ * nothing, and without it someone in hold mode has to open the habit to take
+ * back a mis-tap.
  */
-export function HabitRow({ row, mode, onHold, onOpen, onSkip }: HabitRowProps) {
+export function HabitRow({ row, mode, onHold, onOpen, onSkip, onUndo }: HabitRowProps) {
   const { habit, streak, today } = row;
   const resolved = today !== 'due';
   const dx = useSharedValue(0);
@@ -70,22 +77,36 @@ export function HabitRow({ row, mode, onHold, onOpen, onSkip }: HabitRowProps) {
     }, 30);
   }, [resolved, mode, stopHold, onHold]);
 
+  // A resolved row travels the other way, and only if its answer was free to
+  // give back. Holding it in one const keeps the gesture, the fill and the hint
+  // from disagreeing about which direction this row moves in.
+  const undo = resolved ? onUndo : undefined;
+
   const pan = Gesture.Pan()
-    .enabled(!resolved && mode === 'swipe')
-    .activeOffsetX(12)
+    .enabled(!!undo || (!resolved && mode === 'swipe'))
+    .activeOffsetX(undo ? [-12, 12] : 12)
     .failOffsetY([-10, 10])
     .onUpdate((event) => {
-      dx.value = Math.max(0, Math.min(MAX_PX, event.translationX));
+      dx.value = undo
+        ? Math.min(0, Math.max(-MAX_PX, event.translationX))
+        : Math.max(0, Math.min(MAX_PX, event.translationX));
     })
     .onEnd(() => {
-      if (dx.value > COMMIT_PX) runOnJS(onHold)();
+      if (undo) {
+        if (dx.value < -COMMIT_PX) runOnJS(undo)();
+      } else if (dx.value > COMMIT_PX) {
+        runOnJS(onHold)();
+      }
       dx.value = withTiming(0, { duration: 180 });
     });
 
   const slideStyle = useAnimatedStyle(() => ({ transform: [{ translateX: dx.value }] }));
-  const fillStyle = useAnimatedStyle(() => ({
-    width: resolved ? '100%' : `${Math.min(100, (dx.value / COMMIT_PX) * 100)}%`,
-  }));
+  const fillStyle = useAnimatedStyle(() => {
+    // Checking in fills the row; undoing drains the fill it left behind, so the
+    // gesture visibly runs the same bar backwards.
+    if (!resolved) return { width: `${Math.min(100, (dx.value / COMMIT_PX) * 100)}%` };
+    return { width: `${Math.max(0, 100 - (Math.abs(dx.value) / COMMIT_PX) * 100)}%` };
+  });
 
   const held = today === 'held' || today === 'repaired';
   const frozen = today === 'frozen';
@@ -119,7 +140,9 @@ export function HabitRow({ row, mode, onHold, onOpen, onSkip }: HabitRowProps) {
           <Pressable
             accessibilityRole="button"
             accessibilityLabel={
-              resolved ? `${habit.name}, done` : `${habit.name}, ${mode === 'hold' ? 'hold to check in' : 'swipe right to check in'}`
+              resolved
+                ? `${habit.name}, done${undo ? ', swipe left to undo' : ''}`
+                : `${habit.name}, ${mode === 'hold' ? 'hold to check in' : 'swipe right to check in'}`
             }
             accessibilityHint="double tap to open the habit"
             onPress={onOpen}
@@ -156,6 +179,9 @@ export function HabitRow({ row, mode, onHold, onOpen, onSkip }: HabitRowProps) {
                 {mode === 'hold' ? 'hold' : 'swipe'}
               </Text>
             )}
+            {/* The affordance sits in the same slot as the check-in hint, so a
+                resolved row says how to take it back rather than looking inert. */}
+            {undo && <Text className="text-xs font-semibold text-muted-foreground">undo</Text>}
           </Pressable>
         </Animated.View>
       </GestureDetector>

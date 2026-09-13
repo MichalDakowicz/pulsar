@@ -94,6 +94,31 @@ export function dayState(
 }
 
 /**
+ * Whether today's answer can simply be taken back.
+ *
+ * Only the two that cost nothing. A freeze and a repair each spent a token, and
+ * the token is gone — offering to un-spend it would be a lie about what the
+ * ledger did, which is the same reason the check-in toast never offers Undo on
+ * them. A day that is still `due` or a `rest` day has nothing to undo.
+ */
+export function canUndoToday(state: EntryState | 'due' | 'rest'): boolean {
+  return state === 'held' || state === 'skipped';
+}
+
+/**
+ * The gesture hint under the Today heading.
+ *
+ * It names only a gesture that will actually work right now: no undoable row
+ * means no undo hint, and a day with nothing left open drops the check-in half
+ * rather than telling someone to swipe rows that are all already done.
+ */
+export function todayHint(mode: 'swipe' | 'hold', open: number, undoable: number): string | undefined {
+  const checkIn = open > 0 ? (mode === 'hold' ? 'press and hold a row' : 'swipe a row across') : null;
+  const undo = undoable > 0 ? 'swipe a done row back to undo' : null;
+  return [checkIn, undo].filter(Boolean).join(' · ') || undefined;
+}
+
+/**
  * A challenge that has run its course. The habit stops asking and the detail
  * screen offers to extend it rather than quietly continuing to count, which
  * would make "66-day challenge" a label with no end.
