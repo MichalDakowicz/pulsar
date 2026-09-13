@@ -148,7 +148,7 @@ export function Toggle({
 // `textAlignVertical: 'auto'`, so text visibly sits low in a fixed-height field.
 // NativeWind's `text-sm` also emits a lineHeight that clips descenders once
 // includeFontPadding is off, so the size lives here rather than in the caller.
-const ANDROID_METRICS =
+export const ANDROID_METRICS =
   Platform.OS === 'android' ? ({ includeFontPadding: false, textAlignVertical: 'center' } as const) : null;
 
 type FieldProps = TextInputProps & {
