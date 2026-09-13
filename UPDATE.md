@@ -4,6 +4,7 @@
 
 ### Added
 
+- A pulsar scope for a mark, the same ring and blip radar, lidar and sonar wear
 - Sign in with google, or with the email and password you already use in the other three
 - Today: check a habit off with a swipe or a press and hold, and undo it from the toast
 - Today: a ring that counts only the habits actually due today, so a rest day is not a miss
