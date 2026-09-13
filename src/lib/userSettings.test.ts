@@ -10,17 +10,21 @@ describe('normalizeShared', () => {
     expect(normalizeShared(null)).toEqual(DEFAULT_SHARED_SETTINGS);
   });
 
-  it('reads the Radar streak snapshot without owning it', () => {
+  it('reads both sibling streak snapshots without owning either', () => {
     const settings = normalizeShared({
       theme: 'light',
       friends_visibility: 'public',
       current_streak: 12,
       streak_updated_at: '2026-09-11T18:00:00Z',
+      lidar_streak: 9,
+      lidar_streak_updated_at: '2026-09-11T17:00:00Z',
       timezone: 'Europe/Warsaw',
     });
     expect(settings.theme).toBe('light');
     expect(settings.friendsVisibility).toBe('public');
     expect(settings.radarStreak).toBe(12);
+    expect(settings.lidarStreak).toBe(9);
+    expect(settings.lidarStreakUpdatedAt).toBe('2026-09-11T17:00:00Z');
   });
 
   it('rejects a visibility it does not recognise', () => {

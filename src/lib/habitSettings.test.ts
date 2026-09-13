@@ -17,7 +17,6 @@ describe('normalizeHabitSettings', () => {
       quiet_start: null,
       quiet_end: null,
       checkin_mode: null,
-      reading_weekly_goal: null,
       show_sibling_streaks: null,
       onboarded_at: null,
     });

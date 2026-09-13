@@ -30,7 +30,9 @@ function settingsKey(userId: string | undefined) {
 async function fetchSettings(userId: string): Promise<SharedSettings> {
   const { data, error } = await supabase
     .from('user_settings')
-    .select('theme, friends_visibility, current_streak, streak_updated_at, timezone')
+    .select(
+      'theme, friends_visibility, current_streak, streak_updated_at, lidar_streak, lidar_streak_updated_at, timezone',
+    )
     .eq('user_id', userId)
     .maybeSingle();
   if (error) throw error;

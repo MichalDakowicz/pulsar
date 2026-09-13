@@ -17,7 +17,6 @@ are the siblings' halves, and say the same things.
 | `public.friendships`                                                                 | Radar | Read only. A pact requires one, and the insert policy checks it.              |
 | `public.friend_requests`                                                             | Radar | Not used — Pulsar has no friend-management surface of its own.                |
 | `public.user_settings`                                                               | Radar | Reads the row; writes **only** `friends_visibility` and `theme`.              |
-| `public.book_progress`, `public.book_reads`                                          | Lidar | Read, own rows only, to derive the cross-app reading streak. Never written.   |
 | `private.can_view(uuid)`                                                             | Radar | Every Pulsar shelf-read policy calls it.                                      |
 
 Consequences worth stating plainly, because they are user-visible:
@@ -44,13 +43,19 @@ directions and one-way by design**:
   emit `theme` and `friends_visibility`, so this is enforced rather than remembered.
   A snapshot older than 48 hours is hidden rather than shown, because by then it may
   describe a streak that is already over.
-- **Lidar** publishes nothing. Its weekly-pages streak is computed on the device and its
-  goal lives in device-local MMKV, so there is no row for Pulsar to read. Pulsar derives
-  the figure instead, from the page ledger Lidar does write (`book_progress`, plus
-  `book_reads` for untracked finishes), using Lidar's own rule ported into
-  `src/lib/siblingStreaks.ts`. The goal it is scored against is a setting in Pulsar,
-  defaulting to Lidar's own default of 150 pages a week — an approximation with a dial,
-  which is the honest version of not knowing.
+- **Lidar** publishes its own figure to `user_settings.lidar_streak` and
+  `lidar_streak_updated_at`, added by Lidar's `supabase/schema.sql`. Pulsar reads those
+  two columns and never writes them, exactly as with Radar's, and ages them out on the
+  same 48-hour rule.
+
+  Pulsar used to derive this instead, porting Lidar's rule into `siblingStreaks.ts` and
+  reading `book_progress` and `book_reads` directly. That could not be correct: the
+  streak is pages per week against a threshold **and** a reset epoch that both live in
+  Lidar's device MMKV, so a streak reset in Lidar still showed as running here, and the
+  threshold was a number Pulsar asked the user to retype. The derivation, the two table
+  reads and the `readingWeeklyGoal` setting are all gone — asking Lidar is the only
+  honest version. `habit_settings.reading_weekly_goal` stays in the schema unused, since
+  that file never drops a column.
 - **Sonar** contributes nothing yet. When it starts publishing a streak, add it to
   `SIBLING_LABELS` and the strip picks it up.
 

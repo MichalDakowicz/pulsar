@@ -23,6 +23,9 @@ export type SharedSettings = {
   /** Radar's. Read-only. */
   radarStreak: number;
   radarStreakUpdatedAt: string | null;
+  /** Lidar's. Read-only — Lidar is the only writer of these two. */
+  lidarStreak: number;
+  lidarStreakUpdatedAt: string | null;
   timezone: string;
 };
 
@@ -31,6 +34,8 @@ export type SharedSettingsRow = {
   friends_visibility: string | null;
   current_streak: number | null;
   streak_updated_at: string | null;
+  lidar_streak: number | null;
+  lidar_streak_updated_at: string | null;
   timezone: string | null;
 };
 
@@ -42,6 +47,8 @@ export const DEFAULT_SHARED_SETTINGS: SharedSettings = {
   friendsVisibility: 'friends',
   radarStreak: 0,
   radarStreakUpdatedAt: null,
+  lidarStreak: 0,
+  lidarStreakUpdatedAt: null,
   timezone: 'UTC',
 };
 
@@ -56,6 +63,8 @@ export function normalizeShared(row: SharedSettingsRow | null | undefined): Shar
     friendsVisibility: visibility(row.friends_visibility),
     radarStreak: typeof row.current_streak === 'number' ? row.current_streak : 0,
     radarStreakUpdatedAt: row.streak_updated_at ?? null,
+    lidarStreak: typeof row.lidar_streak === 'number' ? row.lidar_streak : 0,
+    lidarStreakUpdatedAt: row.lidar_streak_updated_at ?? null,
     timezone: row.timezone ?? DEFAULT_SHARED_SETTINGS.timezone,
   };
 }
