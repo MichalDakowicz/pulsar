@@ -129,7 +129,7 @@ export function BuilderScreen({ initial, habitId }: BuilderScreenProps) {
             commitment, not after it. */}
         <View className="px-4 pt-4">
           <Overline>preview</Overline>
-          <View className="mt-2 flex-row items-center gap-3 rounded-xl border-l-4 border-l-primary bg-secondary p-3">
+          <View className="mt-2 flex-row items-center gap-3 rounded-xl bg-secondary p-3">
             <View className="h-10 w-10 items-center justify-center rounded-lg bg-primary">
               <Mark mark={state.mark} size={22} color={COLORS.accentInk} />
             </View>

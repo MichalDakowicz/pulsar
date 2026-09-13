@@ -89,12 +89,15 @@ export function HabitRow({ row, mode, onHold, onOpen, onSkip }: HabitRowProps) {
 
   const held = today === 'held' || today === 'repaired';
   const frozen = today === 'frozen';
-  const edge = held ? COLORS.accent : row.atRisk ? COLORS.danger : 'transparent';
 
+  // No rule down the edge (PING.md §6): the ground carries the state. `held`
+  // already says itself three times over - the accent tile, the tick and the
+  // streak count - so only a streak on the line changes the ground, in the same
+  // tint RiskBanner uses.
   return (
     <View
       className="overflow-hidden rounded-xl bg-secondary"
-      style={{ borderLeftWidth: 4, borderLeftColor: edge }}
+      style={row.atRisk ? { backgroundColor: COLORS.dangerSoft } : null}
     >
       {/* The travelled distance, painted behind the row so the gesture has a
           progress bar rather than just a position. */}
