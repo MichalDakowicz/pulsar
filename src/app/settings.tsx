@@ -10,7 +10,6 @@ import { SheetDialog } from '@/components/ui/SheetDialog';
 import { useToast } from '@/components/ui/Toast';
 import { signOut } from '@/features/auth/authActions';
 import { RemindersControl } from '@/features/settings/RemindersControl';
-import { SiblingGoalControl } from '@/features/settings/SiblingGoalControl';
 import { useHabitSettings } from '@/hooks/useHabitSettings';
 import { useNavBarSpace } from '@/hooks/useNavBarSpace';
 import { MAX_W } from '@/hooks/useResponsive';
@@ -89,8 +88,6 @@ export default function Settings() {
             value={habitSettings.showSiblingStreaks}
             onChange={(value) => void updateHabitSettings({ showSiblingStreaks: value })}
           />
-          {/* The reading goal only matters when the strip that uses it is on. */}
-          {habitSettings.showSiblingStreaks && <SiblingGoalControl />}
         </View>
 
         <View className="mt-2 border-t border-border/50 px-4">

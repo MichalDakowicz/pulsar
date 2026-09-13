@@ -1,5 +1,6 @@
 import type { Cadence } from '@/lib/schedule';
 import type { EntryMap } from '@/lib/streak';
+import { weekdayIndex } from '@/lib/dates';
 import { buildWall, flattenByDay, wallRate, weekdayShape } from '@/lib/wall';
 
 const DAILY: Cadence = { kind: 'daily' };
@@ -76,11 +77,13 @@ describe('wallRate', () => {
     };
     // Friday missed, weekend is rest, so 4 of 5 rather than 4 of 7.
     const weeks = buildWall(entries, WEEKDAYS, { weeks: 1, endOn: '2026-09-13' });
-    expect(wallRate(weeks)).toBe(80);
+    expect(wallRate(weeks, '2026-09-13')).toBe(80);
   });
 
   it('is zero when nothing has come due', () => {
-    expect(wallRate(buildWall({}, DAILY, { weeks: 1, endOn: '2026-09-07', startedOn: '2026-09-07' }))).toBe(0);
+    expect(
+      wallRate(buildWall({}, DAILY, { weeks: 1, endOn: '2026-09-07', startedOn: '2026-09-07' }), '2026-09-07'),
+    ).toBe(0);
   });
 });
 
@@ -88,8 +91,38 @@ describe('weekdayShape', () => {
   it('reports a held rate per weekday', () => {
     const entries: EntryMap = { '2026-09-07': 'held', '2026-09-14': 'held' };
     const weeks = buildWall(entries, DAILY, { weeks: 2, endOn: '2026-09-20' });
-    const shape = weekdayShape(weeks);
+    const shape = weekdayShape(weeks, '2026-09-20');
     expect(shape[0]).toBe(1);
     expect(shape[1]).toBe(0);
+  });
+
+  // The bug: a habit held today painted `held` and counted, while one still
+  // open painted `future` and vanished from the denominator — so today's arm
+  // read 1/1 while an identical yesterday read 1/2, and came out twice as long.
+  it('leaves today out, so a half-finished day cannot outrank a finished one', () => {
+    const today = '2026-09-13';
+    const yesterday = '2026-09-12';
+    // Two daily habits. One is kept on both days; the other was missed
+    // yesterday and is still open today — so each day is honestly 1 of 2.
+    const kept = buildWall({ [yesterday]: 'held', [today]: 'held' }, DAILY, { weeks: 1, endOn: today });
+    const neglected = buildWall({}, DAILY, { weeks: 1, endOn: today });
+    const shape = weekdayShape([...kept, ...neglected], today);
+
+    // Yesterday is settled and scores what Today said it did: 1 of 2.
+    expect(shape[weekdayIndex(yesterday)]).toBe(0.5);
+    // Today is 1 of 2 as well, but it is not over, so it scores nothing at all
+    // rather than the 1 of 1 that made its arm twice as long as yesterday's.
+    expect(shape[weekdayIndex(today)]).toBe(0);
+  });
+
+  it('is unmoved by checking today off and undoing it again', () => {
+    const today = '2026-09-13';
+    const history: EntryMap = { '2026-09-07': 'held', '2026-09-08': 'held' };
+    const before = weekdayShape(buildWall(history, DAILY, { weeks: 2, endOn: today }), today);
+    const after = weekdayShape(
+      buildWall({ ...history, [today]: 'held' }, DAILY, { weeks: 2, endOn: today }),
+      today,
+    );
+    expect(after).toEqual(before);
   });
 });
