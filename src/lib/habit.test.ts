@@ -1,5 +1,6 @@
 import {
   canFreeze,
+  canUndoToday,
   challengeComplete,
   dayProgress,
   dayState,
@@ -8,6 +9,7 @@ import {
   hasReminders,
   meetsTarget,
   targetLabel,
+  todayHint,
 } from '@/lib/habit';
 import { cadenceLabel, type Cadence } from '@/lib/schedule';
 import type { Habit } from '@/types/habit';
@@ -101,6 +103,44 @@ describe('dayState', () => {
 
   it('reports what the entry says', () => {
     expect(dayState({ cadence: weekdays, archivedAt: null }, { '2026-09-11': 'frozen' }, '2026-09-11')).toBe('frozen');
+  });
+});
+
+describe('canUndoToday', () => {
+  it('takes back the two answers that cost nothing', () => {
+    expect(canUndoToday('held')).toBe(true);
+    expect(canUndoToday('skipped')).toBe(true);
+  });
+
+  it('refuses the two that spent a token', () => {
+    expect(canUndoToday('frozen')).toBe(false);
+    expect(canUndoToday('repaired')).toBe(false);
+  });
+
+  it('has nothing to undo on an open or resting day', () => {
+    expect(canUndoToday('due')).toBe(false);
+    expect(canUndoToday('rest')).toBe(false);
+  });
+});
+
+describe('todayHint', () => {
+  it('names the check-in gesture the setting actually picked', () => {
+    expect(todayHint('swipe', 2, 0)).toBe('swipe a row across');
+    expect(todayHint('hold', 2, 0)).toBe('press and hold a row');
+  });
+
+  it('adds the undo half only once a row can be taken back', () => {
+    expect(todayHint('swipe', 2, 1)).toBe('swipe a row across · swipe a done row back to undo');
+  });
+
+  it('keeps the undo hint after the last row is checked off', () => {
+    expect(todayHint('swipe', 0, 3)).toBe('swipe a done row back to undo');
+    expect(todayHint('hold', 0, 3)).toBe('swipe a done row back to undo');
+  });
+
+  it('says nothing when no gesture would work', () => {
+    // Every row frozen or repaired: resolved, but none of it is free to undo.
+    expect(todayHint('swipe', 0, 0)).toBeUndefined();
   });
 });
 
