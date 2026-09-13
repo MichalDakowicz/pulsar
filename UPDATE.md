@@ -17,4 +17,9 @@
 - Streaks: freeze tokens, one earned every 14 perfect days, capped at three
 - Social: pacts — one habit each with a friend, both sides visible, either side can end it
 - Stats: the week, your weakest weekday, and a hit rate per habit
+- Reminders: habits with a time now actually nudge you, on the schedule you set them
+- Reminders: a habit you have already checked off today goes quiet for the rest of the day
+- Reminders: a streak warning at 21:00 that reads your pledge back to you
+- Settings: how hard pulsar pushes, follow-ups, streak warnings and quiet hours
+- Tapping a reminder opens the habit; tapping a streak warning opens the rescue screen
 - Settings: privacy and theme, shared with radar, lidar and sonar

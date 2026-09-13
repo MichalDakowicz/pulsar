@@ -9,6 +9,7 @@ import { Overline, Segmented, SwitchRow } from '@/components/ui/controls';
 import { SheetDialog } from '@/components/ui/SheetDialog';
 import { useToast } from '@/components/ui/Toast';
 import { signOut } from '@/features/auth/authActions';
+import { RemindersControl } from '@/features/settings/RemindersControl';
 import { SiblingGoalControl } from '@/features/settings/SiblingGoalControl';
 import { useHabitSettings } from '@/hooks/useHabitSettings';
 import { useNavBarSpace } from '@/hooks/useNavBarSpace';
@@ -78,6 +79,8 @@ export default function Settings() {
           />
           <Text className="text-xs text-muted-foreground">shared with the other three apps, same as above.</Text>
         </View>
+
+        <RemindersControl />
 
         <View className="mt-7 border-t border-border/50 px-4">
           <SwitchRow

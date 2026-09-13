@@ -9,6 +9,7 @@ import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 import { ToastProvider } from '@/components/ui/Toast';
 import { AuthProvider, useAuth } from '@/features/auth/AuthProvider';
+import { ReminderSync } from '@/features/notifications/ReminderSync';
 import { queryClient } from '@/lib/queryClient';
 import { ThemeProvider } from '@/theme/ThemeProvider';
 
@@ -41,6 +42,7 @@ export default function RootLayout() {
             <ThemeProvider>
               <ToastProvider>
                 <AuthGate>
+                  <ReminderSync />
                   <Stack screenOptions={{ headerShown: false }} />
                 </AuthGate>
               </ToastProvider>
