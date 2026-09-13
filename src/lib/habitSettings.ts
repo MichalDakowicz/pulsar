@@ -1,5 +1,3 @@
-import { DEFAULT_WEEKLY_PAGES } from '@/lib/siblingGoals';
-
 /**
  * Pulsar's own preferences, in Pulsar's own table (`public.habit_settings`).
  *
@@ -36,8 +34,6 @@ export type HabitSettings = {
   quietStart: number;
   quietEnd: number;
   checkinMode: CheckinMode;
-  /** Pages a week Lidar's streak is scored against, for the cross-app strip. */
-  readingWeeklyGoal: number;
   /** Show the cross-app streak strip on Today at all. */
   showSiblingStreaks: boolean;
   onboardedAt: string | null;
@@ -52,7 +48,6 @@ export type HabitSettingsRow = {
   quiet_start: number | null;
   quiet_end: number | null;
   checkin_mode: string | null;
-  reading_weekly_goal: number | null;
   show_sibling_streaks: boolean | null;
   onboarded_at: string | null;
 };
@@ -66,7 +61,6 @@ export const DEFAULT_HABIT_SETTINGS: HabitSettings = {
   quietStart: 23,
   quietEnd: 7,
   checkinMode: 'swipe',
-  readingWeeklyGoal: DEFAULT_WEEKLY_PAGES,
   showSiblingStreaks: true,
   onboardedAt: null,
 };
@@ -93,7 +87,6 @@ export function normalizeHabitSettings(row: HabitSettingsRow | null | undefined)
     quietStart: num(row.quiet_start, DEFAULT_HABIT_SETTINGS.quietStart),
     quietEnd: num(row.quiet_end, DEFAULT_HABIT_SETTINGS.quietEnd),
     checkinMode: row.checkin_mode === 'hold' ? 'hold' : 'swipe',
-    readingWeeklyGoal: num(row.reading_weekly_goal, DEFAULT_HABIT_SETTINGS.readingWeeklyGoal),
     showSiblingStreaks: bool(row.show_sibling_streaks, DEFAULT_HABIT_SETTINGS.showSiblingStreaks),
     onboardedAt: row.onboarded_at ?? null,
   };
@@ -109,7 +102,6 @@ export function habitSettingsToRow(patch: Partial<HabitSettings>): Record<string
   if (patch.quietStart !== undefined) row.quiet_start = patch.quietStart;
   if (patch.quietEnd !== undefined) row.quiet_end = patch.quietEnd;
   if (patch.checkinMode !== undefined) row.checkin_mode = patch.checkinMode;
-  if (patch.readingWeeklyGoal !== undefined) row.reading_weekly_goal = patch.readingWeeklyGoal;
   if (patch.showSiblingStreaks !== undefined) row.show_sibling_streaks = patch.showSiblingStreaks;
   if (patch.onboardedAt !== undefined) row.onboarded_at = patch.onboardedAt;
   return row;
