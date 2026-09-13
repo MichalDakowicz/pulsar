@@ -54,7 +54,9 @@ await render(sharp, logo, { size: 1024, pad: 0.18, background: BACKGROUND, out: 
 await render(sharp, logo, { size: 1024, pad: 0.28, out: 'android-icon-foreground.png' });
 await render(sharp, mono, { size: 1024, pad: 0.28, out: 'android-icon-monochrome.png' });
 await render(sharp, logo, { size: 512, pad: 0.1, out: 'splash-icon.png' });
-await render(sharp, logo, { size: 64, pad: 0.08, background: BACKGROUND, out: 'favicon.png' });
+// The favicon stays transparent so the mark sits on the browser's own tab
+// colour instead of a black square in a light theme.
+await render(sharp, logo, { size: 64, pad: 0.08, out: 'favicon.png' });
 
 // The web build wants a real file rather than a data URI here.
 await writeFile(join(images, '.gitkeep'), '');
