@@ -28,11 +28,18 @@ function settingsKey(userId: string | undefined) {
 }
 
 async function fetchSettings(userId: string): Promise<SharedSettings> {
+  // `*`, not a column list, and the reason is that this table is not Pulsar's.
+  // Radar owns it and Lidar adds to it, each on their own release schedule, so
+  // naming a column here is a promise that every sibling's migration has been
+  // run against this database. It has not always been: asking for a column that
+  // does not exist yet fails the whole request, which would take the theme and
+  // the privacy switch down with a streak figure nobody would miss.
+  //
+  // Reading wide is safe because writing stays narrow — `settingsToRow` can
+  // only ever emit `theme` and `friends_visibility`, whatever arrives here.
   const { data, error } = await supabase
     .from('user_settings')
-    .select(
-      'theme, friends_visibility, current_streak, streak_updated_at, lidar_streak, lidar_streak_updated_at, timezone',
-    )
+    .select('*')
     .eq('user_id', userId)
     .maybeSingle();
   if (error) throw error;
