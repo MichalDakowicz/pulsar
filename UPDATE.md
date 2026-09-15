@@ -4,6 +4,7 @@
 
 ### Added
 
+- Today: a today / yesterday switch, so an avoid habit is answered under the day it is about
 - Builder: pick a habit that runs n times a week — any days, the week is what adds up
 - Streaks: a weekly habit only breaks on a week that finished short, never on a quiet day
 - Today: swipe the radar streak to turn it over between films and episodes

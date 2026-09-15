@@ -39,6 +39,13 @@ type HabitRowProps = {
   onDid?: () => void;
   /** Whether today already carries a slip, so the control offers to take it back. */
   didToday?: boolean;
+  /**
+   * False when whatever is above the row already names the day it is about —
+   * the day switch on Today does. A row under a heading that says "yesterday"
+   * repeating the word on every line is noise, and noise on the one screen
+   * that has to work in four seconds is expensive.
+   */
+  namesDay?: boolean;
 };
 
 /**
@@ -54,7 +61,17 @@ type HabitRowProps = {
  * nothing, and without it someone in hold mode has to open the habit to take
  * back a mis-tap.
  */
-export function HabitRow({ row, mode, onHold, onOpen, onSkip, onUndo, onDid, didToday }: HabitRowProps) {
+export function HabitRow({
+  row,
+  mode,
+  onHold,
+  onOpen,
+  onSkip,
+  onUndo,
+  onDid,
+  didToday,
+  namesDay = true,
+}: HabitRowProps) {
   const { habit, streak, today } = row;
   const resolved = today !== 'due';
   const dx = useSharedValue(0);
@@ -171,7 +188,7 @@ export function HabitRow({ row, mode, onHold, onOpen, onSkip, onUndo, onDid, did
                 {habit.name}
               </Text>
               <Text className="text-xs text-muted-foreground" numberOfLines={1}>
-                {rowMeta(row)}
+                {rowMeta(row, namesDay)}
               </Text>
             </View>
 
@@ -210,7 +227,7 @@ export function HabitRow({ row, mode, onHold, onOpen, onSkip, onUndo, onDid, did
               className="flex-1 py-2"
             >
               <Text className="text-center text-[11px] font-semibold text-muted-foreground">
-                not today
+                {row.asksYesterday ? 'set it aside' : 'not today'}
               </Text>
             </Pressable>
           )}
@@ -235,18 +252,23 @@ export function HabitRow({ row, mode, onHold, onOpen, onSkip, onUndo, onDid, did
   );
 }
 
-function rowMeta(row: BoardHabit): string {
+function rowMeta(row: BoardHabit, namesDay: boolean): string {
   const { habit, streak, today, amount, asksYesterday } = row;
   // An avoid row is answering a day that has already ended, and saying so is the
   // whole point of moving it: "clean day" with no day named reads as a promise
-  // about the next sixteen hours.
-  const when = asksYesterday ? 'yesterday' : null;
+  // about the next sixteen hours. Unless something above it has already said
+  // which day this is, in which case repeating it on every row is noise.
+  const when = asksYesterday && namesDay ? 'yesterday' : null;
   if (today === 'held' || today === 'repaired') {
     return [when && `${when} held`, `${streak.current} day streak`].filter(Boolean).join(' · ');
   }
   if (today === 'frozen') return `frozen · streak held at ${streak.current}`;
-  if (today === 'skipped') return when ? `${when} set aside` : 'set aside for today';
+  if (today === 'skipped') {
+    if (when) return `${when} set aside`;
+    return asksYesterday ? 'set aside' : 'set aside for today';
+  }
   if (today === 'broke') return when ? `${when} broken · back to day one` : 'broken · back to day one';
+
   if (row.atRisk) return `${streak.current} days on the line`;
 
   const target = targetLabel(habit);

@@ -39,6 +39,20 @@ export type BoardHabit = {
   amounts: Record<string, number>;
 };
 
+/**
+ * One side of the day switch on Today: the rows it lists and the two counts the
+ * gesture hint is written from. Both tabs are computed here rather than
+ * filtered in the screen — a route file that partitions rows is a route file
+ * whose hint disagrees with its list.
+ */
+export type DayTab = {
+  rows: BoardHabit[];
+  /** Still unanswered, and so still swipeable. */
+  open: number;
+  /** Answered, and free to take back. */
+  undoable: number;
+};
+
 export type HabitBoard = {
   rows: BoardHabit[];
   /** Due today and not yet resolved, in sort order. */
@@ -47,6 +61,13 @@ export type HabitBoard = {
   done: BoardHabit[];
   /** Not due today at all. Collapsed on Today rather than listed as pending. */
   resting: BoardHabit[];
+  /** The rows answering today — everything that is not an avoid habit. */
+  todayTab: DayTab;
+  /**
+   * The rows answering yesterday. Avoid habits only, and empty on an account
+   * that has none — which is why Today only grows the switch when it is not.
+   */
+  yesterdayTab: DayTab;
   dueCount: number;
   doneCount: number;
   /** Rows whose answer can still be taken back for free — drives the undo hint. */
@@ -68,6 +89,24 @@ export type HabitBoard = {
   /** A failed read — most often the schema has not been applied yet. */
   error: unknown;
 };
+
+/**
+ * One side of the day switch. Split by the day the row is about, so an avoid
+ * habit leaves the today list entirely rather than sitting in it wearing a
+ * label that contradicts the heading above it.
+ *
+ * Module level rather than a closure in the hook: a function declared in the
+ * body that captures the row list is the shape the React Compiler gives up on,
+ * and it takes the memoization around it with it when it does.
+ */
+function dayTab(listed: BoardHabit[], asksYesterday: boolean): DayTab {
+  const rows = listed.filter((row) => row.asksYesterday === asksYesterday);
+  return {
+    rows,
+    open: rows.filter((row) => row.today === 'due').length,
+    undoable: rows.filter((row) => canUndoToday(row.today)).length,
+  };
+}
 
 export function useHabitBoard(): HabitBoard {
   const { active, loading: habitsLoading, error: habitsError } = useHabits();
@@ -144,6 +183,7 @@ export function useHabitBoard(): HabitBoard {
   );
   const resting = rows.filter((row) => row.today === 'rest');
 
+
   // The most valuable streak on the line, not the first one found — if only one
   // banner can be shown, it should be the one that costs most to lose.
   const atRisk = rows
@@ -158,11 +198,22 @@ export function useHabitBoard(): HabitBoard {
     [rows, today],
   );
 
+  // Open first, then answered: the thing still to do should not be below the
+  // thing already done. Computed after the memo above rather than before it —
+  // the React Compiler bails on the whole hook when it meets this between the
+  // filters and that `useMemo`, and takes its memoization with it.
+  const tabs = useMemo(() => {
+    const listed = [...rows].sort((a, b) => Number(b.today === 'due') - Number(a.today === 'due'));
+    return { today: dayTab(listed, false), yesterday: dayTab(listed, true) };
+  }, [rows]);
+
   return {
     rows,
     open,
     done,
     resting,
+    todayTab: tabs.today,
+    yesterdayTab: tabs.yesterday,
     dueCount: open.length + done.length,
     doneCount: done.filter((row) => row.today === 'held' || row.today === 'repaired').length,
     undoableCount: done.filter((row) => canUndoToday(row.today)).length,
