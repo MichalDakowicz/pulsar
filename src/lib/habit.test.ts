@@ -108,6 +108,14 @@ describe('dayState', () => {
   it('reports what the entry says', () => {
     expect(dayState({ cadence: weekdays, archivedAt: null }, { '2026-09-11': 'frozen' }, '2026-09-11')).toBe('frozen');
   });
+
+  it('reads an empty day on an avoid habit as held — the day it is asked about has ended', () => {
+    const avoid = { cadence: weekdays, archivedAt: null, kind: 'avoid' as const };
+    expect(dayState(avoid, {}, '2026-09-11')).toBe('held');
+    expect(dayState(avoid, { '2026-09-11': 'broke' }, '2026-09-11')).toBe('broke');
+    // A day it was never owed is still rest, not a day it came through.
+    expect(dayState(avoid, {}, '2026-09-12')).toBe('rest');
+  });
 });
 
 describe('canUndoToday', () => {

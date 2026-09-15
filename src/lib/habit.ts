@@ -1,7 +1,7 @@
 import { addDays } from '@/lib/dates';
 import { isTargetDayOn, type Phase } from '@/lib/phases';
 import { cadenceLabel, type Cadence } from '@/lib/schedule';
-import type { EntryMap, EntryState } from '@/lib/streak';
+import { silenceIsClean, type EntryMap, type EntryState } from '@/lib/streak';
 import type { Habit, HabitKind, NudgeWindow } from '@/types/habit';
 
 /**
@@ -105,15 +105,21 @@ export function asksAboutYesterday(habit: Pick<Habit, 'kind'>): boolean {
  * `rest` is the state the design had no word for and the app needs most: a day
  * the habit was never owed. Without it a Mon/Wed/Fri habit reads as "due" every
  * Tuesday, and the only way to clear it is to lie.
+ *
+ * `day` is the day the habit is being asked about — `judgedDay`, not the date.
+ * That is what makes the avoid case safe: the day handed in has already ended,
+ * so an empty one is a day come through rather than a day still running.
  */
 export function dayState(
-  habit: Pick<Habit, 'cadence' | 'archivedAt'> & { phases?: Phase[] },
+  habit: Pick<Habit, 'cadence' | 'archivedAt'> & { kind?: HabitKind; phases?: Phase[] },
   entries: EntryMap,
   day: string,
 ): EntryState | 'due' | 'rest' {
   if (habit.archivedAt) return 'rest';
   if (!isTargetDayOn(habit as { cadence: Cadence; phases?: Phase[] }, day)) return 'rest';
-  return entries[day] ?? 'due';
+  const logged = entries[day];
+  if (logged) return logged;
+  return silenceIsClean(habit) ? 'held' : 'due';
 }
 
 /**

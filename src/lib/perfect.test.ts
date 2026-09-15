@@ -99,7 +99,7 @@ describe('hasRebuilt', () => {
   });
 });
 
-describe('an avoid habit on the day still running', () => {
+describe('an avoid habit and the days it never answered', () => {
   const AVOID: HabitSchedule = {
     id: 'c',
     cadence: { kind: 'daily' },
@@ -120,8 +120,14 @@ describe('an avoid habit on the day still running', () => {
     expect(result.days).toEqual([]);
   });
 
-  it('still has to be held on a day that is already over', () => {
-    const entries = map({ c: { '2026-09-09': 'held' } });
+  it('counts an empty day that is already over — the slip is the only event', () => {
+    const entries = map({ c: {} });
+    const result = perfectDays([AVOID], entries, '2026-09-08', '2026-09-09');
+    expect(result.days).toEqual(['2026-09-08', '2026-09-09']);
+  });
+
+  it('drops only the day the slip was logged on', () => {
+    const entries = map({ c: { '2026-09-08': 'broke' } });
     const result = perfectDays([AVOID], entries, '2026-09-08', '2026-09-09');
     expect(result.days).toEqual(['2026-09-09']);
   });

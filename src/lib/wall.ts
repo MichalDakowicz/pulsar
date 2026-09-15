@@ -1,7 +1,7 @@
 import { addDays, dateKey, weekdayIndex, weekKey } from '@/lib/dates';
 import { cadenceOn, isTargetDayOn, type Phased } from '@/lib/phases';
 import { judgesByWeek, weeklyQuota, type Cadence } from '@/lib/schedule';
-import type { EntryMap } from '@/lib/streak';
+import { silenceIsClean, type EntryMap } from '@/lib/streak';
 
 /**
  * The wall — the grid of days behind every habit.
@@ -39,7 +39,7 @@ export type WallOptions = {
 
 export function buildWall(
   entries: EntryMap,
-  timeline: Phased & { cadence: Cadence },
+  timeline: Phased & { cadence: Cadence; kind?: string },
   options: WallOptions,
 ): WallWeek[] {
   const endOn = options.endOn ?? dateKey();
@@ -64,7 +64,7 @@ export function buildWall(
 
 function cellFor(
   entries: EntryMap,
-  timeline: Phased & { cadence: Cadence },
+  timeline: Phased & { cadence: Cadence; kind?: string },
   day: string,
   endOn: string,
   startedOn: string | undefined,
@@ -85,6 +85,10 @@ function cellFor(
   if (state === 'broke') return { day, state: 'missed', ratio: 0 };
   // Today has not failed yet — an unfilled today is not a hole in the wall.
   if (day === endOn) return { day, state: 'future', ratio: ratio ?? 0 };
+  // An avoid habit reports slips, not clean days: an empty day it owed and came
+  // through is a day held, and painting it as a hole is the lie that makes a
+  // perfectly kept avoid habit look like one nobody ever answered.
+  if (silenceIsClean(timeline)) return { day, state: 'held', ratio: 1 };
   if (ratio && ratio > 0) return { day, state: 'partial', ratio };
   return { day, state: 'missed', ratio: 0 };
 }

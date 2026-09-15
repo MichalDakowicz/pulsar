@@ -13,6 +13,7 @@
 ### Fixed
 
 - Editing a habit no longer moves the day it started, which cut the wall short
+- An avoid habit now counts a quiet day as a clean one — only a logged slip breaks it
 
 ## 1.0.0 — 2026-09-15
 

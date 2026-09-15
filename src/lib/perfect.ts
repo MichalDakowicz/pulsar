@@ -1,7 +1,7 @@
 import { dayRange } from '@/lib/dates';
 import { cadenceOn, isTargetDayOn, type Phase } from '@/lib/phases';
 import { judgesByWeek, type Cadence } from '@/lib/schedule';
-import type { EntryMap } from '@/lib/streak';
+import { silenceIsClean, type EntryMap } from '@/lib/streak';
 
 /**
  * Perfect days — every habit that was due got held.
@@ -20,21 +20,22 @@ export type HabitSchedule = {
   phases?: Phase[];
   startedOn: string;
   archivedAt: string | null;
-  /** Only `avoid` behaves differently here — see `heldOn`. */
+  /** Only `avoid` behaves differently here — see `heldOn` and `silenceIsClean`. */
   kind?: string;
 };
 
 /**
  * Whether one habit's day counts as held.
  *
- * An avoid habit is not asked about a day until the day after, so on the last
- * day of a walk the most it can say is that it has not been blown. Scoring it
- * as unheld instead would mean an account with a single avoid habit never has a
- * perfect day at all — the token tap would simply stop, one day behind forever.
+ * An avoid habit is never asked to report a clean day — the only event it has
+ * is the slip — so an empty day it owed is a day it kept. That includes the
+ * last day of the walk, where the most it could ever say is that it has not
+ * been blown: scoring that as unheld would mean an account with a single avoid
+ * habit never has a perfect day at all, and the token tap would simply stop.
  */
-function heldOn(habit: HabitSchedule, state: string | undefined, day: string, last: string): boolean {
-  if (habit.kind === 'avoid' && day === last) return state !== 'broke';
-  return state === 'held' || state === 'repaired';
+function heldOn(habit: HabitSchedule, state: string | undefined): boolean {
+  if (state === 'held' || state === 'repaired') return true;
+  return silenceIsClean(habit) && state === undefined;
 }
 
 /**
@@ -84,7 +85,7 @@ export function perfectDays(
     for (const habit of due) {
       const state = entries.get(habit.id)?.[day];
       if (state === 'frozen') froze = true;
-      if (!heldOn(habit, state, day, to)) allHeld = false;
+      if (!heldOn(habit, state)) allHeld = false;
     }
 
     if (allHeld && !froze) {
@@ -106,7 +107,7 @@ export function perfectDays(
 export function isPerfectToday(habits: HabitSchedule[], entries: Map<string, EntryMap>, today: string): boolean {
   const due = dueOn(habits, entries, today);
   if (due.length === 0) return false;
-  return due.every((habit) => heldOn(habit, entries.get(habit.id)?.[today], today, today));
+  return due.every((habit) => heldOn(habit, entries.get(habit.id)?.[today]));
 }
 
 /**
@@ -116,15 +117,19 @@ export function isPerfectToday(habits: HabitSchedule[], entries: Map<string, Ent
  */
 export function hasRebuilt(
   entries: EntryMap,
-  timeline: { cadence: Cadence; phases?: Phase[] },
+  timeline: { cadence: Cadence; phases?: Phase[]; kind?: string },
   from: string,
   to: string,
 ): boolean {
   let run = 0;
   let brokeFromSeven = false;
+  const clean = silenceIsClean(timeline);
   for (const day of dayRange(from, to)) {
     if (!isTargetDayOn(timeline, day)) continue;
-    const state = entries[day];
+    const logged = entries[day];
+    // An avoid habit only ever breaks on a logged slip, so its empty days carry
+    // the run rather than ending it — same rule the streak walks on.
+    const state = clean && logged === undefined ? 'held' : logged;
     if (state === 'held' || state === 'repaired') {
       run += 1;
       if (brokeFromSeven && run >= 7) return true;

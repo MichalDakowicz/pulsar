@@ -7,7 +7,15 @@ import { addDays, dateKey, hoursToMidnight } from '@/lib/dates';
 import { asksAboutYesterday, canUndoToday, dayProgress, dayState, effectiveRule, judgedDay } from '@/lib/habit';
 import { hasRebuilt, isPerfectToday, perfectDays, type HabitSchedule } from '@/lib/perfect';
 import { isTargetDay } from '@/lib/schedule';
-import { computeStreak, hitRate, isAtRisk, repairableDays, type EntryMap, type StreakResult } from '@/lib/streak';
+import {
+  computeStreak,
+  hitRate,
+  isAtRisk,
+  repairableDays,
+  silenceIsClean,
+  type EntryMap,
+  type StreakResult,
+} from '@/lib/streak';
 import type { Habit } from '@/types/habit';
 
 /**
@@ -28,6 +36,12 @@ export type BoardHabit = {
   judged: string;
   /** Whether the row is asking about a day that has already ended. */
   asksYesterday: boolean;
+  /**
+   * Whether the answer on screen can be taken back. An avoid habit's clean day
+   * is inferred rather than logged, so there is nothing to give back — offering
+   * undo on it would be a gesture that clears an entry which was never written.
+   */
+  undoable: boolean;
   /** 0–1 of today's target, for the row fill on a counter habit. */
   progress: number;
   amount: number;
@@ -104,7 +118,7 @@ function dayTab(listed: BoardHabit[], asksYesterday: boolean): DayTab {
   return {
     rows,
     open: rows.filter((row) => row.today === 'due').length,
-    undoable: rows.filter((row) => canUndoToday(row.today)).length,
+    undoable: rows.filter((row) => row.undoable).length,
   };
 }
 
@@ -159,12 +173,15 @@ export function useHabitBoard(): HabitBoard {
         today: state,
         judged,
         asksYesterday: asksAboutYesterday(habit),
+        undoable: entries[judged] !== undefined && canUndoToday(state),
         // A held day is full whatever the counter says: the target was met, and
         // a bar that stops at 97% on a day you finished reads as a failure.
         progress: state === 'held' || state === 'repaired' ? 1 : dayProgress(habit, amount),
         amount,
         rate: hitRate(streak),
-        atRisk: isAtRisk(entries, habit.cadence, streak.current, judged, hoursLeft),
+        // An avoid habit has no deadline to warn about: the day it is judged on
+        // has already ended, and it ended clean unless a slip was logged.
+        atRisk: !silenceIsClean(habit) && isAtRisk(entries, habit.cadence, streak.current, judged, hoursLeft),
         repairable: repairableDays(streak, judged),
         entries,
         amounts: habitAmounts,
@@ -216,7 +233,7 @@ export function useHabitBoard(): HabitBoard {
     yesterdayTab: tabs.yesterday,
     dueCount: open.length + done.length,
     doneCount: done.filter((row) => row.today === 'held' || row.today === 'repaired').length,
-    undoableCount: done.filter((row) => canUndoToday(row.today)).length,
+    undoableCount: done.filter((row) => row.undoable).length,
     atRisk,
     bestStreak: rows.reduce((max, row) => Math.max(max, row.streak.best, row.streak.current), 0),
     longestLive: rows.reduce((max, row) => Math.max(max, row.streak.current), 0),

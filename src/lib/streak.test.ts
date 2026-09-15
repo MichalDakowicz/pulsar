@@ -5,6 +5,7 @@ import {
   isAtRisk,
   quotaOnTheLine,
   repairableDays,
+  silenceIsClean,
   type EntryMap,
   type StreakRule,
 } from '@/lib/streak';
@@ -335,5 +336,47 @@ describe('quotaOnTheLine', () => {
   it('counts a frozen day as paid', () => {
     const entries = { ...held('2026-09-07', '2026-09-08'), '2026-09-09': 'frozen' as const };
     expect(quotaOnTheLine(entries, three, '2026-09-11')).toBe(false);
+  });
+});
+
+describe('an avoid habit, where silence is the win', () => {
+  const avoid = { cadence: DAILY, rule: 'strict' as const, startedOn: MON, kind: 'avoid' };
+
+  it('is only claimed by the kind that reports slips', () => {
+    expect(silenceIsClean({ kind: 'avoid' })).toBe(true);
+    expect(silenceIsClean({ kind: 'do' })).toBe(false);
+    expect(silenceIsClean({})).toBe(false);
+  });
+
+  it('counts every empty day it came through, with nothing ever logged', () => {
+    const result = computeStreak({}, avoid, '2026-09-13');
+    expect(result.current).toBe(7);
+    expect(result.missed).toEqual([]);
+    expect(hitRate(result)).toBe(100);
+  });
+
+  it('breaks only where the slip was logged, and rebuilds after it', () => {
+    const result = computeStreak({ '2026-09-09': 'broke' }, avoid, '2026-09-13');
+    expect(result.current).toBe(4);
+    expect(result.best).toBe(4);
+    expect(result.missed).toEqual(['2026-09-09']);
+  });
+
+  it('leaves the same empty days a miss on a habit that is done rather than avoided', () => {
+    const result = computeStreak({}, { cadence: DAILY, rule: 'strict', startedOn: MON }, '2026-09-13');
+    expect(result.current).toBe(0);
+    expect(result.missed).toHaveLength(6);
+  });
+
+  it('still takes an explicit answer over the inferred one', () => {
+    const skipped = computeStreak({ '2026-09-09': 'skipped' }, avoid, '2026-09-13');
+    // Set aside is neither held nor missed, so the run is two days short of the
+    // seven an untouched week would have given.
+    expect(skipped.current).toBe(6);
+  });
+
+  it('offers only the logged slip for repair — the quiet days are not holes', () => {
+    const result = computeStreak({ '2026-09-09': 'broke' }, avoid, '2026-09-13');
+    expect(repairableDays(result, '2026-09-13')).toEqual(['2026-09-09']);
   });
 });
