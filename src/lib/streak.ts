@@ -39,19 +39,37 @@ export type StreakRule = 'strict' | 'grace' | 'decay';
 export const DECAY_COST = 3;
 
 /**
+ * The day the clean-day rule took effect.
+ *
+ * Before it, an empty day on an avoid habit meant the user had not answered,
+ * because the app was asking them to confirm each clean day. Those answers are
+ * a record of what someone actually recorded, and rereading them under a rule
+ * that did not exist yet turns thirty logged misses into two — a wall that
+ * fills itself in behind you is worse than a wall that was always wrong.
+ *
+ * So the rule is dated rather than retroactive, the same way `lib/phases`
+ * scopes a cadence or miss-rule change to the stretch it was lived under. It
+ * is a constant rather than a column because it is one date for everyone: the
+ * day the behaviour shipped, not a per-habit choice.
+ */
+export const CLEAN_DAY_FROM = '2026-09-14';
+
+/**
  * Whether an empty day that has ended counts as a day kept.
  *
- * For an `avoid` habit it does, and that is the whole shape of the thing: the
- * win is that nothing happened, so there is nothing to report. The only event
- * an avoid habit ever has is the slip, and logging it is the only answer it
- * ever needs — asking someone to confirm each clean day turns "did not smoke"
- * into a daily chore, and makes the streak a record of who opened the app.
+ * From `CLEAN_DAY_FROM` on an `avoid` habit it does, and that is the whole
+ * shape of the thing: the win is that nothing happened, so there is nothing to
+ * report. The only event an avoid habit ever has is the slip, and logging it is
+ * the only answer it ever needs — asking someone to confirm each clean day
+ * turns "did not smoke" into a daily chore, and makes the streak a record of
+ * who opened the app.
  *
  * Every surface that paints a day reads this, so the ring, the row, the wall
- * and the count agree about what an empty square on an avoid habit means.
+ * and the count agree about what an empty square on an avoid habit means — and
+ * agree about which side of the cutoff the day falls on.
  */
-export function silenceIsClean(timeline: { kind?: string }): boolean {
-  return timeline.kind === 'avoid';
+export function silenceIsClean(timeline: { kind?: string }, day: string): boolean {
+  return timeline.kind === 'avoid' && day >= CLEAN_DAY_FROM;
 }
 
 export type StreakResult = {
@@ -94,7 +112,6 @@ export function computeStreak(
   missedCap = 30,
 ): StreakResult {
   const days = targetDaysOn(timeline, timeline.startedOn, today);
-  const clean = silenceIsClean(timeline);
   let run = 0;
   let best = 0;
   let heldCount = 0;
@@ -142,9 +159,11 @@ export function computeStreak(
   for (const day of days) {
     // An empty day on an avoid habit is a day it came through, so it is read as
     // held everywhere below rather than special-cased per branch — a quota week
-    // fills its slots from it too.
+    // fills its slots from it too. Asked per day, not once: the days before the
+    // cutoff keep the answers they were actually given.
     const logged = entries[day];
-    const state: EntryState | undefined = clean && logged === undefined ? 'held' : logged;
+    const state: EntryState | undefined =
+      logged === undefined && silenceIsClean(timeline, day) ? 'held' : logged;
     const rule = ruleOn(timeline, day);
     const cadence = cadenceOn(timeline, day);
     const week = weekKey(day);

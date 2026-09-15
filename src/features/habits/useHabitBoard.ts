@@ -181,7 +181,9 @@ export function useHabitBoard(): HabitBoard {
         rate: hitRate(streak),
         // An avoid habit has no deadline to warn about: the day it is judged on
         // has already ended, and it ended clean unless a slip was logged.
-        atRisk: !silenceIsClean(habit) && isAtRisk(entries, habit.cadence, streak.current, judged, hoursLeft),
+        atRisk:
+          !silenceIsClean(habit, judged) &&
+          isAtRisk(entries, habit.cadence, streak.current, judged, hoursLeft),
         repairable: repairableDays(streak, judged),
         entries,
         amounts: habitAmounts,

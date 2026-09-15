@@ -33,9 +33,9 @@ export type HabitSchedule = {
  * been blown: scoring that as unheld would mean an account with a single avoid
  * habit never has a perfect day at all, and the token tap would simply stop.
  */
-function heldOn(habit: HabitSchedule, state: string | undefined): boolean {
+function heldOn(habit: HabitSchedule, state: string | undefined, day: string): boolean {
   if (state === 'held' || state === 'repaired') return true;
-  return silenceIsClean(habit) && state === undefined;
+  return state === undefined && silenceIsClean(habit, day);
 }
 
 /**
@@ -85,7 +85,7 @@ export function perfectDays(
     for (const habit of due) {
       const state = entries.get(habit.id)?.[day];
       if (state === 'frozen') froze = true;
-      if (!heldOn(habit, state)) allHeld = false;
+      if (!heldOn(habit, state, day)) allHeld = false;
     }
 
     if (allHeld && !froze) {
@@ -107,7 +107,7 @@ export function perfectDays(
 export function isPerfectToday(habits: HabitSchedule[], entries: Map<string, EntryMap>, today: string): boolean {
   const due = dueOn(habits, entries, today);
   if (due.length === 0) return false;
-  return due.every((habit) => heldOn(habit, entries.get(habit.id)?.[today]));
+  return due.every((habit) => heldOn(habit, entries.get(habit.id)?.[today], today));
 }
 
 /**
@@ -123,13 +123,13 @@ export function hasRebuilt(
 ): boolean {
   let run = 0;
   let brokeFromSeven = false;
-  const clean = silenceIsClean(timeline);
   for (const day of dayRange(from, to)) {
     if (!isTargetDayOn(timeline, day)) continue;
     const logged = entries[day];
-    // An avoid habit only ever breaks on a logged slip, so its empty days carry
-    // the run rather than ending it — same rule the streak walks on.
-    const state = clean && logged === undefined ? 'held' : logged;
+    // From the cutoff on, an avoid habit only ever breaks on a logged slip, so
+    // its empty days carry the run rather than ending it — same rule the streak
+    // walks on, asked the same way, per day.
+    const state = logged === undefined && silenceIsClean(timeline, day) ? 'held' : logged;
     if (state === 'held' || state === 'repaired') {
       run += 1;
       if (brokeFromSeven && run >= 7) return true;

@@ -119,7 +119,7 @@ export function dayState(
   if (!isTargetDayOn(habit as { cadence: Cadence; phases?: Phase[] }, day)) return 'rest';
   const logged = entries[day];
   if (logged) return logged;
-  return silenceIsClean(habit) ? 'held' : 'due';
+  return silenceIsClean(habit, day) ? 'held' : 'due';
 }
 
 /**

@@ -88,7 +88,7 @@ function cellFor(
   // An avoid habit reports slips, not clean days: an empty day it owed and came
   // through is a day held, and painting it as a hole is the lie that makes a
   // perfectly kept avoid habit look like one nobody ever answered.
-  if (silenceIsClean(timeline)) return { day, state: 'held', ratio: 1 };
+  if (silenceIsClean(timeline, day)) return { day, state: 'held', ratio: 1 };
   if (ratio && ratio > 0) return { day, state: 'partial', ratio };
   return { day, state: 'missed', ratio: 0 };
 }
