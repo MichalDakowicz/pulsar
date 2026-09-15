@@ -123,6 +123,7 @@ export function useHabitBoard(): HabitBoard {
       active.map((habit) => ({
         id: habit.id,
         cadence: habit.cadence,
+        phases: habit.phases,
         startedOn: habit.startedOn,
         archivedAt: habit.archivedAt,
         kind: habit.kind,
@@ -146,7 +147,9 @@ export function useHabitBoard(): HabitBoard {
       // the calendar: for an avoid habit those are different days, and mixing
       // them is how a clean day gets scored twice or not at all.
       const judged = judgedDay(habit, today);
-      const streak = computeStreak(entries, habit.cadence, effectiveRule(habit), habit.startedOn, judged);
+      // `effectiveRule` rather than the raw field, so hard mode still forces
+      // strict on the current phase; the sealed ones already carry their own.
+      const streak = computeStreak(entries, { ...habit, rule: effectiveRule(habit) }, judged);
       const state = dayState(habit, entries, judged);
       const amount = habitAmounts[judged] ?? 0;
 
@@ -190,7 +193,7 @@ export function useHabitBoard(): HabitBoard {
   const rebuilt = useMemo(
     () =>
       rows.some((row) =>
-        hasRebuilt(row.entries, row.habit.cadence, row.habit.startedOn, today),
+        hasRebuilt(row.entries, row.habit, row.habit.startedOn, today),
       ),
     [rows, today],
   );

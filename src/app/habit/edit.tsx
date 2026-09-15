@@ -15,5 +15,5 @@ export default function EditHabit() {
   const { habit, loading } = useHabit(id);
 
   if (loading || !habit) return <LoadingState />;
-  return <BuilderScreen habitId={habit.id} initial={builderFromHabit(habit)} />;
+  return <BuilderScreen habit={habit} initial={builderFromHabit(habit)} />;
 }

@@ -3,7 +3,7 @@ import { useMemo } from 'react';
 import { useHabitBoard } from '@/features/habits/useHabitBoard';
 import { addDays, dateKey, weekKey, WEEKDAY_INITIALS } from '@/lib/dates';
 import { dayProgress } from '@/lib/habit';
-import { isTargetDay } from '@/lib/schedule';
+import { isTargetDayOn, targetOn } from '@/lib/phases';
 import { buildWall, weekdayShape } from '@/lib/wall';
 import { RANGE_WEEKS, useStatsRange } from '@/store/statsRange';
 
@@ -26,9 +26,11 @@ export function useStatsView() {
     const allWeeks = board.rows.flatMap((row) => {
       const progress: Record<string, number> = {};
       for (const [day, amount] of Object.entries(row.amounts)) {
-        progress[day] = dayProgress(row.habit, amount);
+        // Against the target that day was set, not today's: raising a counter
+        // from 4 to 8 must not repaint every day you hit 4 as half done.
+        progress[day] = dayProgress({ kind: row.habit.kind, target: targetOn(row.habit, day) }, amount);
       }
-      return buildWall(row.entries, row.habit.cadence, {
+      return buildWall(row.entries, row.habit, {
         weeks,
         startedOn: row.habit.startedOn,
         progress,
@@ -44,7 +46,7 @@ export function useStatsView() {
       let due = 0;
       for (const row of board.rows) {
         if (day < row.habit.startedOn) continue;
-        if (!isTargetDay(row.habit.cadence, day)) continue;
+        if (!isTargetDayOn(row.habit, day)) continue;
         due += 1;
         const state = row.entries[day];
         if (state === 'held' || state === 'repaired') held += 1;

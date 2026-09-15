@@ -8,7 +8,7 @@ const WEEKDAYS: Cadence = { kind: 'weekdays' };
 
 describe('buildWall', () => {
   it('is week-aligned, so weekday rows line up', () => {
-    const weeks = buildWall({}, DAILY, { weeks: 3, endOn: '2026-09-11' });
+    const weeks = buildWall({}, { cadence: DAILY }, { weeks: 3, endOn: '2026-09-11' });
     expect(weeks).toHaveLength(3);
     expect(weeks[0].start).toBe('2026-08-24');
     expect(weeks[2].start).toBe('2026-09-07');
@@ -16,7 +16,7 @@ describe('buildWall', () => {
   });
 
   it('paints a non-target day as rest, never as a miss', () => {
-    const weeks = buildWall({}, WEEKDAYS, { weeks: 1, endOn: '2026-09-13' });
+    const weeks = buildWall({}, { cadence: WEEKDAYS }, { weeks: 1, endOn: '2026-09-13' });
     const cells = weeks[0].cells;
     expect(cells[5].state).toBe('rest');
     expect(cells[6].state).toBe('rest');
@@ -24,20 +24,20 @@ describe('buildWall', () => {
   });
 
   it('leaves days before the habit existed as rest', () => {
-    const weeks = buildWall({}, DAILY, { weeks: 1, endOn: '2026-09-13', startedOn: '2026-09-10' });
+    const weeks = buildWall({}, { cadence: DAILY }, { weeks: 1, endOn: '2026-09-13', startedOn: '2026-09-10' });
     const cells = weeks[0].cells;
     expect(cells[0].state).toBe('rest');
     expect(cells[3].state).toBe('missed');
   });
 
   it('does not call today a miss', () => {
-    const weeks = buildWall({}, DAILY, { weeks: 1, endOn: '2026-09-09' });
+    const weeks = buildWall({}, { cadence: DAILY }, { weeks: 1, endOn: '2026-09-09' });
     expect(weeks[0].cells[2].state).toBe('future');
     expect(weeks[0].cells[3].state).toBe('future');
   });
 
   it('shows a part-done counter day as partial', () => {
-    const weeks = buildWall({}, DAILY, {
+    const weeks = buildWall({}, { cadence: DAILY }, {
       weeks: 1,
       endOn: '2026-09-11',
       progress: { '2026-09-08': 0.5 },
@@ -54,7 +54,7 @@ describe('buildWall', () => {
       '2026-09-09': 'repaired',
       '2026-09-10': 'skipped',
     };
-    const cells = buildWall(entries, DAILY, { weeks: 1, endOn: '2026-09-11' })[0].cells;
+    const cells = buildWall(entries, { cadence: DAILY }, { weeks: 1, endOn: '2026-09-11' })[0].cells;
     expect(cells.map((cell) => cell.state)).toEqual([
       'held',
       'frozen',
@@ -76,13 +76,13 @@ describe('wallRate', () => {
       '2026-09-10': 'held',
     };
     // Friday missed, weekend is rest, so 4 of 5 rather than 4 of 7.
-    const weeks = buildWall(entries, WEEKDAYS, { weeks: 1, endOn: '2026-09-13' });
+    const weeks = buildWall(entries, { cadence: WEEKDAYS }, { weeks: 1, endOn: '2026-09-13' });
     expect(wallRate(weeks, '2026-09-13')).toBe(80);
   });
 
   it('is zero when nothing has come due', () => {
     expect(
-      wallRate(buildWall({}, DAILY, { weeks: 1, endOn: '2026-09-07', startedOn: '2026-09-07' }), '2026-09-07'),
+      wallRate(buildWall({}, { cadence: DAILY }, { weeks: 1, endOn: '2026-09-07', startedOn: '2026-09-07' }), '2026-09-07'),
     ).toBe(0);
   });
 });
@@ -90,7 +90,7 @@ describe('wallRate', () => {
 describe('weekdayShape', () => {
   it('reports a held rate per weekday', () => {
     const entries: EntryMap = { '2026-09-07': 'held', '2026-09-14': 'held' };
-    const weeks = buildWall(entries, DAILY, { weeks: 2, endOn: '2026-09-20' });
+    const weeks = buildWall(entries, { cadence: DAILY }, { weeks: 2, endOn: '2026-09-20' });
     const shape = weekdayShape(weeks, '2026-09-20');
     expect(shape[0]).toBe(1);
     expect(shape[1]).toBe(0);
@@ -104,8 +104,8 @@ describe('weekdayShape', () => {
     const yesterday = '2026-09-12';
     // Two daily habits. One is kept on both days; the other was missed
     // yesterday and is still open today — so each day is honestly 1 of 2.
-    const kept = buildWall({ [yesterday]: 'held', [today]: 'held' }, DAILY, { weeks: 1, endOn: today });
-    const neglected = buildWall({}, DAILY, { weeks: 1, endOn: today });
+    const kept = buildWall({ [yesterday]: 'held', [today]: 'held' }, { cadence: DAILY }, { weeks: 1, endOn: today });
+    const neglected = buildWall({}, { cadence: DAILY }, { weeks: 1, endOn: today });
     const shape = weekdayShape([...kept, ...neglected], today);
 
     // Yesterday is settled and scores what Today said it did: 1 of 2.
@@ -118,11 +118,53 @@ describe('weekdayShape', () => {
   it('is unmoved by checking today off and undoing it again', () => {
     const today = '2026-09-13';
     const history: EntryMap = { '2026-09-07': 'held', '2026-09-08': 'held' };
-    const before = weekdayShape(buildWall(history, DAILY, { weeks: 2, endOn: today }), today);
+    const before = weekdayShape(buildWall(history, { cadence: DAILY }, { weeks: 2, endOn: today }), today);
     const after = weekdayShape(
-      buildWall({ ...history, [today]: 'held' }, DAILY, { weeks: 2, endOn: today }),
+      buildWall({ ...history, [today]: 'held' }, { cadence: DAILY }, { weeks: 2, endOn: today }),
       today,
     );
     expect(after).toEqual(before);
+  });
+});
+
+describe('a weekly quota on the wall', () => {
+  const three = { cadence: { kind: 'weekly' as const, perWeek: 3 } };
+
+  it('paints the empty days of a week that added up as rest', () => {
+    // Three held in the week 2026-09-07..13, wall ending after it closed.
+    const entries: EntryMap = {
+      '2026-09-07': 'held',
+      '2026-09-08': 'held',
+      '2026-09-09': 'held',
+    };
+    // Two weeks so the closed week 2026-09-07..13 is the first column.
+    const cells = buildWall(entries, three, { weeks: 2, endOn: '2026-09-20' })[0].cells;
+    expect(cells.map((cell) => cell.state)).toEqual([
+      'held',
+      'held',
+      'held',
+      'rest',
+      'rest',
+      'rest',
+      'rest',
+    ]);
+  });
+
+  it('leaves a week that came up short as holes', () => {
+    const entries: EntryMap = { '2026-09-07': 'held', '2026-09-08': 'held' };
+    const cells = buildWall(entries, three, { weeks: 2, endOn: '2026-09-20' })[0].cells;
+    expect(cells[0].state).toBe('held');
+    expect(cells[1].state).toBe('held');
+    expect(cells[2].state).toBe('missed');
+    expect(cells[6].state).toBe('missed');
+  });
+
+  // A week with days still to run has not failed, so its gaps are not holes yet.
+  it('leaves the week it is still in alone', () => {
+    const entries: EntryMap = { '2026-09-07': 'held' };
+    const cells = buildWall(entries, three, { weeks: 1, endOn: '2026-09-09' })[0].cells;
+    expect(cells[0].state).toBe('held');
+    expect(cells[1].state).toBe('rest');
+    expect(cells[2].state).toBe('future');
   });
 });

@@ -1,4 +1,5 @@
 import { useRouter } from 'expo-router';
+import { useState } from 'react';
 import { Pressable, ScrollView, Text, View } from 'react-native';
 
 import { ContentShell } from '@/components/layout/ContentShell';
@@ -13,6 +14,7 @@ import {
   StepNudges,
   StepTarget,
 } from '@/features/builder/BuilderSteps';
+import { ChangeScopeSheet } from '@/features/builder/ChangeScopeSheet';
 import {
   BUILDER_STEPS,
   builderSummary,
@@ -24,19 +26,26 @@ import {
   useBuilder,
   type BuilderState,
 } from '@/features/builder/useBuilder';
-import { useCreateHabit, useUpdateHabit } from '@/features/habits/useHabits';
+import { useCreateHabit, useUpdateHabit, type NewHabit } from '@/features/habits/useHabits';
 import { useNavBarSpace } from '@/hooks/useNavBarSpace';
 import { MAX_W } from '@/hooks/useResponsive';
 import { useUserSettings } from '@/hooks/useUserSettings';
+import { dateKey } from '@/lib/dates';
 import { targetLabel } from '@/lib/habit';
+import { changedRules, phasesAfterChange, type ChangeScope } from '@/lib/phases';
 import { cadenceLabel } from '@/lib/schedule';
 import { sharesAnything } from '@/lib/userSettings';
 import { COLORS } from '@/theme/colors';
+import type { Habit } from '@/types/habit';
 
 type BuilderScreenProps = {
   initial?: BuilderState;
-  /** Present when editing; absent when building something new. */
-  habitId?: string;
+  /**
+   * Present when editing; absent when building something new. The whole habit
+   * rather than its id: a rule change is sealed against the rules and the
+   * phases it is replacing, and those are only on the saved row.
+   */
+  habit?: Habit;
 };
 
 /**
@@ -47,7 +56,7 @@ type BuilderScreenProps = {
  * exactly how a habit ends up with a cadence of no days or an exact-time window
  * and no time.
  */
-export function BuilderScreen({ initial, habitId }: BuilderScreenProps) {
+export function BuilderScreen({ initial, habit }: BuilderScreenProps) {
   const router = useRouter();
   const { say } = useToast();
   const builder = useBuilder(initial);
@@ -57,8 +66,29 @@ export function BuilderScreen({ initial, habitId }: BuilderScreenProps) {
   const bottom = useNavBarSpace();
 
   const { state, set, blocker, isLast } = builder;
-  const editing = !!habitId;
+  const editing = !!habit;
   const canShare = sharesAnything(settings);
+  // An edit whose rules moved, held back until the sheet says how far the
+  // change reaches. Null the rest of the time, which is most of the time.
+  const [pending, setPending] = useState<{ draft: NewHabit; changed: string[] } | null>(null);
+
+  const saveEdit = async (draft: NewHabit, scope: ChangeScope | null) => {
+    if (!habit) return;
+    try {
+      // An edit never moves the day the habit started, and never clears its
+      // phases by accident: `toHabitDraft` fills both in for a new habit, and
+      // patching them over a saved one would take the wall with them.
+      const { startedOn: _startedOn, phases: _phases, ...patch } = draft;
+      await update.mutateAsync({
+        id: habit.id,
+        patch: scope ? { ...patch, phases: phasesAfterChange(habit, scope, dateKey()) } : patch,
+      });
+      say(`${draft.name} updated.`);
+      router.back();
+    } catch (error) {
+      say(error instanceof Error ? error.message : 'that did not save.');
+    }
+  };
 
   const commit = async () => {
     const draft = toHabitDraft({
@@ -68,16 +98,21 @@ export function BuilderScreen({ initial, habitId }: BuilderScreenProps) {
       // as true would have it quietly switch on the day privacy is opened up.
       publicShelf: canShare ? state.publicShelf : false,
     });
-    try {
-      if (editing) {
-        await update.mutateAsync({ id: habitId, patch: draft });
-        say(`${draft.name} updated.`);
-        router.back();
-      } else {
-        await create.mutateAsync(draft);
-        say('committed. day one starts now.');
-        router.navigate('/');
+    if (habit) {
+      const changed = changedRules(habit, draft);
+      // Only a rule the past is judged by asks the question. A renamed habit or
+      // a moved reminder saves the moment the button is held, as it always did.
+      if (changed.length > 0) {
+        setPending({ draft, changed });
+        return;
       }
+      await saveEdit(draft, null);
+      return;
+    }
+    try {
+      await create.mutateAsync(draft);
+      say('committed. day one starts now.');
+      router.navigate('/');
     } catch (error) {
       say(error instanceof Error ? error.message : 'that did not save.');
     }
@@ -228,6 +263,20 @@ export function BuilderScreen({ initial, habitId }: BuilderScreenProps) {
           )}
         </View>
       </ContentShell>
+
+      {/* Keyed on the change so a second pass at the sheet opens on its own
+          default rather than on whatever was picked and then cancelled. */}
+      <ChangeScopeSheet
+        key={pending?.changed.join('+') ?? 'none'}
+        open={!!pending}
+        changed={pending?.changed ?? []}
+        onApply={(scope) => {
+          const draft = pending?.draft;
+          setPending(null);
+          if (draft) void saveEdit(draft, scope);
+        }}
+        onDismiss={() => setPending(null)}
+      />
     </ScrollView>
   );
 }

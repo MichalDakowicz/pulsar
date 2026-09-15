@@ -107,6 +107,9 @@ export function builderTarget(state: BuilderState): number {
 
 export function toHabitDraft(state: BuilderState): Omit<Habit, 'id' | 'userId' | 'sort' | 'archivedAt'> {
   return {
+    // A new habit has no past to have judged differently. An edit's phases are
+    // decided by the scope sheet (lib/phases) and patched over this.
+    phases: [],
     name: state.name.trim(),
     mark: state.mark,
     kind: state.kind,

@@ -1,5 +1,6 @@
 import { dayRange } from '@/lib/dates';
-import { isTargetDay, type Cadence } from '@/lib/schedule';
+import { cadenceOn, isTargetDayOn, type Phase } from '@/lib/phases';
+import { judgesByWeek, type Cadence } from '@/lib/schedule';
 import type { EntryMap } from '@/lib/streak';
 
 /**
@@ -15,6 +16,8 @@ import type { EntryMap } from '@/lib/streak';
 export type HabitSchedule = {
   id: string;
   cadence: Cadence;
+  /** Superseded rules, so a day is judged by the cadence it actually had. */
+  phases?: Phase[];
   startedOn: string;
   archivedAt: string | null;
   /** Only `avoid` behaves differently here — see `heldOn`. */
@@ -34,13 +37,21 @@ function heldOn(habit: HabitSchedule, state: string | undefined, day: string, la
   return state === 'held' || state === 'repaired';
 }
 
-function dueOn(habits: HabitSchedule[], day: string): HabitSchedule[] {
-  return habits.filter(
-    (habit) =>
-      day >= habit.startedOn &&
-      (!habit.archivedAt || day < habit.archivedAt.slice(0, 10)) &&
-      isTargetDay(habit.cadence, day),
-  );
+/**
+ * The habits a day actually owed.
+ *
+ * A quota habit owes the week, not the day, so it is only counted here on a day
+ * it was answered. Counting it every day would mean a single "three times a
+ * week" habit blocks every perfect day the other four are out of — and perfect
+ * days are what freeze tokens are bought with, so the tap would quietly stop.
+ */
+function dueOn(habits: HabitSchedule[], entries: Map<string, EntryMap>, day: string): HabitSchedule[] {
+  return habits.filter((habit) => {
+    if (day < habit.startedOn) return false;
+    if (habit.archivedAt && day >= habit.archivedAt.slice(0, 10)) return false;
+    if (judgesByWeek(cadenceOn(habit, day))) return !!entries.get(habit.id)?.[day];
+    return isTargetDayOn(habit, day);
+  });
 }
 
 export type PerfectResult = {
@@ -62,7 +73,7 @@ export function perfectDays(
   let cleanRun = 0;
 
   for (const day of dayRange(from, to)) {
-    const due = dueOn(habits, day);
+    const due = dueOn(habits, entries, day);
     if (due.length === 0) {
       // A day that asked nothing neither earns nor breaks: the run carries over
       // a rest day rather than resetting on it.
@@ -93,7 +104,7 @@ export function perfectDays(
  * lose today" is only true when something was owed and all of it is done.
  */
 export function isPerfectToday(habits: HabitSchedule[], entries: Map<string, EntryMap>, today: string): boolean {
-  const due = dueOn(habits, today);
+  const due = dueOn(habits, entries, today);
   if (due.length === 0) return false;
   return due.every((habit) => heldOn(habit, entries.get(habit.id)?.[today], today, today));
 }
@@ -103,11 +114,16 @@ export function isPerfectToday(habits: HabitSchedule[], entries: Map<string, Ent
  * more — the comeback award. Walking the best-run history is the only way to
  * know the difference between "never got going" and "got going twice".
  */
-export function hasRebuilt(entries: EntryMap, cadence: Cadence, from: string, to: string): boolean {
+export function hasRebuilt(
+  entries: EntryMap,
+  timeline: { cadence: Cadence; phases?: Phase[] },
+  from: string,
+  to: string,
+): boolean {
   let run = 0;
   let brokeFromSeven = false;
   for (const day of dayRange(from, to)) {
-    if (!isTargetDay(cadence, day)) continue;
+    if (!isTargetDayOn(timeline, day)) continue;
     const state = entries[day];
     if (state === 'held' || state === 'repaired') {
       run += 1;
