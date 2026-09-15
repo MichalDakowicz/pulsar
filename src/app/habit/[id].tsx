@@ -4,13 +4,15 @@ import { Pressable, ScrollView, Text, View } from 'react-native';
 
 import { ContentShell } from '@/components/layout/ContentShell';
 import { ScreenTop } from '@/components/layout/ScreenTop';
-import { ProgressRing } from '@/components/ui/ProgressRing';
 import { SheetDialog } from '@/components/ui/SheetDialog';
 import { EmptyState, LoadingState, SectionHeader } from '@/components/ui/states';
 import { useToast } from '@/components/ui/Toast';
+import { BackfillSheet } from '@/features/habits/BackfillSheet';
 import { CommitmentSection } from '@/features/habits/CommitmentSection';
+import { StreakSummary } from '@/features/habits/StreakSummary';
 import { TierLadder } from '@/features/habits/TierLadder';
 import { Wall, WallLegend } from '@/features/habits/Wall';
+import { useBackfill } from '@/features/habits/useBackfill';
 import { useCheckIn } from '@/features/habits/useCheckIn';
 import { useHabitBoard } from '@/features/habits/useHabitBoard';
 import { useArchiveHabit } from '@/features/habits/useHabits';
@@ -18,7 +20,6 @@ import { useNavBarSpace } from '@/hooks/useNavBarSpace';
 import { MAX_W } from '@/hooks/useResponsive';
 import { formatDayShort } from '@/lib/dates';
 import { challengeComplete, challengeLabel, dayProgress, habitMeta } from '@/lib/habit';
-import { nextTier, tierProgress } from '@/lib/tiers';
 import { tokenWord } from '@/lib/tokens';
 import { buildWall, wallRate } from '@/lib/wall';
 
@@ -36,6 +37,7 @@ export default function HabitDetail() {
   const [repairDay, setRepairDay] = useState<string | null>(null);
 
   const row = board.rows.find((candidate) => candidate.habit.id === id) ?? null;
+  const backfill = useBackfill(row?.habit ?? null, row?.entries ?? {});
 
   const weeks = useMemo(() => {
     if (!row) return [];
@@ -112,19 +114,7 @@ export default function HabitDetail() {
           )}
         </View>
 
-        <View className="flex-row items-center gap-4 px-4 pb-5 pt-5">
-          <ProgressRing progress={tierProgress(streak.current)} size={116} stroke={8}>
-            <Text className="text-2xl font-bold tracking-tight text-foreground">{streak.current}</Text>
-            <Text className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">
-              {streak.current === 1 ? 'day' : 'days'}
-            </Text>
-          </ProgressRing>
-          <View className="min-w-0 flex-1 gap-3">
-            <Figure label="next tier" value={`${nextTier(streak.current)} days`} />
-            <Figure label="personal best" value={`${streak.best} days`} />
-            <Figure label="hit rate" value={`${row.rate}%`} />
-          </View>
-        </View>
+        <StreakSummary current={streak.current} best={streak.best} rate={row.rate} />
 
         {/* A finished challenge stops the app quietly counting past a run the
             user set an end to. Either extend it or let it stand. */}
@@ -142,7 +132,15 @@ export default function HabitDetail() {
         <View className="border-y border-border/50 px-4 py-5">
           <SectionHeader title="history" meta={`${WEEKS} weeks · ${wallRate(weeks)}%`} />
           <View className="mt-3.5">
-            <Wall weeks={weeks} layout="week" gap={3} showWeekdays label={`${habit.name} history`} />
+            <Wall
+              weeks={weeks}
+              layout="week"
+              gap={3}
+              showWeekdays
+              editable={backfill.editable}
+              onPressDay={backfill.open}
+              label={`${habit.name} history`}
+            />
           </View>
           <WallLegend />
         </View>
@@ -192,6 +190,19 @@ export default function HabitDetail() {
           </Text>
         </View>
       </ContentShell>
+
+      <BackfillSheet
+        key={backfill.day ?? 'none'}
+        open={!!backfill.day}
+        day={backfill.day}
+        current={backfill.current}
+        onApply={async (choice) => {
+          const day = backfill.day;
+          backfill.close();
+          if (day) await checkIn.backfill(habit, day, choice);
+        }}
+        onDismiss={backfill.close}
+      />
 
       <SheetDialog
         open={dialog === 'freeze'}
@@ -260,15 +271,6 @@ export default function HabitDetail() {
         onDismiss={() => setDialog(null)}
       />
     </ScrollView>
-  );
-}
-
-function Figure({ label, value }: { label: string; value: string }) {
-  return (
-    <View>
-      <Text className="text-[11px] font-semibold uppercase tracking-widest text-muted-foreground">{label}</Text>
-      <Text className="text-base font-bold text-foreground">{value}</Text>
-    </View>
   );
 }
 
