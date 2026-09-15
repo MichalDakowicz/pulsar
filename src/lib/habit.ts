@@ -143,6 +143,18 @@ export function todayHint(mode: 'swipe' | 'hold', open: number, undoable: number
 }
 
 /**
+ * A side of the day switch, carrying what is still open on it.
+ *
+ * The count is the whole reason the switch is worth its height: the point of
+ * moving avoid habits off today is that they stop being seen, and a bare
+ * "yesterday" would finish the job. A side with nothing waiting says only its
+ * name, so the number means something when it is there.
+ */
+export function dayTabLabel(day: string, open: number): string {
+  return open > 0 ? `${day} · ${open}` : day;
+}
+
+/**
  * A challenge that has run its course. The habit stops asking and the detail
  * screen offers to extend it rather than quietly continuing to count, which
  * would make "66-day challenge" a label with no end.

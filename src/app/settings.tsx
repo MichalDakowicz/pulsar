@@ -31,7 +31,7 @@ export default function Settings() {
   const bottom = useNavBarSpace();
   const [signingOut, setSigningOut] = useState(false);
 
-  const version = Constants.expoConfig?.version ?? '1.0.0';
+  const version = Constants.expoConfig?.version ?? '1.1.0';
 
   return (
     <ScrollView

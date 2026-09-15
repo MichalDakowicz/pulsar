@@ -11,6 +11,7 @@ import {
   judgedDay,
   meetsTarget,
   targetLabel,
+  dayTabLabel,
   todayHint,
 } from '@/lib/habit';
 import { cadenceLabel, type Cadence } from '@/lib/schedule';
@@ -183,3 +184,15 @@ describe('canUndoToday on a slip', () => {
   });
 });
 
+
+describe('dayTabLabel', () => {
+  it('carries what is still open on that side', () => {
+    expect(dayTabLabel('yesterday', 2)).toBe('yesterday · 2');
+  });
+
+  // The point of moving avoid habits off today is that they stop being seen; a
+  // bare "yesterday" with two waiting would finish the job.
+  it('says only its name when nothing is waiting', () => {
+    expect(dayTabLabel('today', 0)).toBe('today');
+  });
+});

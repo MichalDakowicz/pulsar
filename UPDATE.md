@@ -1,5 +1,11 @@
 # Update notes
 
+## 1.1.0 — Unreleased
+
+### Added
+
+- Today: a today / yesterday switch, so an avoid habit is answered under the day it is about
+
 ## 1.0.0 — 2026-09-15
 
 ### Added
