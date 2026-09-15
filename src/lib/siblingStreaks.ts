@@ -7,9 +7,10 @@
  * only app you own.
  *
  * **Read-only.** Nothing here writes: `user_settings` is Radar's table
- * (docs/shared-database.md). Both figures are snapshots their own app publishes
- * — Radar to `current_streak` for its 20:00 warning, Lidar to `lidar_streak`
- * for this strip — and Pulsar only reads them.
+ * (docs/shared-database.md). Every figure is a snapshot its own app publishes
+ * — Radar to `current_streak` for its 20:00 warning and to `movie_streak` /
+ * `tv_streak` for this strip, Lidar to `lidar_streak` — and Pulsar only reads
+ * them.
  *
  * Pulsar used to derive Lidar's figure from the page ledger instead, porting
  * `lib/streak` across. That could never be right: the streak is pages per week
@@ -20,19 +21,33 @@
 
 export type SiblingApp = 'radar' | 'lidar';
 
+/**
+ * Radar counts two things and keeps a streak on each. One slot on a strip of
+ * two cannot show both, and picking one for the user is picking wrong for half
+ * of them — so the slot has two faces and the swipe turns it over.
+ */
+export type RadarFace = 'films' | 'tv';
+
 export type SiblingStreak = {
   app: SiblingApp;
   label: string;
-  /** What the app measures, for the caption: "films", "pages". */
+  /** What the app measures, for the caption: "films", "episodes", "pages". */
   unit: string;
   days: number;
   /** False when the source has nothing to say; the slot is hidden, not zeroed. */
   present: boolean;
+  /** Which of Radar's two this is. Absent on a sibling that counts one thing. */
+  face?: RadarFace;
 };
 
 export const SIBLING_LABELS: Record<SiblingApp, { label: string; unit: string }> = {
   radar: { label: 'radar', unit: 'films' },
   lidar: { label: 'lidar', unit: 'pages' },
+};
+
+export const RADAR_FACE_UNITS: Record<RadarFace, string> = {
+  films: 'films',
+  tv: 'episodes',
 };
 
 /**
@@ -77,6 +92,42 @@ export function radarStreak(
   now: number = Date.now(),
 ): SiblingStreak {
   return fromSnapshot('radar', currentStreak, updatedAt, now);
+}
+
+/**
+ * Radar's two streaks, in the order the slot turns them over. Only the ones
+ * with something to say: an account that watches films and no television has
+ * one face, and a slot that flips to a blank second side reads as broken.
+ *
+ * Both faces ride the same `streak_updated_at` — Radar writes them in one patch
+ * (its StreakSnapshot), so one stamp covers the pair.
+ */
+export function radarFaces(
+  movieStreak: number | null | undefined,
+  tvStreak: number | null | undefined,
+  updatedAt: string | null | undefined,
+  now: number = Date.now(),
+): SiblingStreak[] {
+  return [
+    { ...fromSnapshot('radar', movieStreak, updatedAt, now), face: 'films' as const, unit: RADAR_FACE_UNITS.films },
+    { ...fromSnapshot('radar', tvStreak, updatedAt, now), face: 'tv' as const, unit: RADAR_FACE_UNITS.tv },
+  ].filter((streak) => streak.present);
+}
+
+/**
+ * The face after this one, wrapping. Takes the face rather than an index so a
+ * remembered choice that is no longer on offer — the TV streak ended while the
+ * app was closed — lands on the first available one instead of nothing.
+ */
+export function nextFace(faces: SiblingStreak[], current: RadarFace | null): RadarFace | null {
+  if (faces.length === 0) return null;
+  const index = faces.findIndex((streak) => streak.face === current);
+  return faces[(index + 1) % faces.length].face ?? null;
+}
+
+/** The face to show now: the remembered one when it is still on offer, else the first. */
+export function faceOrFirst(faces: SiblingStreak[], preferred: RadarFace | null): SiblingStreak | null {
+  return faces.find((streak) => streak.face === preferred) ?? faces[0] ?? null;
 }
 
 export function lidarStreak(

@@ -20,9 +20,16 @@ export type FriendsVisibility = 'public' | 'friends' | 'noone';
 export type SharedSettings = {
   theme: ThemePref;
   friendsVisibility: FriendsVisibility;
-  /** Radar's. Read-only. */
+  /** Radar's, read-only — its film streak, which it also publishes as `movie_streak`. */
   radarStreak: number;
   radarStreakUpdatedAt: string | null;
+  /**
+   * Radar's two streaks under their own names. `radarStreak` above is the film
+   * one and is what an older Radar publishes; these two arrive only once
+   * Radar's notifications.sql has been run, and read 0 until it has.
+   */
+  radarMovieStreak: number;
+  radarTvStreak: number;
   /** Lidar's. Read-only — Lidar is the only writer of these two. */
   lidarStreak: number;
   lidarStreakUpdatedAt: string | null;
@@ -34,6 +41,8 @@ export type SharedSettingsRow = {
   friends_visibility: string | null;
   current_streak: number | null;
   streak_updated_at: string | null;
+  movie_streak: number | null;
+  tv_streak: number | null;
   lidar_streak: number | null;
   lidar_streak_updated_at: string | null;
   timezone: string | null;
@@ -47,6 +56,8 @@ export const DEFAULT_SHARED_SETTINGS: SharedSettings = {
   friendsVisibility: 'friends',
   radarStreak: 0,
   radarStreakUpdatedAt: null,
+  radarMovieStreak: 0,
+  radarTvStreak: 0,
   lidarStreak: 0,
   lidarStreakUpdatedAt: null,
   timezone: 'UTC',
@@ -63,6 +74,16 @@ export function normalizeShared(row: SharedSettingsRow | null | undefined): Shar
     friendsVisibility: visibility(row.friends_visibility),
     radarStreak: typeof row.current_streak === 'number' ? row.current_streak : 0,
     radarStreakUpdatedAt: row.streak_updated_at ?? null,
+    // Falls back to the film streak Radar has always published, so the strip
+    // still says something on a database that has not had Radar's
+    // notifications.sql run against it yet.
+    radarMovieStreak:
+      typeof row.movie_streak === 'number' && row.movie_streak > 0
+        ? row.movie_streak
+        : typeof row.current_streak === 'number'
+          ? row.current_streak
+          : 0,
+    radarTvStreak: typeof row.tv_streak === 'number' ? row.tv_streak : 0,
     lidarStreak: typeof row.lidar_streak === 'number' ? row.lidar_streak : 0,
     lidarStreakUpdatedAt: row.lidar_streak_updated_at ?? null,
     timezone: row.timezone ?? DEFAULT_SHARED_SETTINGS.timezone,
