@@ -12,7 +12,6 @@
 - Today: your radar and lidar streaks appear alongside your habit ones, as each app reports them
 - Habits: every habit in one list, with an archive you can restore from
 - Habit detail: the twelve-week wall, the ladder, freeze tokens and repairs
-- Habit detail: tap an outlined day on the wall to answer it late — yesterday, or the days you were away
 - Builder: 24 marks to pick a habit by, from the abstract ones to flame, book, weight and ban
 - Builder: five steps to a habit — name, target, nudges, what a miss costs, and your word
 - Streaks: pick strict, one forgiven miss a week, or a miss costing three days
