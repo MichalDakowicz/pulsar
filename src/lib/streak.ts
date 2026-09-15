@@ -1,11 +1,16 @@
 import { weekKey } from '@/lib/dates';
-import { isTargetDay, targetDaysBetween, type Cadence } from '@/lib/schedule';
+import { ruleOn, targetDaysOn, type Timeline } from '@/lib/phases';
+import { isTargetDay, type Cadence } from '@/lib/schedule';
 
 /**
  * The streak rules — the one piece of this app that has to be right.
  *
  * A streak is walked over *target days only* (lib/schedule): a Mon/Wed/Fri
  * habit is not broken by an empty Tuesday, because Tuesday was never owed.
+ * Which days those are, and what a miss costs on them, is asked of lib/phases
+ * per day rather than read once: a habit whose cadence changed on Tuesday was
+ * owed different days on either side of it, and walking all of it under today's
+ * rules is how a kept wall turns into a broken one overnight.
  * Everything is computed forward from the day the habit started rather than
  * backwards from today, because `decay` has to know what the run was worth
  * before the miss took three days off it, and because one forward pass gives
@@ -58,13 +63,11 @@ function counts(state: EntryState | undefined): boolean {
  */
 export function computeStreak(
   entries: EntryMap,
-  cadence: Cadence,
-  rule: StreakRule,
-  startedOn: string,
+  timeline: Timeline & { cadence: Cadence; rule: StreakRule },
   today: string,
   missedCap = 30,
 ): StreakResult {
-  const days = targetDaysBetween(cadence, startedOn, today);
+  const days = targetDaysOn(timeline, timeline.startedOn, today);
   let run = 0;
   let best = 0;
   let heldCount = 0;
@@ -75,6 +78,7 @@ export function computeStreak(
 
   for (const day of days) {
     const state = entries[day];
+    const rule = ruleOn(timeline, day);
     const week = weekKey(day);
     if (week !== graceWeek) {
       graceWeek = week;

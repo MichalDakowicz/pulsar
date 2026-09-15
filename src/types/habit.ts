@@ -1,3 +1,4 @@
+import type { Phase } from '@/lib/phases';
 import type { Cadence } from '@/lib/schedule';
 import type { EntryState, StreakRule } from '@/lib/streak';
 
@@ -26,6 +27,12 @@ export type Habit = {
   /** Only meaningful for `count` — "glasses", "pages", "reps". */
   unit: string;
   cadence: Cadence;
+  /**
+   * Stretches of the past still judged by rules this habit has since changed,
+   * oldest first and never overlapping. Empty on a habit whose rules have only
+   * ever been corrected rather than changed — see lib/phases.
+   */
+  phases: Phase[];
   challenge: Challenge;
   window: NudgeWindow;
   /** `HH:MM`, sorted. Empty when the window is `anytime` — no clock, no nudge. */

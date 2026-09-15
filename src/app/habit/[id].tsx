@@ -20,6 +20,7 @@ import { useNavBarSpace } from '@/hooks/useNavBarSpace';
 import { MAX_W } from '@/hooks/useResponsive';
 import { formatDayShort } from '@/lib/dates';
 import { challengeComplete, challengeLabel, dayProgress, habitMeta } from '@/lib/habit';
+import { targetOn } from '@/lib/phases';
 import { tokenWord } from '@/lib/tokens';
 import { buildWall, wallRate } from '@/lib/wall';
 
@@ -43,9 +44,9 @@ export default function HabitDetail() {
     if (!row) return [];
     const progress: Record<string, number> = {};
     for (const [day, amount] of Object.entries(row.amounts)) {
-      progress[day] = dayProgress(row.habit, amount);
+      progress[day] = dayProgress({ kind: row.habit.kind, target: targetOn(row.habit, day) }, amount);
     }
-    return buildWall(row.entries, row.habit.cadence, {
+    return buildWall(row.entries, row.habit, {
       weeks: WEEKS,
       startedOn: row.habit.startedOn,
       progress,

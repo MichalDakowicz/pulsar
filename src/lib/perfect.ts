@@ -1,5 +1,6 @@
 import { dayRange } from '@/lib/dates';
-import { isTargetDay, type Cadence } from '@/lib/schedule';
+import { isTargetDayOn, type Phase } from '@/lib/phases';
+import { type Cadence } from '@/lib/schedule';
 import type { EntryMap } from '@/lib/streak';
 
 /**
@@ -15,6 +16,8 @@ import type { EntryMap } from '@/lib/streak';
 export type HabitSchedule = {
   id: string;
   cadence: Cadence;
+  /** Superseded rules, so a day is judged by the cadence it actually had. */
+  phases?: Phase[];
   startedOn: string;
   archivedAt: string | null;
   /** Only `avoid` behaves differently here — see `heldOn`. */
@@ -39,7 +42,7 @@ function dueOn(habits: HabitSchedule[], day: string): HabitSchedule[] {
     (habit) =>
       day >= habit.startedOn &&
       (!habit.archivedAt || day < habit.archivedAt.slice(0, 10)) &&
-      isTargetDay(habit.cadence, day),
+      isTargetDayOn(habit, day),
   );
 }
 
@@ -103,11 +106,16 @@ export function isPerfectToday(habits: HabitSchedule[], entries: Map<string, Ent
  * more — the comeback award. Walking the best-run history is the only way to
  * know the difference between "never got going" and "got going twice".
  */
-export function hasRebuilt(entries: EntryMap, cadence: Cadence, from: string, to: string): boolean {
+export function hasRebuilt(
+  entries: EntryMap,
+  timeline: { cadence: Cadence; phases?: Phase[] },
+  from: string,
+  to: string,
+): boolean {
   let run = 0;
   let brokeFromSeven = false;
   for (const day of dayRange(from, to)) {
-    if (!isTargetDay(cadence, day)) continue;
+    if (!isTargetDayOn(timeline, day)) continue;
     const state = entries[day];
     if (state === 'held' || state === 'repaired') {
       run += 1;
