@@ -5,11 +5,13 @@ import { Platform } from 'react-native';
 import { useToast } from '@/components/ui/Toast';
 import { useClearEntry, useSetEntry } from '@/features/habits/useEntries';
 import { useTokens } from '@/features/habits/useTokens';
+import { formatDayShort } from '@/lib/dates';
+import type { EntryState } from '@/lib/streak';
 import { clearedTier, TIER_NAMES } from '@/lib/tiers';
 import type { Habit } from '@/types/habit';
 
 /**
- * The four things that can happen to a day, and what each one says afterwards.
+ * The five things that can happen to a day, and what each one says afterwards.
  *
  * Undo is offered on exactly one of them. Checking in is reversible and people
  * fat-finger a swipe; spending a freeze token is not, because the token is
@@ -93,6 +95,32 @@ export function useCheckIn(perfectCount: number) {
     [setEntry, clearEntry, say],
   );
 
+  /**
+   * Answering a day that has already ended, for free.
+   *
+   * Only `held` and `skipped` are on offer, and that is the whole difference
+   * from a repair: those are the two answers you are giving late, while
+   * `frozen` and `repaired` are answers you bought. Which days get here at all
+   * is `lib/backfill`'s decision, not this hook's — it writes what it is told.
+   */
+  const backfill = useCallback(
+    async (habit: Habit, day: string, state: EntryState | null) => {
+      if (state === null) {
+        await clearEntry.mutateAsync({ habitId: habit.id, day });
+        say(`${formatDayShort(day)} is empty again.`);
+        return;
+      }
+      await setEntry.mutateAsync({
+        habitId: habit.id,
+        day,
+        state,
+        amount: state === 'held' ? 1 : 0,
+      });
+      say(state === 'held' ? `${formatDayShort(day)} held.` : `${formatDayShort(day)} set aside.`);
+    },
+    [setEntry, clearEntry, say],
+  );
+
   const clear = useCallback(
     async (habit: Habit, day?: string) => {
       await clearEntry.mutateAsync({ habitId: habit.id, day });
@@ -117,5 +145,5 @@ export function useCheckIn(perfectCount: number) {
     [clearEntry, say],
   );
 
-  return { hold, freeze, repair, skip, clear, undo, tokens };
+  return { hold, freeze, repair, skip, backfill, clear, undo, tokens };
 }
