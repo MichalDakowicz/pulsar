@@ -98,3 +98,37 @@ describe('hasRebuilt', () => {
     expect(hasRebuilt({ ...first, ...second }, daily, '2026-09-01', '2026-09-15')).toBe(true);
   });
 });
+
+describe('an avoid habit on the day still running', () => {
+  const AVOID: HabitSchedule = {
+    id: 'c',
+    cadence: { kind: 'daily' },
+    startedOn: '2026-09-07',
+    archivedAt: null,
+    kind: 'avoid',
+  };
+
+  it('counts as held on the last day walked — it is not asked about until tomorrow', () => {
+    const entries = map({ c: {} });
+    const result = perfectDays([AVOID], entries, '2026-09-08', '2026-09-08');
+    expect(result.days).toEqual(['2026-09-08']);
+  });
+
+  it('does not, once a slip is logged on it', () => {
+    const entries = map({ c: { '2026-09-08': 'broke' } });
+    const result = perfectDays([AVOID], entries, '2026-09-08', '2026-09-08');
+    expect(result.days).toEqual([]);
+  });
+
+  it('still has to be held on a day that is already over', () => {
+    const entries = map({ c: { '2026-09-09': 'held' } });
+    const result = perfectDays([AVOID], entries, '2026-09-08', '2026-09-09');
+    expect(result.days).toEqual(['2026-09-09']);
+  });
+
+  it('leaves today perfect while it is clean, and not once it is blown', () => {
+    expect(isPerfectToday([AVOID], map({ c: {} }), '2026-09-08')).toBe(true);
+    expect(isPerfectToday([AVOID], map({ c: { '2026-09-08': 'broke' } }), '2026-09-08')).toBe(false);
+  });
+});
+

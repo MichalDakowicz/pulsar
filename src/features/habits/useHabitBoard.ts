@@ -4,7 +4,7 @@ import { useEntries } from '@/features/habits/useEntries';
 import { useHabits } from '@/features/habits/useHabits';
 import { useTokens } from '@/features/habits/useTokens';
 import { addDays, dateKey, hoursToMidnight } from '@/lib/dates';
-import { canUndoToday, dayProgress, dayState, effectiveRule } from '@/lib/habit';
+import { asksAboutYesterday, canUndoToday, dayProgress, dayState, effectiveRule, judgedDay } from '@/lib/habit';
 import { hasRebuilt, isPerfectToday, perfectDays, type HabitSchedule } from '@/lib/perfect';
 import { isTargetDay } from '@/lib/schedule';
 import { computeStreak, hitRate, isAtRisk, repairableDays, type EntryMap, type StreakResult } from '@/lib/streak';
@@ -22,8 +22,12 @@ import type { Habit } from '@/types/habit';
 export type BoardHabit = {
   habit: Habit;
   streak: StreakResult;
-  /** Today's resolution: an entry state, `due`, or `rest` when nothing was owed. */
-  today: 'held' | 'frozen' | 'repaired' | 'skipped' | 'due' | 'rest';
+  /** The resolution of the day being asked about: an entry state, `due`, or `rest`. */
+  today: 'held' | 'frozen' | 'repaired' | 'skipped' | 'broke' | 'due' | 'rest';
+  /** The day this row is actually about — yesterday for an avoid habit. */
+  judged: string;
+  /** Whether the row is asking about a day that has already ended. */
+  asksYesterday: boolean;
   /** 0–1 of today's target, for the row fill on a counter habit. */
   progress: number;
   amount: number;
@@ -82,6 +86,7 @@ export function useHabitBoard(): HabitBoard {
         cadence: habit.cadence,
         startedOn: habit.startedOn,
         archivedAt: habit.archivedAt,
+        kind: habit.kind,
       })),
     [active],
   );
@@ -98,21 +103,27 @@ export function useHabitBoard(): HabitBoard {
     return active.map((habit) => {
       const entries = byHabit.get(habit.id) ?? {};
       const habitAmounts = amounts.get(habit.id) ?? {};
-      const streak = computeStreak(entries, habit.cadence, effectiveRule(habit), habit.startedOn, today);
-      const state = dayState(habit, entries, today);
-      const amount = habitAmounts[today] ?? 0;
+      // Everything about this row keys off the day it is asking about, not off
+      // the calendar: for an avoid habit those are different days, and mixing
+      // them is how a clean day gets scored twice or not at all.
+      const judged = judgedDay(habit, today);
+      const streak = computeStreak(entries, habit.cadence, effectiveRule(habit), habit.startedOn, judged);
+      const state = dayState(habit, entries, judged);
+      const amount = habitAmounts[judged] ?? 0;
 
       return {
         habit,
         streak,
         today: state,
+        judged,
+        asksYesterday: asksAboutYesterday(habit),
         // A held day is full whatever the counter says: the target was met, and
         // a bar that stops at 97% on a day you finished reads as a failure.
         progress: state === 'held' || state === 'repaired' ? 1 : dayProgress(habit, amount),
         amount,
         rate: hitRate(streak),
-        atRisk: isAtRisk(entries, habit.cadence, streak.current, today, hoursLeft),
-        repairable: repairableDays(streak, today),
+        atRisk: isAtRisk(entries, habit.cadence, streak.current, judged, hoursLeft),
+        repairable: repairableDays(streak, judged),
         entries,
         amounts: habitAmounts,
       };
@@ -120,7 +131,14 @@ export function useHabitBoard(): HabitBoard {
   }, [active, byHabit, amounts, today, hoursLeft]);
 
   const open = rows.filter((row) => row.today === 'due');
-  const done = rows.filter((row) => row.today === 'held' || row.today === 'repaired' || row.today === 'frozen' || row.today === 'skipped');
+  const done = rows.filter(
+    (row) =>
+      row.today === 'held' ||
+      row.today === 'repaired' ||
+      row.today === 'frozen' ||
+      row.today === 'skipped' ||
+      row.today === 'broke',
+  );
   const resting = rows.filter((row) => row.today === 'rest');
 
   // The most valuable streak on the line, not the first one found — if only one

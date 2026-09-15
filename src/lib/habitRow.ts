@@ -134,7 +134,7 @@ export function habitToRow(habit: Partial<Habit>): Record<string, unknown> {
   return row;
 }
 
-const ENTRY_STATES = ['held', 'frozen', 'repaired', 'skipped'] as const;
+const ENTRY_STATES = ['held', 'frozen', 'repaired', 'skipped', 'broke'] as const;
 
 export function normalizeEntry(row: HabitEntryRow): HabitEntry {
   return {

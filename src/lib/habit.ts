@@ -1,3 +1,4 @@
+import { addDays } from '@/lib/dates';
 import { cadenceLabel, isTargetDay, type Cadence } from '@/lib/schedule';
 import type { EntryMap, EntryState } from '@/lib/streak';
 import type { Habit, HabitKind, NudgeWindow } from '@/types/habit';
@@ -77,6 +78,27 @@ export function meetsTarget(habit: Pick<Habit, 'kind' | 'target'>, amount: numbe
 }
 
 /**
+ * The day a habit is currently being asked about.
+ *
+ * For an `avoid` habit that is yesterday, and the reason is in the word: a
+ * clean day is only clean once it is over. Asking at 09:00 whether you stayed
+ * off it today is asking you to promise, not to report, and a wall built out
+ * of promises is a wall that says nothing. Everything else is asked about
+ * today, where the day is the thing you are filling in as you go.
+ */
+export function judgedDay(habit: Pick<Habit, 'kind'>, today: string): string {
+  return habit.kind === 'avoid' ? addDays(today, -1) : today;
+}
+
+/**
+ * Whether a habit's open question is about a day that has already ended, which
+ * is what lets a row say "yesterday" instead of pretending it means now.
+ */
+export function asksAboutYesterday(habit: Pick<Habit, 'kind'>): boolean {
+  return habit.kind === 'avoid';
+}
+
+/**
  * What Today should say about one habit on one day.
  *
  * `rest` is the state the design had no word for and the app needs most: a day
@@ -96,13 +118,15 @@ export function dayState(
 /**
  * Whether today's answer can simply be taken back.
  *
- * Only the two that cost nothing. A freeze and a repair each spent a token, and
+ * Only the ones that cost nothing. A freeze and a repair each spent a token, and
  * the token is gone — offering to un-spend it would be a lie about what the
  * ledger did, which is the same reason the check-in toast never offers Undo on
- * them. A day that is still `due` or a `rest` day has nothing to undo.
+ * them. A day that is still `due` or a `rest` day has nothing to undo. A
+ * `broke` day is undoable on purpose: taking the slip back is exactly what
+ * unblocks answering that day clean.
  */
 export function canUndoToday(state: EntryState | 'due' | 'rest'): boolean {
-  return state === 'held' || state === 'skipped';
+  return state === 'held' || state === 'skipped' || state === 'broke';
 }
 
 /**

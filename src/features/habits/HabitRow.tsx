@@ -1,4 +1,4 @@
-import { Check, Snowflake } from 'lucide-react-native';
+import { Check, Snowflake, X } from 'lucide-react-native';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Pressable, Text, View } from 'react-native';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
@@ -32,6 +32,13 @@ type HabitRowProps = {
    * `canUndoToday`. A frozen or repaired day spent a token and is not one.
    */
   onUndo?: () => void;
+  /**
+   * Only on an avoid habit: logging a slip on the day that is still running,
+   * which is a different day from the one this row is asking about.
+   */
+  onDid?: () => void;
+  /** Whether today already carries a slip, so the control offers to take it back. */
+  didToday?: boolean;
 };
 
 /**
@@ -47,7 +54,7 @@ type HabitRowProps = {
  * nothing, and without it someone in hold mode has to open the habit to take
  * back a mis-tap.
  */
-export function HabitRow({ row, mode, onHold, onOpen, onSkip, onUndo }: HabitRowProps) {
+export function HabitRow({ row, mode, onHold, onOpen, onSkip, onUndo, onDid, didToday }: HabitRowProps) {
   const { habit, streak, today } = row;
   const resolved = today !== 'due';
   const dx = useSharedValue(0);
@@ -110,6 +117,7 @@ export function HabitRow({ row, mode, onHold, onOpen, onSkip, onUndo }: HabitRow
 
   const held = today === 'held' || today === 'repaired';
   const frozen = today === 'frozen';
+  const broke = today === 'broke';
 
   // No rule down the edge (PING.md §6): the ground carries the state. `held`
   // already says itself three times over - the accent tile, the tick and the
@@ -174,6 +182,7 @@ export function HabitRow({ row, mode, onHold, onOpen, onSkip, onUndo }: HabitRow
               </View>
             )}
             {frozen && <Snowflake size={17} color={COLORS.accent} strokeWidth={2.4} />}
+            {broke && <X size={17} color={COLORS.muted} strokeWidth={2.6} />}
             {!resolved && (
               <Text className="text-xs font-semibold text-muted-foreground">
                 {mode === 'hold' ? 'hold' : 'swipe'}
@@ -186,33 +195,64 @@ export function HabitRow({ row, mode, onHold, onOpen, onSkip, onUndo }: HabitRow
         </Animated.View>
       </GestureDetector>
 
-      {/* Set-aside only exists while the day is still open and the habit allows
-          it; on a resolved row there is nothing to set aside. */}
-      {!resolved && onSkip && (
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel={`set ${habit.name} aside for today`}
-          hitSlop={6}
-          onPress={onSkip}
-          className="border-t border-border/50 py-2"
-        >
-          <Text className="text-center text-[11px] font-semibold text-muted-foreground">not today</Text>
-        </Pressable>
+      {/* Two footer actions, and they are about two different days. Set-aside
+          answers the day the row is asking about; the slip answers the day that
+          is still running, which on an avoid habit is not the same one — so the
+          slip stays available even on a row that is already resolved. */}
+      {((!resolved && onSkip) || onDid) && (
+        <View className="flex-row border-t border-border/50">
+          {!resolved && onSkip && (
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel={`set ${habit.name} aside`}
+              hitSlop={6}
+              onPress={onSkip}
+              className="flex-1 py-2"
+            >
+              <Text className="text-center text-[11px] font-semibold text-muted-foreground">
+                not today
+              </Text>
+            </Pressable>
+          )}
+          {onDid && (
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel={
+                didToday ? `clear today's slip on ${habit.name}` : `log a slip on ${habit.name} today`
+              }
+              hitSlop={6}
+              onPress={onDid}
+              className="flex-1 border-l border-border/50 py-2"
+            >
+              <Text className="text-center text-[11px] font-semibold text-muted-foreground">
+                {didToday ? "clear today's slip" : 'did it today'}
+              </Text>
+            </Pressable>
+          )}
+        </View>
       )}
     </View>
   );
 }
 
 function rowMeta(row: BoardHabit): string {
-  const { habit, streak, today, amount } = row;
-  if (today === 'held' || today === 'repaired') return `held · ${streak.current} day streak`;
+  const { habit, streak, today, amount, asksYesterday } = row;
+  // An avoid row is answering a day that has already ended, and saying so is the
+  // whole point of moving it: "clean day" with no day named reads as a promise
+  // about the next sixteen hours.
+  const when = asksYesterday ? 'yesterday' : null;
+  if (today === 'held' || today === 'repaired') {
+    return [when && `${when} held`, `${streak.current} day streak`].filter(Boolean).join(' · ');
+  }
   if (today === 'frozen') return `frozen · streak held at ${streak.current}`;
-  if (today === 'skipped') return 'set aside for today';
+  if (today === 'skipped') return when ? `${when} set aside` : 'set aside for today';
+  if (today === 'broke') return when ? `${when} broken · back to day one` : 'broken · back to day one';
   if (row.atRisk) return `${streak.current} days on the line`;
 
   const target = targetLabel(habit);
   const parts: string[] = [];
-  if (habit.times.length > 0) parts.push(`due ${habit.times[0]}`);
+  if (when) parts.push(when);
+  if (habit.times.length > 0 && !when) parts.push(`due ${habit.times[0]}`);
   if (target && habit.kind === 'count') parts.push(`${amount}/${habit.target} ${habit.unit}`);
   else if (target) parts.push(target);
   parts.push(streak.current > 0 ? `${streak.current} day streak` : 'day one');

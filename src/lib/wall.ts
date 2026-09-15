@@ -73,6 +73,9 @@ function cellFor(
   if (state === 'held' || state === 'repaired') return { day, state: 'held', ratio: 1 };
   if (state === 'frozen') return { day, state: 'frozen', ratio: 0 };
   if (state === 'skipped') return { day, state: 'rest', ratio: 0 };
+  // A logged slip is a hole in the wall like any other miss, and on the open
+  // day too — it is the one answer that does not wait for midnight.
+  if (state === 'broke') return { day, state: 'missed', ratio: 0 };
   // Today has not failed yet — an unfilled today is not a hole in the wall.
   if (day === endOn) return { day, state: 'future', ratio: ratio ?? 0 };
   if (ratio && ratio > 0) return { day, state: 'partial', ratio };
