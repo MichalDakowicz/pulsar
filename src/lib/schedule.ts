@@ -16,7 +16,12 @@ export type Cadence =
   /** Explicit weekday set, 0 = Monday … 6 = Sunday. */
   | { kind: 'days'; days: number[] }
   /** Every `every` days counting from `anchor` (the day the habit started). */
-  | { kind: 'interval'; every: number; anchor: string };
+  | { kind: 'interval'; every: number; anchor: string }
+  /**
+   * `perWeek` days a week, any days. The only cadence that owes weeks rather
+   * than days — see `judgesByWeek`.
+   */
+  | { kind: 'weekly'; perWeek: number };
 
 export type CadenceKind = Cadence['kind'];
 
@@ -34,7 +39,29 @@ export function isTargetDay(cadence: Cadence, day: string): boolean {
       const every = Math.max(1, cadence.every);
       return span % every === 0;
     }
+    // Every day can take an answer. Which of them had to is a question about
+    // the week, and it is not this function's to answer — `judgesByWeek`.
+    case 'weekly':
+      return true;
   }
+}
+
+/**
+ * Whether this cadence is scored a week at a time.
+ *
+ * A quota habit is the one shape where an empty day means nothing at all: "three
+ * times a week" has no opinion about Tuesday, only about the seven days Tuesday
+ * is in. Everything that judges a lived day branches here, because the default
+ * — an empty day is a miss — would make a 3-a-week habit break on its first
+ * rest day and turn its wall into four holes out of seven.
+ */
+export function judgesByWeek(cadence: Cadence): boolean {
+  return cadence.kind === 'weekly';
+}
+
+/** How many days the week owes. 0 for any cadence that is not scored weekly. */
+export function weeklyQuota(cadence: Cadence): number {
+  return cadence.kind === 'weekly' ? Math.max(1, Math.min(7, Math.round(cadence.perWeek))) : 0;
 }
 
 /** The next target day strictly after `day`. Bounded, so a days:[] cadence cannot spin. */
@@ -68,6 +95,8 @@ export function targetsPerWeek(cadence: Cadence): number {
       return cadence.days.length;
     case 'interval':
       return 7 / Math.max(1, cadence.every);
+    case 'weekly':
+      return weeklyQuota(cadence);
   }
 }
 
@@ -77,6 +106,7 @@ export function targetsPerWeek(cadence: Cadence): number {
  * rather than letting someone commit to a habit that will never ask anything.
  */
 export function isEmptyCadence(cadence: Cadence): boolean {
+  if (cadence.kind === 'weekly') return Math.round(cadence.perWeek) < 1;
   return cadence.kind === 'days' && cadence.days.length === 0;
 }
 
@@ -95,5 +125,11 @@ export function cadenceLabel(cadence: Cadence): string {
     }
     case 'interval':
       return cadence.every === 2 ? 'every other day' : `every ${cadence.every} days`;
+    case 'weekly': {
+      const quota = weeklyQuota(cadence);
+      if (quota === 1) return 'once a week';
+      if (quota === 7) return 'every day';
+      return `${quota} times a week`;
+    }
   }
 }

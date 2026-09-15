@@ -2,9 +2,11 @@ import {
   cadenceLabel,
   isEmptyCadence,
   isTargetDay,
+  judgesByWeek,
   nextTargetDay,
   targetDaysBetween,
   targetsPerWeek,
+  weeklyQuota,
   type Cadence,
 } from '@/lib/schedule';
 
@@ -88,5 +90,44 @@ describe('cadenceLabel', () => {
     expect(cadenceLabel({ kind: 'days', days: [0, 1, 2, 3, 4, 5, 6] })).toBe('every day');
     expect(cadenceLabel({ kind: 'days', days: [] })).toBe('no days picked');
     expect(cadenceLabel({ kind: 'interval', every: 2, anchor: MON })).toBe('every other day');
+  });
+});
+
+describe('a weekly quota', () => {
+  const three: Cadence = { kind: 'weekly', perWeek: 3 };
+
+  it('can take an answer on any day', () => {
+    // Saturday included: the quota has no opinion about which days.
+    expect(isTargetDay(three, '2026-09-12')).toBe(true);
+    expect(isTargetDay(three, '2026-09-08')).toBe(true);
+  });
+
+  it('is the only cadence scored a week at a time', () => {
+    expect(judgesByWeek(three)).toBe(true);
+    expect(judgesByWeek({ kind: 'daily' })).toBe(false);
+    expect(judgesByWeek({ kind: 'days', days: [0, 2] })).toBe(false);
+  });
+
+  it('clamps a quota that could never be met', () => {
+    expect(weeklyQuota({ kind: 'weekly', perWeek: 9 })).toBe(7);
+    expect(weeklyQuota({ kind: 'weekly', perWeek: 0 })).toBe(1);
+    expect(weeklyQuota({ kind: 'daily' })).toBe(0);
+  });
+
+  it('refuses a quota of nothing, the way it refuses no days picked', () => {
+    expect(isEmptyCadence({ kind: 'weekly', perWeek: 0 })).toBe(true);
+    expect(isEmptyCadence(three)).toBe(false);
+  });
+
+  it('says what it asks for', () => {
+    expect(cadenceLabel(three)).toBe('3 times a week');
+    expect(cadenceLabel({ kind: 'weekly', perWeek: 1 })).toBe('once a week');
+    // Seven of seven is every day, and saying "7 times a week" instead is the
+    // app showing its working rather than answering.
+    expect(cadenceLabel({ kind: 'weekly', perWeek: 7 })).toBe('every day');
+  });
+
+  it('counts toward the week like any other cadence', () => {
+    expect(targetsPerWeek(three)).toBe(3);
   });
 });

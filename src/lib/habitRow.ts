@@ -22,6 +22,8 @@ export type HabitRow = {
   cadence_kind: string;
   cadence_days: number[] | null;
   cadence_every: number;
+  /** Only read when cadence_kind = 'weekly': how many days the week owes. */
+  cadence_per_week: number;
   /** Superseded rules, oldest first. Written and read only by Pulsar. */
   phases: unknown;
   challenge: string;
@@ -55,7 +57,9 @@ function oneOf<T extends string>(allowed: T[], value: string | null | undefined,
   return allowed.includes(value as T) ? (value as T) : fallback;
 }
 
-export function cadenceFromRow(row: Pick<HabitRow, 'cadence_kind' | 'cadence_days' | 'cadence_every' | 'started_on'>): Cadence {
+export function cadenceFromRow(
+  row: Pick<HabitRow, 'cadence_kind' | 'cadence_days' | 'cadence_every' | 'cadence_per_week' | 'started_on'>,
+): Cadence {
   switch (row.cadence_kind) {
     case 'weekdays':
       return { kind: 'weekdays' };
@@ -65,16 +69,21 @@ export function cadenceFromRow(row: Pick<HabitRow, 'cadence_kind' | 'cadence_day
       return { kind: 'days', days: [...new Set(row.cadence_days ?? [])].filter((d) => d >= 0 && d <= 6).sort() };
     case 'interval':
       return { kind: 'interval', every: Math.max(1, row.cadence_every), anchor: row.started_on };
+    case 'weekly':
+      return { kind: 'weekly', perWeek: Math.max(1, Math.min(7, row.cadence_per_week || 3)) };
     default:
       return { kind: 'daily' };
   }
 }
 
-export function cadenceToRow(cadence: Cadence): Pick<HabitRow, 'cadence_kind' | 'cadence_days' | 'cadence_every'> {
+export function cadenceToRow(
+  cadence: Cadence,
+): Pick<HabitRow, 'cadence_kind' | 'cadence_days' | 'cadence_every' | 'cadence_per_week'> {
   return {
     cadence_kind: cadence.kind,
     cadence_days: cadence.kind === 'days' ? [...cadence.days].sort() : [],
     cadence_every: cadence.kind === 'interval' ? cadence.every : 2,
+    cadence_per_week: cadence.kind === 'weekly' ? cadence.perWeek : 3,
   };
 }
 

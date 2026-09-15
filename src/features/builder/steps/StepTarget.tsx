@@ -21,6 +21,7 @@ export function StepTarget({ state, set }: StepProps) {
               { kind: 'weekdays' as const, label: 'weekdays' },
               { kind: 'days' as const, label: 'pick days' },
               { kind: 'interval' as const, label: 'every n days' },
+              { kind: 'weekly' as const, label: 'n times a week' },
             ]
           ).map((option) => {
             const active = cadence.kind === option.kind;
@@ -33,6 +34,7 @@ export function StepTarget({ state, set }: StepProps) {
                 onPress={() => {
                   if (option.kind === 'days') set('cadence', { kind: 'days', days: [0, 1, 2, 3, 4] });
                   else if (option.kind === 'interval') set('cadence', { kind: 'interval', every: 2, anchor: '' });
+                  else if (option.kind === 'weekly') set('cadence', { kind: 'weekly', perWeek: 3 });
                   else set('cadence', { kind: option.kind });
                 }}
                 className={[
@@ -87,6 +89,26 @@ export function StepTarget({ state, set }: StepProps) {
               onPress={() => set('cadence', { kind: 'interval', every, anchor: '' })}
             />
           ))}
+        </View>
+      )}
+
+      {cadence.kind === 'weekly' && (
+        <View className="gap-2.5">
+          <View className="flex-row flex-wrap gap-2">
+            {[1, 2, 3, 4, 5, 6].map((perWeek) => (
+              <Chip
+                key={perWeek}
+                label={perWeek === 1 ? 'once a week' : `${perWeek} times`}
+                selected={cadence.perWeek === perWeek}
+                onPress={() => set('cadence', { kind: 'weekly', perWeek })}
+              />
+            ))}
+          </View>
+          {/* The one cadence where an empty day means nothing, so it is worth
+              saying out loud before someone commits to it. */}
+          <Text className="text-xs text-muted-foreground">
+            any days you like. the week is what has to add up, so a quiet tuesday costs nothing.
+          </Text>
         </View>
       )}
 

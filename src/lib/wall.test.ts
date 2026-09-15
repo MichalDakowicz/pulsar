@@ -126,3 +126,45 @@ describe('weekdayShape', () => {
     expect(after).toEqual(before);
   });
 });
+
+describe('a weekly quota on the wall', () => {
+  const three = { cadence: { kind: 'weekly' as const, perWeek: 3 } };
+
+  it('paints the empty days of a week that added up as rest', () => {
+    // Three held in the week 2026-09-07..13, wall ending after it closed.
+    const entries: EntryMap = {
+      '2026-09-07': 'held',
+      '2026-09-08': 'held',
+      '2026-09-09': 'held',
+    };
+    // Two weeks so the closed week 2026-09-07..13 is the first column.
+    const cells = buildWall(entries, three, { weeks: 2, endOn: '2026-09-20' })[0].cells;
+    expect(cells.map((cell) => cell.state)).toEqual([
+      'held',
+      'held',
+      'held',
+      'rest',
+      'rest',
+      'rest',
+      'rest',
+    ]);
+  });
+
+  it('leaves a week that came up short as holes', () => {
+    const entries: EntryMap = { '2026-09-07': 'held', '2026-09-08': 'held' };
+    const cells = buildWall(entries, three, { weeks: 2, endOn: '2026-09-20' })[0].cells;
+    expect(cells[0].state).toBe('held');
+    expect(cells[1].state).toBe('held');
+    expect(cells[2].state).toBe('missed');
+    expect(cells[6].state).toBe('missed');
+  });
+
+  // A week with days still to run has not failed, so its gaps are not holes yet.
+  it('leaves the week it is still in alone', () => {
+    const entries: EntryMap = { '2026-09-07': 'held' };
+    const cells = buildWall(entries, three, { weeks: 1, endOn: '2026-09-09' })[0].cells;
+    expect(cells[0].state).toBe('held');
+    expect(cells[1].state).toBe('rest');
+    expect(cells[2].state).toBe('future');
+  });
+});

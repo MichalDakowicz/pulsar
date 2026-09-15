@@ -1,5 +1,13 @@
 import type { Cadence } from '@/lib/schedule';
-import { computeStreak, hitRate, isAtRisk, repairableDays, type EntryMap } from '@/lib/streak';
+import {
+  computeStreak,
+  hitRate,
+  isAtRisk,
+  quotaOnTheLine,
+  repairableDays,
+  type EntryMap,
+  type StreakRule,
+} from '@/lib/streak';
 
 const DAILY: Cadence = { kind: 'daily' };
 const WEEKDAYS: Cadence = { kind: 'weekdays' };
@@ -226,5 +234,106 @@ describe('computeStreak across a sealed phase', () => {
     // The same calendar, judged as if the habit had always forgiven a miss a
     // week, keeps all four: that is the difference the phase is holding on to.
     expect(computeStreak(entries, { ...timeline, phases: [] }, '2026-09-11').current).toBe(4);
+  });
+});
+
+describe('computeStreak on a weekly quota', () => {
+  /** 2026-09-07 and 2026-09-14 are Mondays. */
+  const NEXT_MON = '2026-09-14';
+  const quota = (perWeek: number, rule: StreakRule = 'strict') => ({
+    startedOn: MON,
+    cadence: { kind: 'weekly' as const, perWeek },
+    rule,
+  });
+
+  it('counts the days logged, not the weeks kept', () => {
+    const entries = held('2026-09-07', '2026-09-09', '2026-09-11');
+    const result = computeStreak(entries, quota(3), NEXT_MON);
+    expect(result.current).toBe(3);
+    expect(result.missed).toEqual([]);
+  });
+
+  // The whole point of the cadence: an empty Tuesday was never owed.
+  it('does not break on an empty day inside a week that adds up', () => {
+    const entries = held('2026-09-07', '2026-09-08', '2026-09-09');
+    expect(computeStreak(entries, quota(3), NEXT_MON).missed).toEqual([]);
+  });
+
+  it('breaks on a finished week that came up short, and names the week', () => {
+    const entries = held('2026-09-07', '2026-09-09');
+    const result = computeStreak(entries, quota(3), NEXT_MON);
+    expect(result.missed).toEqual([MON]);
+    expect(result.current).toBe(0);
+    expect(result.best).toBe(2);
+  });
+
+  // A week with days left to run has not failed, however little is in it —
+  // the same reason today is never a miss.
+  it('never charges the week it is still in', () => {
+    const entries = held('2026-09-07');
+    const result = computeStreak(entries, quota(3), '2026-09-09');
+    expect(result.missed).toEqual([]);
+    expect(result.current).toBe(1);
+  });
+
+  it('spends a freeze token on a slot rather than on a day', () => {
+    const entries = { ...held('2026-09-07', '2026-09-09'), '2026-09-11': 'frozen' as const };
+    const result = computeStreak(entries, quota(3), NEXT_MON);
+    expect(result.missed).toEqual([]);
+    // Frozen fills the week without adding to the count, as everywhere else.
+    expect(result.current).toBe(2);
+  });
+
+  describe('grace, read at the unit the habit is scored in', () => {
+    // Taken literally it would forgive every short week — a quota week can only
+    // miss once — so it forgives a short week that follows a week that was kept.
+    it('absorbs one bad week', () => {
+      const entries = held('2026-09-07', '2026-09-08', '2026-09-09', '2026-09-14');
+      const result = computeStreak(entries, quota(3, 'grace'), '2026-09-21');
+      expect(result.missed).toEqual([NEXT_MON]);
+      expect(result.current).toBe(4);
+    });
+
+    it('breaks on the second bad week in a row', () => {
+      const entries = held('2026-09-07', '2026-09-08', '2026-09-09', '2026-09-14', '2026-09-21');
+      const result = computeStreak(entries, quota(3, 'grace'), '2026-09-28');
+      // Newest first, like every other missed list.
+      expect(result.missed).toEqual(['2026-09-21', NEXT_MON]);
+      // The week is charged once it is over, which is after the day logged
+      // inside it — so the reset takes that day with it.
+      expect(result.current).toBe(0);
+    });
+  });
+
+  it('takes three days off the count under decay', () => {
+    const entries = held('2026-09-07', '2026-09-08', '2026-09-09', '2026-09-10', '2026-09-11');
+    const result = computeStreak(entries, quota(3, 'decay'), '2026-09-21');
+    // Five days in the first week, nothing in the second: 5 - 3 = 2.
+    expect(result.current).toBe(2);
+    expect(result.missed).toEqual([NEXT_MON]);
+  });
+});
+
+describe('quotaOnTheLine', () => {
+  const three = { kind: 'weekly' as const, perWeek: 3 };
+
+  it('is quiet while the week can still absorb it', () => {
+    // Monday, nothing logged, six days still to come after today.
+    expect(quotaOnTheLine({}, three, '2026-09-07')).toBe(false);
+  });
+
+  it('fires when every day left is needed', () => {
+    // Friday, nothing logged: three days left and three still owed.
+    expect(quotaOnTheLine({}, three, '2026-09-11')).toBe(true);
+  });
+
+  it('is quiet once the week is already paid off', () => {
+    const entries = held('2026-09-07', '2026-09-08', '2026-09-09');
+    expect(quotaOnTheLine(entries, three, '2026-09-11')).toBe(false);
+  });
+
+  it('counts a frozen day as paid', () => {
+    const entries = { ...held('2026-09-07', '2026-09-08'), '2026-09-09': 'frozen' as const };
+    expect(quotaOnTheLine(entries, three, '2026-09-11')).toBe(false);
   });
 });

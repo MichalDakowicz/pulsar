@@ -118,6 +118,7 @@ function sameCadence(a: Cadence, b: Cadence): boolean {
     return a.days.length === b.days.length && a.days.every((day, i) => day === b.days[i]);
   }
   if (a.kind === 'interval' && b.kind === 'interval') return a.every === b.every;
+  if (a.kind === 'weekly' && b.kind === 'weekly') return a.perWeek === b.perWeek;
   return true;
 }
 
@@ -152,7 +153,13 @@ const DAY = /^\d{4}-\d{2}-\d{2}$/;
 
 function cadenceFrom(value: unknown, anchor: string): Cadence | null {
   if (!value || typeof value !== 'object') return null;
-  const raw = value as { kind?: unknown; days?: unknown; every?: unknown; anchor?: unknown };
+  const raw = value as {
+    kind?: unknown;
+    days?: unknown;
+    every?: unknown;
+    anchor?: unknown;
+    perWeek?: unknown;
+  };
   switch (raw.kind) {
     case 'daily':
       return { kind: 'daily' };
@@ -170,6 +177,11 @@ function cadenceFrom(value: unknown, anchor: string): Cadence | null {
         kind: 'interval',
         every: typeof raw.every === 'number' ? Math.max(1, raw.every) : 2,
         anchor: typeof raw.anchor === 'string' && DAY.test(raw.anchor) ? raw.anchor : anchor,
+      };
+    case 'weekly':
+      return {
+        kind: 'weekly',
+        perWeek: typeof raw.perWeek === 'number' ? Math.max(1, Math.min(7, Math.round(raw.perWeek))) : 3,
       };
     default:
       return null;
