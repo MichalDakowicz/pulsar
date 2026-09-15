@@ -43,10 +43,13 @@ export function useReminders() {
         target: targetLabel(row.habit),
         pledge: row.habit.pledge,
         streak: row.streak.current,
-        doneToday: row.today !== 'due',
+        // An avoid habit's row resolves itself — its clean day is inferred, not
+        // logged — so reading the row state here would silence its nudges
+        // forever. What settles today for it is today's own answer: a slip.
+        doneToday: row.asksYesterday ? board.today in row.entries : row.today !== 'due',
         dueToday: row.today !== 'rest',
       })),
-    [board.rows],
+    [board.rows, board.today],
   );
 
   const plan = useMemo(

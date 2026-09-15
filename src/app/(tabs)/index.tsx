@@ -17,7 +17,7 @@ import { useHabitSettings } from '@/hooks/useHabitSettings';
 import { useNavBarSpace } from '@/hooks/useNavBarSpace';
 import { MAX_W } from '@/hooks/useResponsive';
 import { addDays, dateKey, formatDayLong } from '@/lib/dates';
-import { canUndoToday, dayTabLabel, todayHint } from '@/lib/habit';
+import { dayTabLabel, todayHint } from '@/lib/habit';
 import { TOKEN_CAP } from '@/lib/tokens';
 import { readError } from '@/lib/utils';
 
@@ -181,7 +181,7 @@ export default function TodayScreen() {
                         onOpen={() => router.navigate(`/habit/${row.habit.id}`)}
                         onHold={() => void checkIn.hold(row.habit, row.streak.current + 1, 1, row.judged)}
                         onSkip={row.today === 'due' ? () => void checkIn.skip(row.habit, row.judged) : undefined}
-                        onUndo={canUndoToday(row.today) ? () => void checkIn.undo(row.habit, row.judged) : undefined}
+                        onUndo={row.undoable ? () => void checkIn.undo(row.habit, row.judged) : undefined}
                         onDid={
                           row.asksYesterday
                             ? () =>

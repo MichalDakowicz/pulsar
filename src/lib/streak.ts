@@ -20,7 +20,8 @@ import { isTargetDay, judgesByWeek, weeklyQuota, type Cadence } from '@/lib/sche
 /**
  * What happened on one target day. A day with no entry is a miss, once it is
  * over — `broke` is the same outcome said out loud, which is what makes it
- * scoreable before the day is.
+ * scoreable before the day is. The exception is an avoid habit, where an empty
+ * day is the win rather than the absence of one; see `silenceIsClean`.
  */
 export type EntryState = 'held' | 'frozen' | 'repaired' | 'skipped' | 'broke';
 
@@ -36,6 +37,40 @@ export type EntryMap = Record<string, EntryState | undefined>;
 export type StreakRule = 'strict' | 'grace' | 'decay';
 
 export const DECAY_COST = 3;
+
+/**
+ * The day the clean-day rule took effect.
+ *
+ * Before it, an empty day on an avoid habit meant the user had not answered,
+ * because the app was asking them to confirm each clean day. Those answers are
+ * a record of what someone actually recorded, and rereading them under a rule
+ * that did not exist yet turns thirty logged misses into two — a wall that
+ * fills itself in behind you is worse than a wall that was always wrong.
+ *
+ * So the rule is dated rather than retroactive, the same way `lib/phases`
+ * scopes a cadence or miss-rule change to the stretch it was lived under. It
+ * is a constant rather than a column because it is one date for everyone: the
+ * day the behaviour shipped, not a per-habit choice.
+ */
+export const CLEAN_DAY_FROM = '2026-09-14';
+
+/**
+ * Whether an empty day that has ended counts as a day kept.
+ *
+ * From `CLEAN_DAY_FROM` on an `avoid` habit it does, and that is the whole
+ * shape of the thing: the win is that nothing happened, so there is nothing to
+ * report. The only event an avoid habit ever has is the slip, and logging it is
+ * the only answer it ever needs — asking someone to confirm each clean day
+ * turns "did not smoke" into a daily chore, and makes the streak a record of
+ * who opened the app.
+ *
+ * Every surface that paints a day reads this, so the ring, the row, the wall
+ * and the count agree about what an empty square on an avoid habit means — and
+ * agree about which side of the cutoff the day falls on.
+ */
+export function silenceIsClean(timeline: { kind?: string }, day: string): boolean {
+  return timeline.kind === 'avoid' && day >= CLEAN_DAY_FROM;
+}
 
 export type StreakResult = {
   current: number;
@@ -64,10 +99,15 @@ function counts(state: EntryState | undefined): boolean {
  * have fifteen hours to keep is an app you delete. A `frozen` day holds the
  * count without adding to it — the streak survives, the day stays empty on the
  * wall, which is exactly what a freeze token buys.
+ *
+ * `today` is the last day walked, which is the day the habit is being asked
+ * about rather than the date: for an avoid habit `lib/habit`'s `judgedDay`
+ * hands in yesterday, and that day has ended — which is why `silenceIsClean`
+ * may score it without waiting for a midnight that has already passed.
  */
 export function computeStreak(
   entries: EntryMap,
-  timeline: Timeline & { cadence: Cadence; rule: StreakRule },
+  timeline: Timeline & { cadence: Cadence; rule: StreakRule; kind?: string },
   today: string,
   missedCap = 30,
 ): StreakResult {
@@ -117,7 +157,13 @@ export function computeStreak(
   };
 
   for (const day of days) {
-    const state = entries[day];
+    // An empty day on an avoid habit is a day it came through, so it is read as
+    // held everywhere below rather than special-cased per branch — a quota week
+    // fills its slots from it too. Asked per day, not once: the days before the
+    // cutoff keep the answers they were actually given.
+    const logged = entries[day];
+    const state: EntryState | undefined =
+      logged === undefined && silenceIsClean(timeline, day) ? 'held' : logged;
     const rule = ruleOn(timeline, day);
     const cadence = cadenceOn(timeline, day);
     const week = weekKey(day);

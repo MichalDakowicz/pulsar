@@ -168,3 +168,29 @@ describe('a weekly quota on the wall', () => {
     expect(cells[2].state).toBe('future');
   });
 });
+
+describe('an avoid habit on the wall', () => {
+  it('paints an empty day it came through as held, not as a hole', () => {
+    const weeks = buildWall({}, { cadence: DAILY, kind: 'avoid' }, { weeks: 1, endOn: '2026-09-20' });
+    const cells = weeks[0].cells;
+    expect(cells.slice(0, 6).map((cell) => cell.state)).toEqual(Array(6).fill('held'));
+    // The day the wall ends in is still running: today is not yet anything.
+    expect(cells[6].state).toBe('future');
+    expect(wallRate(weeks, '2026-09-20')).toBe(100);
+  });
+
+  it('keeps the logged slip as the hole', () => {
+    const entries: EntryMap = { '2026-09-16': 'broke' };
+    const weeks = buildWall(entries, { cadence: DAILY, kind: 'avoid' }, { weeks: 1, endOn: '2026-09-20' });
+    expect(weeks[0].cells[2].state).toBe('missed');
+    expect(wallRate(weeks, '2026-09-20')).toBe(83);
+  });
+
+  it('leaves the weeks before the cutoff as they were recorded', () => {
+    const weeks = buildWall({}, { cadence: DAILY, kind: 'avoid' }, { weeks: 2, endOn: '2026-09-20' });
+    // The week up to 2026-09-13 was lived under the old contract and stays full
+    // of holes; the week from the cutoff fills in.
+    expect(weeks[0].cells.map((cell) => cell.state)).toEqual(Array(7).fill('missed'));
+    expect(weeks[1].cells.slice(0, 6).map((cell) => cell.state)).toEqual(Array(6).fill('held'));
+  });
+});

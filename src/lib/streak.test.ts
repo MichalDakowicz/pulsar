@@ -5,6 +5,8 @@ import {
   isAtRisk,
   quotaOnTheLine,
   repairableDays,
+  silenceIsClean,
+  CLEAN_DAY_FROM,
   type EntryMap,
   type StreakRule,
 } from '@/lib/streak';
@@ -335,5 +337,71 @@ describe('quotaOnTheLine', () => {
   it('counts a frozen day as paid', () => {
     const entries = { ...held('2026-09-07', '2026-09-08'), '2026-09-09': 'frozen' as const };
     expect(quotaOnTheLine(entries, three, '2026-09-11')).toBe(false);
+  });
+});
+
+describe('an avoid habit, where silence is the win', () => {
+  /** Monday, the week after the rule took effect. */
+  const AFTER = '2026-09-21';
+  const avoid = { cadence: DAILY, rule: 'strict' as const, startedOn: AFTER, kind: 'avoid' };
+
+  it('is claimed only by the kind that reports slips, and only from the cutoff', () => {
+    expect(silenceIsClean({ kind: 'avoid' }, CLEAN_DAY_FROM)).toBe(true);
+    expect(silenceIsClean({ kind: 'avoid' }, '2026-09-13')).toBe(false);
+    expect(silenceIsClean({ kind: 'do' }, AFTER)).toBe(false);
+    expect(silenceIsClean({}, AFTER)).toBe(false);
+  });
+
+  it('counts every empty day it came through, with nothing ever logged', () => {
+    const result = computeStreak({}, avoid, '2026-09-27');
+    expect(result.current).toBe(7);
+    expect(result.missed).toEqual([]);
+    expect(hitRate(result)).toBe(100);
+  });
+
+  it('breaks only where the slip was logged, and rebuilds after it', () => {
+    const result = computeStreak({ '2026-09-23': 'broke' }, avoid, '2026-09-27');
+    expect(result.current).toBe(4);
+    expect(result.best).toBe(4);
+    expect(result.missed).toEqual(['2026-09-23']);
+  });
+
+  it('leaves the same empty days a miss on a habit that is done rather than avoided', () => {
+    const result = computeStreak({}, { cadence: DAILY, rule: 'strict', startedOn: AFTER }, '2026-09-27');
+    expect(result.current).toBe(0);
+    expect(result.missed).toHaveLength(6);
+  });
+
+  it('still takes an explicit answer over the inferred one', () => {
+    const skipped = computeStreak({ '2026-09-23': 'skipped' }, avoid, '2026-09-27');
+    // Set aside is neither held nor missed, so the run is one day short of the
+    // seven an untouched week would have given.
+    expect(skipped.current).toBe(6);
+  });
+
+  it('offers only the logged slip for repair — the quiet days are not holes', () => {
+    const result = computeStreak({ '2026-09-23': 'broke' }, avoid, '2026-09-27');
+    expect(repairableDays(result, '2026-09-27')).toEqual(['2026-09-23']);
+  });
+});
+
+describe('the clean-day cutoff', () => {
+  // The regression this rule shipped with once: walking from `startedOn` under
+  // the new reading turned a fortnight of recorded misses into an unbroken run.
+  // Days lived under the old contract are answers the user actually gave, and
+  // a wall that fills itself in behind you is worse than one that was wrong.
+  it('leaves the days before it exactly as they were recorded', () => {
+    const old = { cadence: DAILY, rule: 'strict' as const, startedOn: '2026-08-31', kind: 'avoid' };
+    const result = computeStreak({}, old, '2026-09-13');
+    expect(result.current).toBe(0);
+    expect(result.missed).toHaveLength(13);
+  });
+
+  it('starts counting at the cutoff on a habit that predates it', () => {
+    const spanning = { cadence: DAILY, rule: 'strict' as const, startedOn: '2026-09-07', kind: 'avoid' };
+    const result = computeStreak({}, spanning, '2026-09-20');
+    expect(result.current).toBe(7);
+    expect(result.missed).toHaveLength(7);
+    expect(result.missed.every((day) => day < CLEAN_DAY_FROM)).toBe(true);
   });
 });
