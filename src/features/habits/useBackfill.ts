@@ -2,7 +2,7 @@ import { useMemo, useState } from 'react';
 
 import { backfillDays } from '@/lib/backfill';
 import { dateKey } from '@/lib/dates';
-import { isTargetDay } from '@/lib/schedule';
+import { isTargetDayOn } from '@/lib/phases';
 import type { EntryMap, EntryState } from '@/lib/streak';
 import { useLastOpened } from '@/store/lastOpened';
 import type { Habit } from '@/types/habit';
@@ -24,7 +24,7 @@ export function useBackfill(habit: Habit | null, entries: EntryMap) {
   const editable = useMemo(() => {
     if (!habit || habit.archivedAt) return new Set<string>();
     const days = backfillDays(dateKey(), lastOpenedOn).filter(
-      (candidate) => candidate >= habit.startedOn && isTargetDay(habit.cadence, candidate),
+      (candidate) => candidate >= habit.startedOn && isTargetDayOn(habit, candidate),
     );
     return new Set(days);
   }, [habit, lastOpenedOn]);

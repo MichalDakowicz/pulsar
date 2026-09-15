@@ -11,6 +11,8 @@ import {
 
 const ROW: HabitRow = {
   id: 'h1',
+  phases: [],
+  cadence_per_week: 3,
   user_id: 'u1',
   name: 'stretch',
   mark: 'sweep',
@@ -59,7 +61,27 @@ describe('cadenceFromRow', () => {
 describe('cadenceToRow', () => {
   it('round-trips a day set', () => {
     const cadence = cadenceFromRow(ROW);
-    expect(cadenceToRow(cadence)).toEqual({ cadence_kind: 'days', cadence_days: [0, 2, 4], cadence_every: 2 });
+    expect(cadenceToRow(cadence)).toEqual({
+      cadence_kind: 'days',
+      cadence_days: [0, 2, 4],
+      cadence_every: 2,
+      cadence_per_week: 3,
+    });
+  });
+
+  it('round-trips a weekly quota', () => {
+    const cadence = cadenceFromRow({ ...ROW, cadence_kind: 'weekly', cadence_per_week: 4 });
+    expect(cadence).toEqual({ kind: 'weekly', perWeek: 4 });
+    expect(cadenceToRow(cadence).cadence_per_week).toBe(4);
+  });
+
+  // A quota of nothing can never come due, and a row written before the column
+  // existed reads as 0 rather than as absent.
+  it('floors a quota the database has never had a value for', () => {
+    expect(cadenceFromRow({ ...ROW, cadence_kind: 'weekly', cadence_per_week: 0 })).toEqual({
+      kind: 'weekly',
+      perWeek: 3,
+    });
   });
 
   it('clears the day list for a cadence that has none', () => {

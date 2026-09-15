@@ -1,3 +1,4 @@
+import { normalizePhases } from '@/lib/phases';
 import type { Cadence } from '@/lib/schedule';
 import type { StreakRule } from '@/lib/streak';
 import type { Challenge, Habit, HabitEntry, HabitKind, NudgeWindow } from '@/types/habit';
@@ -21,6 +22,10 @@ export type HabitRow = {
   cadence_kind: string;
   cadence_days: number[] | null;
   cadence_every: number;
+  /** Only read when cadence_kind = 'weekly': how many days the week owes. */
+  cadence_per_week: number;
+  /** Superseded rules, oldest first. Written and read only by Pulsar. */
+  phases: unknown;
   challenge: string;
   nudge_window: string;
   times: string[] | null;
@@ -52,7 +57,9 @@ function oneOf<T extends string>(allowed: T[], value: string | null | undefined,
   return allowed.includes(value as T) ? (value as T) : fallback;
 }
 
-export function cadenceFromRow(row: Pick<HabitRow, 'cadence_kind' | 'cadence_days' | 'cadence_every' | 'started_on'>): Cadence {
+export function cadenceFromRow(
+  row: Pick<HabitRow, 'cadence_kind' | 'cadence_days' | 'cadence_every' | 'cadence_per_week' | 'started_on'>,
+): Cadence {
   switch (row.cadence_kind) {
     case 'weekdays':
       return { kind: 'weekdays' };
@@ -62,16 +69,21 @@ export function cadenceFromRow(row: Pick<HabitRow, 'cadence_kind' | 'cadence_day
       return { kind: 'days', days: [...new Set(row.cadence_days ?? [])].filter((d) => d >= 0 && d <= 6).sort() };
     case 'interval':
       return { kind: 'interval', every: Math.max(1, row.cadence_every), anchor: row.started_on };
+    case 'weekly':
+      return { kind: 'weekly', perWeek: Math.max(1, Math.min(7, row.cadence_per_week || 3)) };
     default:
       return { kind: 'daily' };
   }
 }
 
-export function cadenceToRow(cadence: Cadence): Pick<HabitRow, 'cadence_kind' | 'cadence_days' | 'cadence_every'> {
+export function cadenceToRow(
+  cadence: Cadence,
+): Pick<HabitRow, 'cadence_kind' | 'cadence_days' | 'cadence_every' | 'cadence_per_week'> {
   return {
     cadence_kind: cadence.kind,
     cadence_days: cadence.kind === 'days' ? [...cadence.days].sort() : [],
     cadence_every: cadence.kind === 'interval' ? cadence.every : 2,
+    cadence_per_week: cadence.kind === 'weekly' ? cadence.perWeek : 3,
   };
 }
 
@@ -85,6 +97,7 @@ export function normalizeHabit(row: HabitRow): Habit {
     target: row.target > 0 ? row.target : 1,
     unit: row.unit ?? '',
     cadence: cadenceFromRow(row),
+    phases: normalizePhases(row.phases),
     challenge: oneOf(CHALLENGES, row.challenge, 'open'),
     window: oneOf(WINDOWS, row.nudge_window, 'exact'),
     // A habit with no clock keeps no times, whatever the row says — otherwise
@@ -113,6 +126,7 @@ export function habitToRow(habit: Partial<Habit>): Record<string, unknown> {
   if (habit.target !== undefined) row.target = habit.target;
   if (habit.unit !== undefined) row.unit = habit.unit;
   if (habit.cadence !== undefined) Object.assign(row, cadenceToRow(habit.cadence));
+  if (habit.phases !== undefined) row.phases = habit.phases;
   if (habit.challenge !== undefined) row.challenge = habit.challenge;
   if (habit.window !== undefined) {
     row.nudge_window = habit.window;

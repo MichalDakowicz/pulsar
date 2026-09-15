@@ -4,6 +4,7 @@ import { Pressable, Text, View } from 'react-native';
 import { Wall } from '@/features/habits/Wall';
 import type { BoardHabit } from '@/features/habits/useHabitBoard';
 import { dayProgress } from '@/lib/habit';
+import { targetOn } from '@/lib/phases';
 import { buildWall, wallRate } from '@/lib/wall';
 
 const WEEKS = 5;
@@ -22,9 +23,9 @@ export function WallTile({ row, onPress }: { row: BoardHabit; onPress: () => voi
   const weeks = useMemo(() => {
     const progress: Record<string, number> = {};
     for (const [day, amount] of Object.entries(amounts)) {
-      progress[day] = dayProgress(habit, amount);
+      progress[day] = dayProgress({ kind: habit.kind, target: targetOn(habit, day) }, amount);
     }
-    return buildWall(entries, habit.cadence, {
+    return buildWall(entries, habit, {
       weeks: WEEKS,
       startedOn: habit.startedOn,
       progress,

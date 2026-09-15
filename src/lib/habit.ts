@@ -1,5 +1,6 @@
 import { addDays } from '@/lib/dates';
-import { cadenceLabel, isTargetDay, type Cadence } from '@/lib/schedule';
+import { isTargetDayOn, type Phase } from '@/lib/phases';
+import { cadenceLabel, type Cadence } from '@/lib/schedule';
 import type { EntryMap, EntryState } from '@/lib/streak';
 import type { Habit, HabitKind, NudgeWindow } from '@/types/habit';
 
@@ -106,12 +107,12 @@ export function asksAboutYesterday(habit: Pick<Habit, 'kind'>): boolean {
  * Tuesday, and the only way to clear it is to lie.
  */
 export function dayState(
-  habit: Pick<Habit, 'cadence' | 'archivedAt'>,
+  habit: Pick<Habit, 'cadence' | 'archivedAt'> & { phases?: Phase[] },
   entries: EntryMap,
   day: string,
 ): EntryState | 'due' | 'rest' {
   if (habit.archivedAt) return 'rest';
-  if (!isTargetDay(habit.cadence as Cadence, day)) return 'rest';
+  if (!isTargetDayOn(habit as { cadence: Cadence; phases?: Phase[] }, day)) return 'rest';
   return entries[day] ?? 'due';
 }
 
