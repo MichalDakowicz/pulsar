@@ -146,3 +146,41 @@ describe('repairableDays', () => {
     expect(repairableDays(result, '2026-09-11')).toEqual(['2026-09-10']);
   });
 });
+
+describe('a logged slip', () => {
+  it('breaks the run on the open day, where an empty square would not', () => {
+    const entries: EntryMap = {
+      ...held('2026-09-07', '2026-09-08'),
+      '2026-09-09': 'broke',
+    };
+    const result = computeStreak(entries, DAILY, 'strict', MON, '2026-09-09');
+    expect(result.current).toBe(0);
+    expect(result.missed).toEqual(['2026-09-09']);
+  });
+
+  it('is forgiven by grace like any other miss', () => {
+    const entries: EntryMap = {
+      ...held('2026-09-07', '2026-09-08'),
+      '2026-09-09': 'broke',
+    };
+    const result = computeStreak(entries, DAILY, 'grace', MON, '2026-09-10');
+    expect(result.current).toBe(2);
+  });
+
+  it('costs three days under decay, not the whole run', () => {
+    const entries: EntryMap = {
+      ...held('2026-09-07', '2026-09-08', '2026-09-09', '2026-09-10', '2026-09-11'),
+      '2026-09-12': 'broke',
+    };
+    const result = computeStreak(entries, DAILY, 'decay', MON, '2026-09-12');
+    expect(result.current).toBe(2);
+  });
+
+  it('counts towards the due total, so it drags the hit rate down', () => {
+    const entries: EntryMap = { ...held('2026-09-07'), '2026-09-08': 'broke' };
+    const result = computeStreak(entries, DAILY, 'strict', MON, '2026-09-08');
+    expect(result.dueCount).toBe(2);
+    expect(result.heldCount).toBe(1);
+  });
+});
+

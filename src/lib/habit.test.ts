@@ -7,6 +7,8 @@ import {
   effectiveRule,
   habitMeta,
   hasReminders,
+  asksAboutYesterday,
+  judgedDay,
   meetsTarget,
   targetLabel,
   todayHint,
@@ -160,3 +162,24 @@ describe('cadenceLabel', () => {
     expect(cadenceLabel(BASE.cadence)).toBe('every day');
   });
 });
+
+describe('judgedDay', () => {
+  it('asks an avoid habit about yesterday — a clean day is only clean once it is over', () => {
+    expect(judgedDay({ kind: 'avoid' }, '2026-09-15')).toBe('2026-09-14');
+    expect(asksAboutYesterday({ kind: 'avoid' })).toBe(true);
+  });
+
+  it('asks every other kind about today', () => {
+    for (const kind of ['do', 'count', 'timer'] as const) {
+      expect(judgedDay({ kind }, '2026-09-15')).toBe('2026-09-15');
+      expect(asksAboutYesterday({ kind })).toBe(false);
+    }
+  });
+});
+
+describe('canUndoToday on a slip', () => {
+  it('lets a slip be taken back — that is what unblocks answering the day clean', () => {
+    expect(canUndoToday('broke')).toBe(true);
+  });
+});
+

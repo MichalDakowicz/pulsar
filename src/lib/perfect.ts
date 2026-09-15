@@ -17,7 +17,22 @@ export type HabitSchedule = {
   cadence: Cadence;
   startedOn: string;
   archivedAt: string | null;
+  /** Only `avoid` behaves differently here — see `heldOn`. */
+  kind?: string;
 };
+
+/**
+ * Whether one habit's day counts as held.
+ *
+ * An avoid habit is not asked about a day until the day after, so on the last
+ * day of a walk the most it can say is that it has not been blown. Scoring it
+ * as unheld instead would mean an account with a single avoid habit never has a
+ * perfect day at all — the token tap would simply stop, one day behind forever.
+ */
+function heldOn(habit: HabitSchedule, state: string | undefined, day: string, last: string): boolean {
+  if (habit.kind === 'avoid' && day === last) return state !== 'broke';
+  return state === 'held' || state === 'repaired';
+}
 
 function dueOn(habits: HabitSchedule[], day: string): HabitSchedule[] {
   return habits.filter(
@@ -58,7 +73,7 @@ export function perfectDays(
     for (const habit of due) {
       const state = entries.get(habit.id)?.[day];
       if (state === 'frozen') froze = true;
-      if (state !== 'held' && state !== 'repaired') allHeld = false;
+      if (!heldOn(habit, state, day, to)) allHeld = false;
     }
 
     if (allHeld && !froze) {
@@ -80,10 +95,7 @@ export function perfectDays(
 export function isPerfectToday(habits: HabitSchedule[], entries: Map<string, EntryMap>, today: string): boolean {
   const due = dueOn(habits, today);
   if (due.length === 0) return false;
-  return due.every((habit) => {
-    const state = entries.get(habit.id)?.[today];
-    return state === 'held' || state === 'repaired';
-  });
+  return due.every((habit) => heldOn(habit, entries.get(habit.id)?.[today], today, today));
 }
 
 /**

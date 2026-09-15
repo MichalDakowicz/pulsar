@@ -22,9 +22,9 @@ export function useCheckIn(perfectCount: number) {
   const { spendToken, tokens } = useTokens(perfectCount);
 
   const hold = useCallback(
-    async (habit: Habit, nextStreak: number, amount = 1) => {
+    async (habit: Habit, nextStreak: number, amount = 1, day?: string) => {
       if (Platform.OS !== 'web') void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-      await setEntry.mutateAsync({ habitId: habit.id, state: 'held', amount });
+      await setEntry.mutateAsync({ habitId: habit.id, day, state: 'held', amount });
 
       const tier = clearedTier(nextStreak);
       if (tier) {
@@ -35,7 +35,7 @@ export function useCheckIn(perfectCount: number) {
       }
       say(`${habit.name} held — day ${nextStreak}.`, {
         label: 'undo',
-        onPress: () => void clearEntry.mutateAsync({ habitId: habit.id }),
+        onPress: () => void clearEntry.mutateAsync({ habitId: habit.id, day }),
       });
     },
     [setEntry, clearEntry, say],
@@ -83,11 +83,31 @@ export function useCheckIn(perfectCount: number) {
    * streak, and people pick the lie, which makes the whole wall worthless.
    */
   const skip = useCallback(
-    async (habit: Habit) => {
-      await setEntry.mutateAsync({ habitId: habit.id, state: 'skipped', amount: 0 });
-      say(`${habit.name} set aside for today.`, {
+    async (habit: Habit, day?: string) => {
+      await setEntry.mutateAsync({ habitId: habit.id, day, state: 'skipped', amount: 0 });
+      say(`${habit.name} set aside.`, {
         label: 'undo',
-        onPress: () => void clearEntry.mutateAsync({ habitId: habit.id }),
+        onPress: () => void clearEntry.mutateAsync({ habitId: habit.id, day }),
+      });
+    },
+    [setEntry, clearEntry, say],
+  );
+
+  /**
+   * "I did the thing I am avoiding" — logged while the day is still running.
+   *
+   * It is the only answer an avoid habit can give about today, because the
+   * clean one is not knowable until midnight. Saying it early is what blocks
+   * tomorrow's confirmation: the day already has an answer, and taking the slip
+   * back is the only way to give it a different one.
+   */
+  const did = useCallback(
+    async (habit: Habit, day?: string) => {
+      if (Platform.OS !== 'web') void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+      await setEntry.mutateAsync({ habitId: habit.id, day, state: 'broke', amount: 0 });
+      say(`${habit.name} broken today. the day is logged, not hidden.`, {
+        label: 'undo',
+        onPress: () => void clearEntry.mutateAsync({ habitId: habit.id, day }),
       });
     },
     [setEntry, clearEntry, say],
@@ -109,13 +129,13 @@ export function useCheckIn(perfectCount: number) {
    * decides that, and a frozen or repaired day never offers the gesture.
    */
   const undo = useCallback(
-    async (habit: Habit) => {
+    async (habit: Habit, day?: string) => {
       if (Platform.OS !== 'web') void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-      await clearEntry.mutateAsync({ habitId: habit.id });
-      say(`${habit.name} back on today.`);
+      await clearEntry.mutateAsync({ habitId: habit.id, day });
+      say(`${habit.name} is open again.`);
     },
     [clearEntry, say],
   );
 
-  return { hold, freeze, repair, skip, clear, undo, tokens };
+  return { hold, freeze, repair, skip, did, clear, undo, tokens };
 }

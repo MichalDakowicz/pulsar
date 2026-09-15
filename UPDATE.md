@@ -9,6 +9,8 @@
 - Today: check a habit off with a swipe or a press and hold, and undo it from the toast
 - Today: a ring that counts only the habits actually due today, so a rest day is not a miss
 - Today: habits that are not scheduled today collapse under a "not due today" row
+- Today: an avoid habit is asked about yesterday — a clean day is only clean once it is over
+- Today: log a slip the day it happens, and that day stays broken until you clear it
 - Today: your radar and lidar streaks appear alongside your habit ones, as each app reports them
 - Habits: every habit in one list, with an archive you can restore from
 - Habit detail: the twelve-week wall, the ladder, freeze tokens and repairs

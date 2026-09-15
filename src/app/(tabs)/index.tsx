@@ -133,17 +133,31 @@ export default function TodayScreen() {
                 </Text>
               ) : (
                 <View className="mt-3.5 gap-2">
-                  {[...board.open, ...board.done].map((row) => (
-                    <HabitRow
-                      key={row.habit.id}
-                      row={row}
-                      mode={settings.checkinMode}
-                      onOpen={() => router.navigate(`/habit/${row.habit.id}`)}
-                      onHold={() => void checkIn.hold(row.habit, row.streak.current + 1)}
-                      onSkip={row.today === 'due' ? () => void checkIn.skip(row.habit) : undefined}
-                      onUndo={canUndoToday(row.today) ? () => void checkIn.undo(row.habit) : undefined}
-                    />
-                  ))}
+                  {[...board.open, ...board.done].map((row) => {
+                    // An avoid row answers yesterday and slips today, so both
+                    // days are passed explicitly rather than left to default.
+                    const slipped = row.entries[board.today] === 'broke';
+                    return (
+                      <HabitRow
+                        key={row.habit.id}
+                        row={row}
+                        mode={settings.checkinMode}
+                        onOpen={() => router.navigate(`/habit/${row.habit.id}`)}
+                        onHold={() => void checkIn.hold(row.habit, row.streak.current + 1, 1, row.judged)}
+                        onSkip={row.today === 'due' ? () => void checkIn.skip(row.habit, row.judged) : undefined}
+                        onUndo={canUndoToday(row.today) ? () => void checkIn.undo(row.habit, row.judged) : undefined}
+                        onDid={
+                          row.asksYesterday
+                            ? () =>
+                                void (slipped
+                                  ? checkIn.clear(row.habit, board.today)
+                                  : checkIn.did(row.habit, board.today))
+                            : undefined
+                        }
+                        didToday={slipped}
+                      />
+                    );
+                  })}
                 </View>
               )}
 

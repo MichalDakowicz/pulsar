@@ -12,8 +12,12 @@ import { isTargetDay, targetDaysBetween, type Cadence } from '@/lib/schedule';
  * the personal best for free.
  */
 
-/** What happened on one target day. A day with no entry is a miss, once it is over. */
-export type EntryState = 'held' | 'frozen' | 'repaired' | 'skipped';
+/**
+ * What happened on one target day. A day with no entry is a miss, once it is
+ * over — `broke` is the same outcome said out loud, which is what makes it
+ * scoreable before the day is.
+ */
+export type EntryState = 'held' | 'frozen' | 'repaired' | 'skipped' | 'broke';
 
 /** `YYYY-MM-DD` → what happened. Only target days are ever consulted. */
 export type EntryMap = Record<string, EntryState | undefined>;
@@ -92,8 +96,12 @@ export function computeStreak(
     // miss and not a hold. It leaves the run exactly where it was.
     if (state === 'skipped') continue;
 
-    // No entry. Today is still open, so it is not yet anything.
-    if (day === today) continue;
+    // No entry. Today is still open, so it is not yet anything. `broke` is the
+    // exception, and the only state that settles the open day: the rest of them
+    // are the app guessing what an empty square means, while this one is the
+    // user having already said it. An avoid habit whose slip was logged at noon
+    // should not read as still holding until midnight.
+    if (state !== 'broke' && day === today) continue;
 
     dueCount += 1;
     missed.push(day);
