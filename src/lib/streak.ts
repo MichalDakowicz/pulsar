@@ -1,6 +1,6 @@
-import { weekKey } from '@/lib/dates';
-import { ruleOn, targetDaysOn, type Timeline } from '@/lib/phases';
-import { isTargetDay, type Cadence } from '@/lib/schedule';
+import { addDays, weekKey } from '@/lib/dates';
+import { cadenceOn, ruleOn, targetDaysOn, type Timeline } from '@/lib/phases';
+import { isTargetDay, judgesByWeek, weeklyQuota, type Cadence } from '@/lib/schedule';
 
 /**
  * The streak rules — the one piece of this app that has to be right.
@@ -40,7 +40,11 @@ export const DECAY_COST = 3;
 export type StreakResult = {
   current: number;
   best: number;
-  /** Target days that came due and were not held — newest first, capped. */
+  /**
+   * Target days that came due and were not held — newest first, capped. On a
+   * weekly quota it is the Monday of each week that finished short, because
+   * that is the thing that actually missed; no single day of it was owed.
+   */
   missed: string[];
   /** Target days held or repaired, over the window walked. */
   heldCount: number;
@@ -75,14 +79,76 @@ export function computeStreak(
   const missed: string[] = [];
   let graceWeek: string | null = null;
   let graceSpent = false;
+  // A quota week in progress: how much of it has been answered, and what it
+  // owes. Settled when the walk leaves the week, never while it is still open.
+  let quota: { week: string; filled: number; owed: number } | null = null;
+  // Whether the last quota week that closed was kept. The first week has no
+  // week before it, so it is treated as following a good one — a habit cannot
+  // be punished for a week that never happened.
+  let lastWeekMet = true;
+
+  /**
+   * Charge a week that finished short. The week, not a day of it: the whole
+   * point of a quota is that no particular day was owed, so naming one as the
+   * miss would be the app inventing a fact the user never agreed to.
+   *
+   * `grace` is read at the unit the habit is actually scored in. Taken
+   * literally — "the first miss in any week is forgiven" — it would forgive
+   * every short week, because a quota week can only miss once, and the rule
+   * would mean nothing at all. So it forgives a short week that follows a week
+   * that was kept: one bad week is absorbed, two in a row is a break, which is
+   * what the rule buys on every other cadence.
+   */
+  const settleQuota = (rule: StreakRule) => {
+    if (!quota) return;
+    const missedWeek = quota.week;
+    const met = quota.filled >= quota.owed;
+    const forgiven = rule === 'grace' && lastWeekMet;
+    quota = null;
+    if (met) {
+      lastWeekMet = true;
+      return;
+    }
+    lastWeekMet = false;
+    dueCount += 1;
+    missed.push(missedWeek);
+    if (forgiven) return;
+    run = rule === 'decay' ? Math.max(0, run - DECAY_COST) : 0;
+  };
 
   for (const day of days) {
     const state = entries[day];
     const rule = ruleOn(timeline, day);
+    const cadence = cadenceOn(timeline, day);
     const week = weekKey(day);
     if (week !== graceWeek) {
+      // The week that just ended is charged under the rule it was lived under,
+      // before grace resets for the new one.
+      if (quota) settleQuota(ruleOn(timeline, quota.week));
       graceWeek = week;
       graceSpent = false;
+    }
+
+    if (judgesByWeek(cadence)) {
+      const owed = weeklyQuota(cadence);
+      if (!quota || quota.week !== week) quota = { week, filled: 0, owed };
+      // A frozen day fills a slot without adding to the count: the token buys
+      // the week, which is exactly what it buys on every other cadence too.
+      if (counts(state)) {
+        run += 1;
+        heldCount += 1;
+        dueCount += 1;
+        quota.filled += 1;
+        if (run > best) best = run;
+      } else if (state === 'frozen') {
+        dueCount += 1;
+        quota.filled += 1;
+      } else if (state === 'broke') {
+        // A logged slip settles the day it is on, and a quota week has no other
+        // way to fail early — the week still decides, so it costs a slot.
+        dueCount += 1;
+      }
+      continue;
     }
 
     if (counts(state)) {
@@ -115,6 +181,11 @@ export function computeStreak(
     }
     run = rule === 'decay' ? Math.max(0, run - DECAY_COST) : 0;
   }
+
+  // The last week walked is only charged once it is over. Today is inside it
+  // whenever the habit is current, and a week with two days left to run has not
+  // failed yet however little is in it.
+  if (quota && quota.week !== weekKey(today)) settleQuota(ruleOn(timeline, quota.week));
 
   return {
     current: run,
@@ -151,7 +222,35 @@ export function isAtRisk(
   if (streak < 2) return false;
   if (!isTargetDay(cadence, today)) return false;
   if (entries[today]) return false;
+  // A quota habit is only on the line when the week can no longer absorb it:
+  // three to go and three days left. Warning every unanswered evening of a
+  // 3-a-week habit is the crying-wolf bug with extra steps.
+  if (judgesByWeek(cadence) && !quotaOnTheLine(entries, cadence, today)) return false;
   return hoursLeft <= riskWindowHours;
+}
+
+/**
+ * Whether a quota week still needs every day it has left, today included.
+ *
+ * Days are `YYYY-MM-DD` and the week is Monday-anchored, so "days left" counts
+ * today and the days after it in the same week.
+ */
+export function quotaOnTheLine(entries: EntryMap, cadence: Cadence, today: string): boolean {
+  const owed = weeklyQuota(cadence);
+  if (owed === 0) return false;
+  const monday = weekKey(today);
+  let filled = 0;
+  let left = 0;
+  for (let i = 0; i < 7; i++) {
+    const day = addDays(monday, i);
+    if (day < today) {
+      const state = entries[day];
+      if (state === 'held' || state === 'repaired' || state === 'frozen') filled += 1;
+    } else {
+      left += 1;
+    }
+  }
+  return owed - filled >= left && owed - filled > 0;
 }
 
 /**

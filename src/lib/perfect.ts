@@ -1,6 +1,6 @@
 import { dayRange } from '@/lib/dates';
-import { isTargetDayOn, type Phase } from '@/lib/phases';
-import { type Cadence } from '@/lib/schedule';
+import { cadenceOn, isTargetDayOn, type Phase } from '@/lib/phases';
+import { judgesByWeek, type Cadence } from '@/lib/schedule';
 import type { EntryMap } from '@/lib/streak';
 
 /**
@@ -37,13 +37,21 @@ function heldOn(habit: HabitSchedule, state: string | undefined, day: string, la
   return state === 'held' || state === 'repaired';
 }
 
-function dueOn(habits: HabitSchedule[], day: string): HabitSchedule[] {
-  return habits.filter(
-    (habit) =>
-      day >= habit.startedOn &&
-      (!habit.archivedAt || day < habit.archivedAt.slice(0, 10)) &&
-      isTargetDayOn(habit, day),
-  );
+/**
+ * The habits a day actually owed.
+ *
+ * A quota habit owes the week, not the day, so it is only counted here on a day
+ * it was answered. Counting it every day would mean a single "three times a
+ * week" habit blocks every perfect day the other four are out of — and perfect
+ * days are what freeze tokens are bought with, so the tap would quietly stop.
+ */
+function dueOn(habits: HabitSchedule[], entries: Map<string, EntryMap>, day: string): HabitSchedule[] {
+  return habits.filter((habit) => {
+    if (day < habit.startedOn) return false;
+    if (habit.archivedAt && day >= habit.archivedAt.slice(0, 10)) return false;
+    if (judgesByWeek(cadenceOn(habit, day))) return !!entries.get(habit.id)?.[day];
+    return isTargetDayOn(habit, day);
+  });
 }
 
 export type PerfectResult = {
@@ -65,7 +73,7 @@ export function perfectDays(
   let cleanRun = 0;
 
   for (const day of dayRange(from, to)) {
-    const due = dueOn(habits, day);
+    const due = dueOn(habits, entries, day);
     if (due.length === 0) {
       // A day that asked nothing neither earns nor breaks: the run carries over
       // a rest day rather than resetting on it.
@@ -96,7 +104,7 @@ export function perfectDays(
  * lose today" is only true when something was owed and all of it is done.
  */
 export function isPerfectToday(habits: HabitSchedule[], entries: Map<string, EntryMap>, today: string): boolean {
-  const due = dueOn(habits, today);
+  const due = dueOn(habits, entries, today);
   if (due.length === 0) return false;
   return due.every((habit) => heldOn(habit, entries.get(habit.id)?.[today], today, today));
 }

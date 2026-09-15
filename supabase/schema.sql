@@ -411,3 +411,10 @@ end $$;
 -- here it cannot make sense of rather than trusting the column.
 alter table public.habits
   add column if not exists phases jsonb not null default '[]'::jsonb;
+
+-- How many days a week a `weekly` cadence owes. Its own column rather than
+-- reusing cadence_every: that one means "every N days", and a single int
+-- carrying two unrelated meanings is how a 3-times-a-week habit ends up being
+-- read as every-third-day by the next thing that touches it.
+alter table public.habits
+  add column if not exists cadence_per_week int not null default 3;

@@ -1,6 +1,6 @@
 import { addDays, dateKey, weekdayIndex, weekKey } from '@/lib/dates';
-import { isTargetDayOn, type Phased } from '@/lib/phases';
-import { type Cadence } from '@/lib/schedule';
+import { cadenceOn, isTargetDayOn, type Phased } from '@/lib/phases';
+import { judgesByWeek, weeklyQuota, type Cadence } from '@/lib/schedule';
 import type { EntryMap } from '@/lib/streak';
 
 /**
@@ -57,7 +57,7 @@ export function buildWall(
       const day = addDays(start, d);
       cells.push(cellFor(entries, timeline, day, endOn, options.startedOn, progress[day]));
     }
-    weeks.push({ start, cells });
+    weeks.push({ start, cells: quotaWeek(cells, cadenceOn(timeline, start), endOn) });
   }
   return weeks;
 }
@@ -87,6 +87,27 @@ function cellFor(
   if (day === endOn) return { day, state: 'future', ratio: ratio ?? 0 };
   if (ratio && ratio > 0) return { day, state: 'partial', ratio };
   return { day, state: 'missed', ratio: 0 };
+}
+
+/**
+ * A quota week, repainted.
+ *
+ * `cellFor` calls an empty past day a miss, which is the right default and the
+ * wrong answer here: "three times a week" never asked for Tuesday. So a week
+ * that made its quota paints its empty days as rest — four holes out of seven
+ * on a week you kept is the lie that makes people stop looking at the wall.
+ *
+ * A week that finished short keeps them as misses, because there the empty days
+ * are what went wrong, and the week the wall ends in is left alone: it has not
+ * failed while it still has days to run.
+ */
+function quotaWeek(cells: WallCell[], cadence: Cadence, endOn: string): WallCell[] {
+  if (!judgesByWeek(cadence)) return cells;
+  const owed = weeklyQuota(cadence);
+  const running = cells.some((cell) => cell.day >= endOn);
+  const filled = cells.filter((cell) => cell.state === 'held' || cell.state === 'frozen').length;
+  if (!running && filled < owed) return cells;
+  return cells.map((cell) => (cell.state === 'missed' ? { ...cell, state: 'rest' as const } : cell));
 }
 
 /** Flattened day-major order, for a seven-column grid that reads left to right. */
