@@ -11,16 +11,25 @@ import { ToastProvider } from '@/components/ui/Toast';
 import { AuthProvider, useAuth } from '@/features/auth/AuthProvider';
 import { ReminderSync } from '@/features/notifications/ReminderSync';
 import { queryClient } from '@/lib/queryClient';
+import { useLastOpened } from '@/store/lastOpened';
 import { ThemeProvider } from '@/theme/ThemeProvider';
 
 SplashScreen.preventAutoHideAsync();
 
 function AuthGate({ children }: { children: React.ReactNode }) {
   const { loading } = useAuth();
+  const open = useLastOpened((state) => state.open);
 
   useEffect(() => {
     if (!loading) SplashScreen.hideAsync();
   }, [loading]);
+
+  // Stamped once auth resolves rather than on import: it is what the backfill
+  // window on a habit's wall is measured from, and a signed-out launch has
+  // nothing to fill in.
+  useEffect(() => {
+    if (!loading) open();
+  }, [loading, open]);
 
   // Nothing mounts until auth resolves, so no screen ever renders a signed-out
   // shape and then swaps.

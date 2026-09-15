@@ -1,5 +1,5 @@
 import { useMemo } from 'react';
-import { Text, View } from 'react-native';
+import { Pressable, Text, View } from 'react-native';
 
 import { WEEKDAY_INITIALS } from '@/lib/dates';
 import type { WallCell, WallWeek } from '@/lib/wall';
@@ -34,16 +34,37 @@ function cellColor(cell: WallCell): string {
   }
 }
 
-function Cell({ cell, gap }: { cell: WallCell; gap: number }) {
+function Cell({
+  cell,
+  gap,
+  editable,
+  onPress,
+}: {
+  cell: WallCell;
+  gap: number;
+  editable: boolean;
+  onPress?: (day: string) => void;
+}) {
+  const style = {
+    flex: 1,
+    aspectRatio: 1,
+    borderRadius: 2,
+    marginRight: gap,
+    backgroundColor: cellColor(cell),
+    // An editable day is outlined rather than recoloured: the colour is the
+    // answer, and a day you can still change has not got a different answer.
+    borderWidth: editable ? 1 : 0,
+    borderColor: editable ? COLORS.accent : 'transparent',
+  } as const;
+
+  if (!editable || !onPress) return <View style={style} />;
+
   return (
-    <View
-      style={{
-        flex: 1,
-        aspectRatio: 1,
-        borderRadius: 2,
-        marginRight: gap,
-        backgroundColor: cellColor(cell),
-      }}
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel={`change ${cell.day}`}
+      onPress={() => onPress(cell.day)}
+      style={style}
     />
   );
 }
@@ -59,10 +80,21 @@ type WallProps = {
   gap?: number;
   /** Weekday initials down the left. Only ever on the wide `week` layout. */
   showWeekdays?: boolean;
+  /** Days still open for a free edit — outlined, and the only tappable ones. */
+  editable?: ReadonlySet<string>;
+  onPressDay?: (day: string) => void;
   label: string;
 };
 
-export function Wall({ weeks, layout = 'day', gap = 3, showWeekdays, label }: WallProps) {
+export function Wall({
+  weeks,
+  layout = 'day',
+  gap = 3,
+  showWeekdays,
+  editable,
+  onPressDay,
+  label,
+}: WallProps) {
   const rows = useMemo(() => {
     if (layout === 'day') return weeks.map((week) => week.cells);
     // Column-major: row `d` is every week's day `d`.
@@ -83,7 +115,13 @@ export function Wall({ weeks, layout = 'day', gap = 3, showWeekdays, label }: Wa
             </Text>
           )}
           {cells.map((cell, cellIndex) => (
-            <Cell key={cell?.day ?? cellIndex} cell={cell} gap={gap} />
+            <Cell
+              key={cell?.day ?? cellIndex}
+              cell={cell}
+              gap={gap}
+              editable={!!editable?.has(cell.day)}
+              onPress={onPressDay}
+            />
           ))}
         </View>
       ))}
