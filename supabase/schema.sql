@@ -401,3 +401,13 @@ end $$;
 -- Everything added after the first deploy goes here, newest last. Never edit a
 -- create table above — on a live database the create is skipped entirely.
 -- ============================================================================
+
+-- Stretches of a habit's past still judged by rules it has since changed.
+-- jsonb rather than a table: it is read on every habit fetch and never queried
+-- across rows, and a habit that has had its cadence changed twice is unusual
+-- enough that a join to find that out would cost every habit that has not.
+-- Shape: [{"from":"YYYY-MM-DD","to":"YYYY-MM-DD","cadence":{...},"rule":"strict","target":1}]
+-- Written and read only by Pulsar (src/lib/phases.ts), which drops anything in
+-- here it cannot make sense of rather than trusting the column.
+alter table public.habits
+  add column if not exists phases jsonb not null default '[]'::jsonb;

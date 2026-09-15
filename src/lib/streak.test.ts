@@ -184,3 +184,47 @@ describe('a logged slip', () => {
   });
 });
 
+
+describe('computeStreak across a sealed phase', () => {
+  /** Daily and strict to the 9th, then weekdays and grace from the 10th. */
+  const timeline = {
+    startedOn: MON,
+    cadence: WEEKDAYS,
+    rule: 'grace' as const,
+    phases: [
+      { from: MON, to: '2026-09-09', cadence: DAILY, rule: 'strict' as const, target: 1 },
+    ],
+  };
+
+  it('owes the sealed weekend and not the current one', () => {
+    // Every day to the 9th was owed under daily; 2026-09-12 and 13 are the
+    // Saturday and Sunday after the switch to weekdays, so they are not.
+    const entries = held('2026-09-07', '2026-09-08', '2026-09-09', '2026-09-10', '2026-09-11', '2026-09-14');
+    const result = computeStreak(entries, timeline, '2026-09-14');
+    expect(result.missed).toEqual([]);
+    expect(result.current).toBe(6);
+  });
+
+  it('breaks on a Saturday the sealed cadence owed', () => {
+    // 2026-09-05 is a Saturday inside the daily phase. Walking it under today's
+    // weekday cadence would score it as a rest day and keep the run whole.
+    const early = {
+      ...timeline,
+      startedOn: '2026-09-04',
+      phases: [{ from: '2026-09-04', to: '2026-09-09', cadence: DAILY, rule: 'strict' as const, target: 1 }],
+    };
+    const entries = held('2026-09-04', '2026-09-06', '2026-09-07');
+    const result = computeStreak(entries, early, '2026-09-07');
+    expect(result.missed).toEqual(['2026-09-05']);
+    expect(result.current).toBe(2);
+  });
+
+  it('charges a miss at the rule that day carried, not the one in force now', () => {
+    // One miss, on the 8th, inside the strict phase: the run restarts after it.
+    const entries = held('2026-09-07', '2026-09-09', '2026-09-10', '2026-09-11');
+    expect(computeStreak(entries, timeline, '2026-09-11').current).toBe(3);
+    // The same calendar, judged as if the habit had always forgiven a miss a
+    // week, keeps all four: that is the difference the phase is holding on to.
+    expect(computeStreak(entries, { ...timeline, phases: [] }, '2026-09-11').current).toBe(4);
+  });
+});

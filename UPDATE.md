@@ -1,5 +1,15 @@
 # Update notes
 
+## 1.1.0 — Unreleased
+
+### Added
+
+- Editing a habit's cadence, target or miss rule now asks how far back the change goes
+
+### Fixed
+
+- Editing a habit no longer moves the day it started, which cut the wall short
+
 ## 1.0.0 — 2026-09-15
 
 ### Added

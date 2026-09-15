@@ -1,4 +1,4 @@
-import { normalizePhases, type Phase } from '@/lib/phases';
+import { normalizePhases } from '@/lib/phases';
 import type { Cadence } from '@/lib/schedule';
 import type { StreakRule } from '@/lib/streak';
 import type { Challenge, Habit, HabitEntry, HabitKind, NudgeWindow } from '@/types/habit';
