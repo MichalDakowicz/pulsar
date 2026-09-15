@@ -1,5 +1,11 @@
 # Update notes
 
+## 1.1.0 — Unreleased
+
+### Added
+
+- Today: swipe the radar streak to turn it over between films and episodes
+
 ## 1.0.0 — 2026-09-15
 
 ### Added

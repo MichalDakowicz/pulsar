@@ -43,6 +43,13 @@ directions and one-way by design**:
   emit `theme` and `friends_visibility`, so this is enforced rather than remembered.
   A snapshot older than 48 hours is hidden rather than shown, because by then it may
   describe a streak that is already over.
+- **Radar also publishes both of its streaks separately**, to
+  `user_settings.movie_streak` and `user_settings.tv_streak`, written in the same patch
+  as `current_streak` so one `streak_updated_at` covers all three. Radar's slot on the
+  strip turns over between them. `movie_streak` carries the same figure as
+  `current_streak`; Pulsar falls back to `current_streak` when it reads 0, so the strip
+  still says something on a database where Radar's `supabase/notifications.sql` has not
+  been run yet. Read-only here like everything else on the row.
 - **Lidar** publishes its own figure to `user_settings.lidar_streak` and
   `lidar_streak_updated_at`, added by Lidar's `supabase/schema.sql`. Pulsar reads those
   two columns and never writes them, exactly as with Radar's, and ages them out on the

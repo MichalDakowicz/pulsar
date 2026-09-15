@@ -1,4 +1,12 @@
-import { lidarStreak, radarStreak, snapshotFresh, visibleSiblings } from '@/lib/siblingStreaks';
+import {
+  faceOrFirst,
+  lidarStreak,
+  nextFace,
+  radarFaces,
+  radarStreak,
+  snapshotFresh,
+  visibleSiblings,
+} from '@/lib/siblingStreaks';
 
 const NOW = Date.parse('2026-09-11T19:00:00Z');
 const HOUR = 3600_000;
@@ -84,5 +92,65 @@ describe('visibleSiblings', () => {
   it('keeps both when both are live', () => {
     const rows = visibleSiblings([radarStreak(4, ago(1), NOW), lidarStreak(9, ago(1), NOW)]);
     expect(rows).toHaveLength(2);
+  });
+});
+
+describe('radarFaces', () => {
+  const fresh = '2026-09-15T10:00:00Z';
+  const now = Date.parse('2026-09-15T12:00:00Z');
+
+  it('offers both faces when both have something to say', () => {
+    const faces = radarFaces(12, 5, fresh, now);
+    expect(faces.map((face) => face.face)).toEqual(['films', 'tv']);
+    expect(faces[0].unit).toBe('films');
+    expect(faces[1].unit).toBe('episodes');
+    expect(faces[1].days).toBe(5);
+  });
+
+  // A slot that turns over to a blank second side reads as broken, not as an
+  // account that watches no television.
+  it('drops a face with no streak behind it', () => {
+    expect(radarFaces(12, 0, fresh, now).map((face) => face.face)).toEqual(['films']);
+    expect(radarFaces(0, 4, fresh, now).map((face) => face.face)).toEqual(['tv']);
+    expect(radarFaces(0, 0, fresh, now)).toEqual([]);
+  });
+
+  it('drops both when the snapshot has gone stale', () => {
+    expect(radarFaces(12, 5, '2026-09-11T10:00:00Z', now)).toEqual([]);
+  });
+});
+
+describe('nextFace', () => {
+  const faces = radarFaces(12, 5, '2026-09-15T10:00:00Z', Date.parse('2026-09-15T12:00:00Z'));
+
+  it('wraps', () => {
+    expect(nextFace(faces, 'films')).toBe('tv');
+    expect(nextFace(faces, 'tv')).toBe('films');
+  });
+
+  it('lands on the first face when the remembered one is gone', () => {
+    expect(nextFace(faces, null)).toBe('films');
+    const filmsOnly = radarFaces(12, 0, '2026-09-15T10:00:00Z', Date.parse('2026-09-15T12:00:00Z'));
+    expect(nextFace(filmsOnly, 'tv')).toBe('films');
+  });
+
+  it('has nothing to turn to when there is nothing on offer', () => {
+    expect(nextFace([], 'films')).toBeNull();
+  });
+});
+
+describe('faceOrFirst', () => {
+  const faces = radarFaces(12, 5, '2026-09-15T10:00:00Z', Date.parse('2026-09-15T12:00:00Z'));
+
+  it('shows the remembered face while it is still on offer', () => {
+    expect(faceOrFirst(faces, 'tv')?.face).toBe('tv');
+  });
+
+  // The remembered choice outlives the streak it was pointing at: the TV run
+  // ended while the app was closed, and the slot has to land somewhere real.
+  it('falls back to the first face when the remembered one has gone', () => {
+    const filmsOnly = radarFaces(12, 0, '2026-09-15T10:00:00Z', Date.parse('2026-09-15T12:00:00Z'));
+    expect(faceOrFirst(filmsOnly, 'tv')?.face).toBe('films');
+    expect(faceOrFirst([], 'films')).toBeNull();
   });
 });
