@@ -1,5 +1,6 @@
 import { addDays, dateKey, weekdayIndex, weekKey } from '@/lib/dates';
-import { isTargetDay, type Cadence } from '@/lib/schedule';
+import { isTargetDayOn, type Phased } from '@/lib/phases';
+import { type Cadence } from '@/lib/schedule';
 import type { EntryMap } from '@/lib/streak';
 
 /**
@@ -36,7 +37,11 @@ export type WallOptions = {
   progress?: Record<string, number>;
 };
 
-export function buildWall(entries: EntryMap, cadence: Cadence, options: WallOptions): WallWeek[] {
+export function buildWall(
+  entries: EntryMap,
+  timeline: Phased & { cadence: Cadence },
+  options: WallOptions,
+): WallWeek[] {
   const endOn = options.endOn ?? dateKey();
   const progress = options.progress ?? {};
   // Anchor on the Monday of the final week so every column is a real week and
@@ -50,7 +55,7 @@ export function buildWall(entries: EntryMap, cadence: Cadence, options: WallOpti
     const cells: WallCell[] = [];
     for (let d = 0; d < 7; d++) {
       const day = addDays(start, d);
-      cells.push(cellFor(entries, cadence, day, endOn, options.startedOn, progress[day]));
+      cells.push(cellFor(entries, timeline, day, endOn, options.startedOn, progress[day]));
     }
     weeks.push({ start, cells });
   }
@@ -59,7 +64,7 @@ export function buildWall(entries: EntryMap, cadence: Cadence, options: WallOpti
 
 function cellFor(
   entries: EntryMap,
-  cadence: Cadence,
+  timeline: Phased & { cadence: Cadence },
   day: string,
   endOn: string,
   startedOn: string | undefined,
@@ -67,7 +72,9 @@ function cellFor(
 ): WallCell {
   if (day > endOn) return { day, state: 'future', ratio: 0 };
   if (startedOn && day < startedOn) return { day, state: 'rest', ratio: 0 };
-  if (!isTargetDay(cadence, day)) return { day, state: 'rest', ratio: 0 };
+  // The cadence that was in force that day, not today's: a habit switched to
+  // weekdays last month must not paint every Saturday it kept as a hole.
+  if (!isTargetDayOn(timeline, day)) return { day, state: 'rest', ratio: 0 };
 
   const state = entries[day];
   if (state === 'held' || state === 'repaired') return { day, state: 'held', ratio: 1 };

@@ -83,7 +83,7 @@ describe('hasRebuilt', () => {
       '2026-09-01', '2026-09-02', '2026-09-03', '2026-09-04',
       '2026-09-05', '2026-09-06', '2026-09-07', '2026-09-08',
     ]);
-    expect(hasRebuilt(entries, daily, '2026-09-01', '2026-09-08')).toBe(false);
+    expect(hasRebuilt(entries, { cadence: daily }, '2026-09-01', '2026-09-08')).toBe(false);
   });
 
   it('is true once a broken week is rebuilt past a week', () => {
@@ -95,7 +95,7 @@ describe('hasRebuilt', () => {
       '2026-09-09', '2026-09-10', '2026-09-11', '2026-09-12',
       '2026-09-13', '2026-09-14', '2026-09-15',
     ]);
-    expect(hasRebuilt({ ...first, ...second }, daily, '2026-09-01', '2026-09-15')).toBe(true);
+    expect(hasRebuilt({ ...first, ...second }, { cadence: daily }, '2026-09-01', '2026-09-15')).toBe(true);
   });
 });
 

@@ -11,6 +11,7 @@ import {
 
 const ROW: HabitRow = {
   id: 'h1',
+  phases: [],
   user_id: 'u1',
   name: 'stretch',
   mark: 'sweep',

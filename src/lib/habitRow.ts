@@ -1,3 +1,4 @@
+import { normalizePhases } from '@/lib/phases';
 import type { Cadence } from '@/lib/schedule';
 import type { StreakRule } from '@/lib/streak';
 import type { Challenge, Habit, HabitEntry, HabitKind, NudgeWindow } from '@/types/habit';
@@ -21,6 +22,8 @@ export type HabitRow = {
   cadence_kind: string;
   cadence_days: number[] | null;
   cadence_every: number;
+  /** Superseded rules, oldest first. Written and read only by Pulsar. */
+  phases: unknown;
   challenge: string;
   nudge_window: string;
   times: string[] | null;
@@ -85,6 +88,7 @@ export function normalizeHabit(row: HabitRow): Habit {
     target: row.target > 0 ? row.target : 1,
     unit: row.unit ?? '',
     cadence: cadenceFromRow(row),
+    phases: normalizePhases(row.phases),
     challenge: oneOf(CHALLENGES, row.challenge, 'open'),
     window: oneOf(WINDOWS, row.nudge_window, 'exact'),
     // A habit with no clock keeps no times, whatever the row says — otherwise
@@ -113,6 +117,7 @@ export function habitToRow(habit: Partial<Habit>): Record<string, unknown> {
   if (habit.target !== undefined) row.target = habit.target;
   if (habit.unit !== undefined) row.unit = habit.unit;
   if (habit.cadence !== undefined) Object.assign(row, cadenceToRow(habit.cadence));
+  if (habit.phases !== undefined) row.phases = habit.phases;
   if (habit.challenge !== undefined) row.challenge = habit.challenge;
   if (habit.window !== undefined) {
     row.nudge_window = habit.window;

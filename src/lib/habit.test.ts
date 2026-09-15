@@ -18,6 +18,7 @@ import type { Habit } from '@/types/habit';
 
 const BASE: Habit = {
   id: 'h1',
+  phases: [],
   userId: 'u1',
   name: 'drink water',
   mark: 'drop',
