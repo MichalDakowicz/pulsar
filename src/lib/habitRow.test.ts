@@ -18,6 +18,8 @@ const ROW: HabitRow = {
   mark: 'sweep',
   kind: 'timer',
   target: 10,
+  target_period: 'day',
+  allow_exceed: false,
   unit: '',
   cadence_kind: 'days',
   cadence_days: [4, 0, 2, 0],

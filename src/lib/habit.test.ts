@@ -25,6 +25,8 @@ const BASE: Habit = {
   mark: 'drop',
   kind: 'count',
   target: 8,
+  targetPeriod: 'day',
+  allowExceed: false,
   unit: 'glasses',
   cadence: { kind: 'daily' },
   challenge: 'open',

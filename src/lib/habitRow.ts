@@ -1,7 +1,7 @@
 import { normalizePhases } from '@/lib/phases';
 import type { Cadence } from '@/lib/schedule';
 import type { StreakRule } from '@/lib/streak';
-import type { Challenge, Habit, HabitEntry, HabitKind, NudgeWindow } from '@/types/habit';
+import type { Challenge, Habit, HabitEntry, HabitKind, NudgeWindow, TargetPeriod } from '@/types/habit';
 
 /**
  * The single read boundary for `public.habits` and `public.habit_entries`.
@@ -18,6 +18,10 @@ export type HabitRow = {
   mark: string;
   kind: string;
   target: number;
+  /** day | week. What stretch `target` has to add up over; only read for count/timer. */
+  target_period: string;
+  /** Whether the logger will take more than the target asked for. */
+  allow_exceed: boolean;
   unit: string;
   cadence_kind: string;
   cadence_days: number[] | null;
@@ -52,6 +56,7 @@ const KINDS: HabitKind[] = ['do', 'avoid', 'count', 'timer'];
 const WINDOWS: NudgeWindow[] = ['exact', 'morning', 'evening', 'anytime'];
 const RULES: StreakRule[] = ['strict', 'grace', 'decay'];
 const CHALLENGES: Challenge[] = ['open', '30', '66', '100'];
+const PERIODS: TargetPeriod[] = ['day', 'week'];
 
 function oneOf<T extends string>(allowed: T[], value: string | null | undefined, fallback: T): T {
   return allowed.includes(value as T) ? (value as T) : fallback;
@@ -95,6 +100,12 @@ export function normalizeHabit(row: HabitRow): Habit {
     mark: row.mark || 'pulse',
     kind: oneOf(KINDS, row.kind, 'do'),
     target: row.target > 0 ? row.target : 1,
+    // A binary habit is normalized back to `day` whatever the row says: only a
+    // count or a timer has an amount to add up, and a `do` habit that claimed a
+    // weekly target would be a habit nothing could ever clear.
+    targetPeriod:
+      row.kind === 'count' || row.kind === 'timer' ? oneOf(PERIODS, row.target_period, 'day') : 'day',
+    allowExceed: row.allow_exceed ?? false,
     unit: row.unit ?? '',
     cadence: cadenceFromRow(row),
     phases: normalizePhases(row.phases),
@@ -124,6 +135,8 @@ export function habitToRow(habit: Partial<Habit>): Record<string, unknown> {
   if (habit.mark !== undefined) row.mark = habit.mark;
   if (habit.kind !== undefined) row.kind = habit.kind;
   if (habit.target !== undefined) row.target = habit.target;
+  if (habit.targetPeriod !== undefined) row.target_period = habit.targetPeriod;
+  if (habit.allowExceed !== undefined) row.allow_exceed = habit.allowExceed;
   if (habit.unit !== undefined) row.unit = habit.unit;
   if (habit.cadence !== undefined) Object.assign(row, cadenceToRow(habit.cadence));
   if (habit.phases !== undefined) row.phases = habit.phases;

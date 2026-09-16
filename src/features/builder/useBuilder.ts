@@ -4,7 +4,7 @@ import { dateKey } from '@/lib/dates';
 import { cadenceLabel, isEmptyCadence, type Cadence } from '@/lib/schedule';
 import { challengeLabel, targetLabel } from '@/lib/habit';
 import type { StreakRule } from '@/lib/streak';
-import type { Challenge, Habit, HabitKind, NudgeWindow } from '@/types/habit';
+import type { Challenge, Habit, HabitKind, NudgeWindow, TargetPeriod } from '@/types/habit';
 
 /**
  * The habit builder's state and its gates.
@@ -24,6 +24,10 @@ export type BuilderState = {
   amount: number;
   unit: string;
   minutes: number;
+  /** Whether the amount is owed per day or per week. Only asked of a counter. */
+  targetPeriod: TargetPeriod;
+  /** Whether the logger will take more than the target asked for. */
+  allowExceed: boolean;
   cadence: Cadence;
   challenge: Challenge;
   window: NudgeWindow;
@@ -63,6 +67,8 @@ export function blankBuilder(): BuilderState {
     amount: 8,
     unit: 'glasses',
     minutes: 10,
+    targetPeriod: 'day',
+    allowExceed: false,
     cadence: { kind: 'daily' },
     challenge: 'open',
     window: 'exact',
@@ -85,6 +91,8 @@ export function builderFromHabit(habit: Habit): BuilderState {
     amount: habit.kind === 'count' ? habit.target : 8,
     unit: habit.unit || 'glasses',
     minutes: habit.kind === 'timer' ? habit.target : 10,
+    targetPeriod: habit.targetPeriod,
+    allowExceed: habit.allowExceed,
     cadence: habit.cadence,
     challenge: habit.challenge,
     window: habit.window,
@@ -114,6 +122,10 @@ export function toHabitDraft(state: BuilderState): Omit<Habit, 'id' | 'userId' |
     mark: state.mark,
     kind: state.kind,
     target: builderTarget(state),
+    // Only a counter has an amount to add up, so only a counter keeps a period.
+    // A `do` habit carrying `week` would be a habit nothing could ever clear.
+    targetPeriod: state.kind === 'count' || state.kind === 'timer' ? state.targetPeriod : 'day',
+    allowExceed: state.kind === 'count' || state.kind === 'timer' ? state.allowExceed : false,
     unit: state.kind === 'count' ? state.unit : '',
     cadence: state.cadence,
     challenge: state.challenge,
@@ -136,6 +148,11 @@ export function stepBlocker(state: BuilderState): string | null {
   if (state.step === 0 && !state.name.trim()) return 'give it a name first.';
   if (state.step === 1 && isEmptyCadence(state.cadence)) return 'pick at least one day, or it can never come due.';
   if (state.step === 1 && state.kind === 'count' && state.amount < 1) return 'a target of zero is not a target.';
+  // A weekly target on a cadence that only offers some days is not wrong, but a
+  // weekly target on a cadence that offers none can never be answered at all.
+  if (state.step === 1 && state.targetPeriod === 'week' && isEmptyCadence(state.cadence)) {
+    return 'a week needs at least one day it can be logged on.';
+  }
   if (state.step === 2 && state.window === 'exact' && state.times.length === 0) {
     return 'pick a time, or switch the window to anytime.';
   }

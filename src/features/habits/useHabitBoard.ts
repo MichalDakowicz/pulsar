@@ -7,6 +7,7 @@ import { addDays, dateKey, hoursToMidnight } from '@/lib/dates';
 import { asksAboutYesterday, canUndoToday, dayProgress, dayState, effectiveRule, judgedDay } from '@/lib/habit';
 import { hasRebuilt, isPerfectToday, perfectDays, type HabitSchedule } from '@/lib/perfect';
 import { isTargetDay } from '@/lib/schedule';
+import { headroom, isWeeklyTarget, weekAmount, weekTarget } from '@/lib/weekTarget';
 import {
   computeStreak,
   hitRate,
@@ -45,6 +46,21 @@ export type BoardHabit = {
   /** 0–1 of today's target, for the row fill on a counter habit. */
   progress: number;
   amount: number;
+  /**
+   * What the Monday-anchored week the judged day falls in has logged so far, and
+   * what it owes. Both 0 on a habit whose target is not week-scoped.
+   *
+   * The week is the row's real subject on such a habit: today's number is only
+   * interesting as a contribution, and a row that showed 5 without saying 5 of
+   * what would be a row that has to be tapped to be read.
+   */
+  weekAmount: number;
+  weekTarget: number;
+  /**
+   * The most the logger will still accept in one go — `Infinity` when the habit
+   * allows exceeding. Computed here so the stepper never has to know the rule.
+   */
+  headroom: number;
   rate: number;
   atRisk: boolean;
   /** Recent misses that could still be filled in — empty when there is nothing to repair. */
@@ -163,9 +179,10 @@ export function useHabitBoard(): HabitBoard {
       const judged = judgedDay(habit, today);
       // `effectiveRule` rather than the raw field, so hard mode still forces
       // strict on the current phase; the sealed ones already carry their own.
-      const streak = computeStreak(entries, { ...habit, rule: effectiveRule(habit) }, judged);
+      const streak = computeStreak(entries, { ...habit, rule: effectiveRule(habit) }, judged, habitAmounts);
       const state = dayState(habit, entries, judged);
       const amount = habitAmounts[judged] ?? 0;
+      const weekly = isWeeklyTarget(habit);
 
       return {
         habit,
@@ -176,14 +193,27 @@ export function useHabitBoard(): HabitBoard {
         undoable: entries[judged] !== undefined && canUndoToday(state),
         // A held day is full whatever the counter says: the target was met, and
         // a bar that stops at 97% on a day you finished reads as a failure.
-        progress: state === 'held' || state === 'repaired' ? 1 : dayProgress(habit, amount),
+        // A held day is full whatever the counter says — except on a weekly
+        // target, where a logged day is a contribution rather than a finish and
+        // painting it full would say the week was done on its first evening.
+        progress: weekly
+          ? dayProgress(habit, amount)
+          : state === 'held' || state === 'repaired'
+            ? 1
+            : dayProgress(habit, amount),
         amount,
+        weekAmount: weekly ? weekAmount(habitAmounts, judged) : 0,
+        weekTarget: weekTarget(habit),
+        headroom: headroom(habit, amount, habitAmounts, judged),
         rate: hitRate(streak),
         // An avoid habit has no deadline to warn about: the day it is judged on
         // has already ended, and it ended clean unless a slip was logged.
         atRisk:
           !silenceIsClean(habit, judged) &&
-          isAtRisk(entries, habit.cadence, streak.current, judged, hoursLeft),
+          isAtRisk(entries, habit.cadence, streak.current, judged, hoursLeft, 6, {
+            habit,
+            amounts: habitAmounts,
+          }),
         repairable: repairableDays(streak, judged),
         entries,
         amounts: habitAmounts,

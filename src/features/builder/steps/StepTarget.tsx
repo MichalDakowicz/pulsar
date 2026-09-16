@@ -1,10 +1,10 @@
 import { Minus, Plus } from 'lucide-react-native';
 import { Pressable, Text, View } from 'react-native';
 
-import { Chip, Overline } from '@/components/ui/controls';
+import { Chip, Overline, Segmented, SwitchRow } from '@/components/ui/controls';
 import type { StepProps } from '@/features/builder/steps/shared';
 import { WEEKDAY_INITIALS } from '@/lib/dates';
-import type { Challenge } from '@/types/habit';
+import type { Challenge, TargetPeriod } from '@/types/habit';
 
 /** Step 2 — cadence, and the target controls only the chosen kind needs. */
 export function StepTarget({ state, set }: StepProps) {
@@ -112,9 +112,33 @@ export function StepTarget({ state, set }: StepProps) {
         </View>
       )}
 
+      {/* The period, asked once for both counters. It is not a cadence: the
+          cadence says which days can take an answer, this says what has to add
+          up — "20 a week" has no opinion about any one day, and twenty on
+          saturday clears it. */}
+      {(state.kind === 'count' || state.kind === 'timer') && (
+        <View className="gap-2.5">
+          <Overline>what has to add up</Overline>
+          <Segmented<TargetPeriod>
+            label="target period"
+            value={state.targetPeriod}
+            onChange={(period) => set('targetPeriod', period)}
+            options={[
+              { value: 'day', label: 'every day' },
+              { value: 'week', label: 'every week' },
+            ]}
+          />
+          <Text className="text-xs text-muted-foreground">
+            {state.targetPeriod === 'week'
+              ? 'the week is what has to add up. a quiet tuesday costs nothing, and one big day can carry it.'
+              : 'the number is owed each day the habit comes due.'}
+          </Text>
+        </View>
+      )}
+
       {state.kind === 'count' && (
         <View className="gap-3">
-          <Overline>daily target</Overline>
+          <Overline>{state.targetPeriod === 'week' ? 'weekly target' : 'daily target'}</Overline>
           <View className="flex-row items-center gap-3">
             <Pressable
               accessibilityRole="button"
@@ -130,12 +154,14 @@ export function StepTarget({ state, set }: StepProps) {
             <Pressable
               accessibilityRole="button"
               accessibilityLabel="one more"
-              onPress={() => set('amount', Math.min(99, state.amount + 1))}
+              onPress={() => set('amount', Math.min(999, state.amount + 1))}
               className="h-11 w-11 items-center justify-center rounded-full bg-secondary"
             >
               <Plus size={18} color="#fafafa" />
             </Pressable>
-            <Text className="flex-1 text-sm text-muted-foreground">{state.unit} a day</Text>
+            <Text className="flex-1 text-sm text-muted-foreground">
+              {`${state.unit} a ${state.targetPeriod === 'week' ? 'week' : 'day'}`}
+            </Text>
           </View>
           <View className="flex-row flex-wrap gap-2">
             {['glasses', 'pages', 'reps', 'ml', 'times'].map((unit) => (
@@ -147,9 +173,9 @@ export function StepTarget({ state, set }: StepProps) {
 
       {state.kind === 'timer' && (
         <View className="gap-2.5">
-          <Overline>minutes a day</Overline>
+          <Overline>{state.targetPeriod === 'week' ? 'minutes a week' : 'minutes a day'}</Overline>
           <View className="flex-row flex-wrap gap-2">
-            {[5, 10, 20, 45].map((minutes) => (
+            {(state.targetPeriod === 'week' ? [30, 60, 120, 180] : [5, 10, 20, 45]).map((minutes) => (
               <Chip
                 key={minutes}
                 label={`${minutes} min`}
@@ -159,6 +185,15 @@ export function StepTarget({ state, set }: StepProps) {
             ))}
           </View>
         </View>
+      )}
+
+      {(state.kind === 'count' || state.kind === 'timer') && (
+        <SwitchRow
+          label="let it run past the target"
+          sub="off, the counter stops at the target — done is done. on, it keeps taking more and shows the surplus."
+          value={state.allowExceed}
+          onChange={(on) => set('allowExceed', on)}
+        />
       )}
 
       <View className="gap-2.5">

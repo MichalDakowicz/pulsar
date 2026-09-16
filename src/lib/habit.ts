@@ -2,6 +2,7 @@ import { addDays } from '@/lib/dates';
 import { isTargetDayOn, type Phase } from '@/lib/phases';
 import { cadenceLabel, type Cadence } from '@/lib/schedule';
 import { silenceIsClean, type EntryMap, type EntryState } from '@/lib/streak';
+import { dayShareOfWeek, isWeeklyTarget, weekTarget } from '@/lib/weekTarget';
 import type { Habit, HabitKind, NudgeWindow } from '@/types/habit';
 
 /**
@@ -31,10 +32,14 @@ export const WINDOW_TIMES: Record<NudgeWindow, string[]> = {
   anytime: [],
 };
 
-/** "8 glasses", "20 min", "" — the target in words, empty when the habit is binary. */
-export function targetLabel(habit: Pick<Habit, 'kind' | 'target' | 'unit'>): string {
-  if (habit.kind === 'count') return `${habit.target} ${habit.unit}`;
-  if (habit.kind === 'timer') return `${habit.target} min`;
+/** "8 glasses", "20 min", "20 exercises a week", "" for a binary habit. */
+export function targetLabel(habit: Pick<Habit, 'kind' | 'target' | 'unit'> & Partial<Pick<Habit, 'targetPeriod'>>): string {
+  // The period is part of the target, not a footnote to it: "20 exercises" and
+  // "20 exercises a week" are different commitments, and a row that shows the
+  // first while meaning the second is the label that loses someone a streak.
+  const per = isWeeklyTarget(habit) ? ' a week' : '';
+  if (habit.kind === 'count') return `${habit.target} ${habit.unit}${per}`;
+  if (habit.kind === 'timer') return `${habit.target} min${per}`;
   if (habit.kind === 'avoid') return 'clean day';
   return '';
 }
@@ -66,16 +71,62 @@ export function canFreeze(habit: Pick<Habit, 'hard'>, tokens: number): boolean {
   return !habit.hard && tokens > 0;
 }
 
-/** 0–1 of the day's target. Binary habits jump straight to 1 on a hold. */
-export function dayProgress(habit: Pick<Habit, 'kind' | 'target'>, amount: number): number {
+/**
+ * 0–1 of what the day was worth. Binary habits jump straight to 1 on a hold.
+ *
+ * A week-scoped target is measured against the *week's* number rather than a
+ * seventh of it, so ten of twenty fills the cell half — see `dayShareOfWeek`.
+ * It can read above 1 when the habit allows exceeding, which every caller
+ * either clamps for display or wants to know about.
+ */
+export function dayProgress(
+  habit: Pick<Habit, 'kind' | 'target'> & Partial<Pick<Habit, 'targetPeriod' | 'allowExceed'>>,
+  amount: number,
+): number {
   if (habit.kind === 'do' || habit.kind === 'avoid') return amount > 0 ? 1 : 0;
+  if (isWeeklyTarget(habit)) return dayShareOfWeek(habit, amount);
   if (habit.target <= 0) return amount > 0 ? 1 : 0;
-  return Math.min(1, Math.max(0, amount / habit.target));
+  const share = amount / habit.target;
+  if (habit.allowExceed) return Math.max(0, share);
+  return Math.min(1, Math.max(0, share));
 }
 
-/** Whether what was logged clears the day. Partial progress on a counter is not a hold. */
-export function meetsTarget(habit: Pick<Habit, 'kind' | 'target'>, amount: number): boolean {
-  return dayProgress(habit, amount) >= 1;
+/**
+ * Whether what was logged clears the target. Partial progress on a counter is
+ * not a hold.
+ *
+ * On a week-scoped habit `amount` is the *week's* total, not one day's: no
+ * single day is owed anything, so asking whether Tuesday met a weekly target is
+ * a question with no honest answer.
+ */
+export function meetsTarget(
+  habit: Pick<Habit, 'kind' | 'target'> & Partial<Pick<Habit, 'targetPeriod'>>,
+  amount: number,
+): boolean {
+  if (isWeeklyTarget(habit)) return amount >= weekTarget(habit);
+  return dayProgress({ ...habit, allowExceed: false }, amount) >= 1;
+}
+
+/**
+ * What a single check-in gesture is worth on this habit.
+ *
+ * One for anything binary, and for a counter the whole job — the target, or
+ * what is left of the week on a week-scoped one. A hold is "that is done", and
+ * a hold that logged a 1 against a target of 8 is what made every counter habit
+ * in the app read 1/8 for ever: the gesture said done and the number said
+ * barely started, and the wall believed the number.
+ *
+ * `weekLogged` is what the rest of the week already holds, so finishing a week
+ * that is halfway there adds the half that is missing rather than another full
+ * twenty.
+ */
+export function holdAmount(
+  habit: Pick<Habit, 'kind' | 'target'> & Partial<Pick<Habit, 'targetPeriod'>>,
+  weekLogged = 0,
+): number {
+  if (habit.kind !== 'count' && habit.kind !== 'timer') return 1;
+  if (isWeeklyTarget(habit)) return Math.max(1, weekTarget(habit) - weekLogged);
+  return Math.max(1, Math.round(habit.target));
 }
 
 /**

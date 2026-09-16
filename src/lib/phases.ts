@@ -1,6 +1,7 @@
 import { addDays, dayRange } from '@/lib/dates';
 import { isTargetDay, type Cadence } from '@/lib/schedule';
 import type { StreakRule } from '@/lib/streak';
+import type { TargetPeriod } from '@/types/habit';
 
 /**
  * What a habit's rules were on a day that has already been lived.
@@ -17,11 +18,23 @@ import type { StreakRule } from '@/lib/streak';
  * cover, which is why the two can never disagree about today.
  */
 
-/** The three fields a change can touch. Everything else about a habit applies at once. */
+/** The four fields a change can touch. Everything else about a habit applies at once. */
 export type Rules = {
   cadence: Cadence;
   rule: StreakRule;
   target: number;
+  /**
+   * Sealed alongside the target because it is half of it. Twenty a day and
+   * twenty a week are the same number and opposite commitments, so a habit
+   * switched from one to the other without a phase would have its whole past
+   * rejudged in a unit it was never lived in — six kept weeks turning into six
+   * short ones on the walk home from the settings screen.
+   *
+   * Optional because a phase sealed before the field existed genuinely has no
+   * period to report, and the honest answer for those is the one they were
+   * lived under: `day`. `targetPeriodOn` supplies it.
+   */
+  targetPeriod?: TargetPeriod;
 };
 
 /** A closed, inclusive stretch of the past still judged by superseded rules. */
@@ -56,8 +69,16 @@ export function ruleOn(timeline: Phased & { rule: StreakRule }, day: string): St
   return phaseOn(timeline.phases, day)?.rule ?? timeline.rule;
 }
 
-export function targetOn(timeline: Phased & { target: number }, day: string): number {
-  return phaseOn(timeline.phases, day)?.target ?? timeline.target;
+export function targetOn(timeline: Phased & { target?: number }, day: string): number {
+  return phaseOn(timeline.phases, day)?.target ?? timeline.target ?? 1;
+}
+
+/** The period the target was owed over that day, not the one it is owed over now. */
+export function targetPeriodOn(
+  timeline: Phased & { targetPeriod?: TargetPeriod },
+  day: string,
+): TargetPeriod {
+  return phaseOn(timeline.phases, day)?.targetPeriod ?? timeline.targetPeriod ?? 'day';
 }
 
 /** `isTargetDay` against the cadence that was in force that day, not today's. */
@@ -108,7 +129,14 @@ export function phasesAfterChange(
   if (to < from) return timeline.phases ?? [];
   return [
     ...(timeline.phases ?? []),
-    { from, to, cadence: timeline.cadence, rule: timeline.rule, target: timeline.target },
+    {
+      from,
+      to,
+      cadence: timeline.cadence,
+      rule: timeline.rule,
+      target: timeline.target,
+      targetPeriod: timeline.targetPeriod,
+    },
   ];
 }
 
@@ -137,6 +165,7 @@ const CHANGE_LABELS = {
   cadence: 'when it is due',
   rule: 'what a miss costs',
   target: 'the target',
+  targetPeriod: 'what the target is owed over',
 } as const;
 
 /** Which of the three changed, in words, for the sheet that asks how far back it reaches. */
@@ -145,10 +174,12 @@ export function changedRules(before: Rules, after: Rules): string[] {
   if (!sameCadence(before.cadence, after.cadence)) out.push(CHANGE_LABELS.cadence);
   if (before.rule !== after.rule) out.push(CHANGE_LABELS.rule);
   if (before.target !== after.target) out.push(CHANGE_LABELS.target);
+  if ((before.targetPeriod ?? 'day') !== (after.targetPeriod ?? 'day')) out.push(CHANGE_LABELS.targetPeriod);
   return out;
 }
 
 const RULES: StreakRule[] = ['strict', 'grace', 'decay'];
+const PERIODS: TargetPeriod[] = ['day', 'week'];
 const DAY = /^\d{4}-\d{2}-\d{2}$/;
 
 function cadenceFrom(value: unknown, anchor: string): Cadence | null {
@@ -215,6 +246,11 @@ export function normalizePhases(value: unknown, anchor = ''): Phase[] {
       cadence,
       rule: RULES.includes(raw.rule as StreakRule) ? (raw.rule as StreakRule) : 'strict',
       target: typeof raw.target === 'number' && raw.target > 0 ? raw.target : 1,
+      // A phase written before the column existed is a daily one, which is what
+      // it was actually lived as — the default is the history, not a guess.
+      targetPeriod: PERIODS.includes(raw.targetPeriod as TargetPeriod)
+        ? (raw.targetPeriod as TargetPeriod)
+        : 'day',
     });
   }
   // Sorted and de-overlapped: `rulesOn` takes the first match, so an out-of-order
