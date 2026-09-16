@@ -1,5 +1,7 @@
 # Update notes
 
+## 1.3.0 — Unreleased
+
 ## 1.2.1 — 2026-09-16
 
 ### Fixed
