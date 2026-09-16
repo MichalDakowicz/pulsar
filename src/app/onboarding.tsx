@@ -7,6 +7,7 @@ import { ScreenTop } from '@/components/layout/ScreenTop';
 import { HoldButton } from '@/components/ui/HoldButton';
 import { Chip, Overline } from '@/components/ui/controls';
 import { useToast } from '@/components/ui/Toast';
+import { readError } from '@/lib/utils';
 import { useCreateHabit } from '@/features/habits/useHabits';
 import { blankBuilder, suggestedPledge, toHabitDraft } from '@/features/builder/useBuilder';
 import { useHabitSettings } from '@/hooks/useHabitSettings';
@@ -62,7 +63,7 @@ export default function Onboarding() {
     } catch (error) {
       // Saying nothing here is what makes the button look broken. Stay on the
       // step so the habit that was just built is not thrown away.
-      say(error instanceof Error ? error.message : 'that did not save. try again in a moment.');
+      say(readError(error));
       setBusy(false);
       return;
     }
