@@ -6,6 +6,7 @@ import { useToast } from '@/components/ui/Toast';
 import { useClearEntry, useSetEntry } from '@/features/habits/useEntries';
 import { useTokens } from '@/features/habits/useTokens';
 import { formatDayShort } from '@/lib/dates';
+import { isWeeklyTarget, weekTarget } from '@/lib/weekTarget';
 import type { EntryState } from '@/lib/streak';
 import { clearedTier, TIER_NAMES } from '@/lib/tiers';
 import type { Habit } from '@/types/habit';
@@ -39,6 +40,53 @@ export function useCheckIn(perfectCount: number) {
         label: 'undo',
         onPress: () => void clearEntry.mutateAsync({ habitId: habit.id, day }),
       });
+    },
+    [setEntry, clearEntry, say],
+  );
+
+  /**
+   * Putting a number in, a bit at a time — the answer a counter habit has
+   * always needed and never had.
+   *
+   * A counter is not a thing you finish in one gesture: eight glasses happen
+   * across a day and twenty exercises across a week, so the only honest logger
+   * is one that takes what you did just now and adds it to what is already
+   * there. `delta` is that increment, positive or negative, and the entry is
+   * rewritten to the running total rather than appended to — the day is one row
+   * and it always says where the day stands.
+   *
+   * `room` is how much more the habit will accept, which is `allowExceed`'s
+   * whole effect (lib/weekTarget). Clamped here rather than in the stepper so
+   * the rule lives in one place and a caller cannot route around it.
+   *
+   * Dropping to zero clears the day instead of writing a nought: a day with an
+   * entry of 0 and a day with no entry are the same fact, and keeping both
+   * shapes means every reader downstream has to know that.
+   */
+  const add = useCallback(
+    async (habit: Habit, day: string, current: number, delta: number, room: number, weekBefore = 0) => {
+      const step = delta > 0 ? Math.min(delta, room) : delta;
+      const next = Math.max(0, current + step);
+      if (next === current) return;
+      if (Platform.OS !== 'web') void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+
+      if (next === 0) {
+        await clearEntry.mutateAsync({ habitId: habit.id, day });
+        return;
+      }
+      await setEntry.mutateAsync({ habitId: habit.id, day, state: 'held', amount: next });
+
+      // Only the crossing is worth saying out loud. A toast on every press turns
+      // a counter into a slot machine, and the one moment that actually matters
+      // — the target coming in — would be lost among the others.
+      const weekly = isWeeklyTarget(habit);
+      const owed = weekly ? weekTarget(habit) : habit.target;
+      const before = weekly ? weekBefore : current;
+      const after = before + (next - current);
+      if (before < owed && after >= owed) {
+        if (Platform.OS !== 'web') void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+        say(weekly ? `${habit.name} — the week is in at ${after}.` : `${habit.name} done — ${after} ${habit.unit}.`);
+      }
     },
     [setEntry, clearEntry, say],
   );
@@ -165,5 +213,5 @@ export function useCheckIn(perfectCount: number) {
     [clearEntry, say],
   );
 
-  return { hold, freeze, repair, skip, did, backfill, clear, undo, tokens };
+  return { hold, add, freeze, repair, skip, did, backfill, clear, undo, tokens };
 }

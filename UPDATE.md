@@ -2,6 +2,18 @@
 
 ## 1.2.0 — Unreleased
 
+### Added
+
+- Builder: a count or timer habit can owe its target over the week instead of the day
+- Today: a counter habit has a stepper, so you log what you did as you do it
+- Builder: choose whether a counter stops at its target or keeps taking more
+- Streaks: a weekly target only breaks on a week that finished short, never on a quiet day
+- Streaks: the wall fills a day by how much of the week it did
+
+### Fixed
+
+- Checking off a counter habit now logs the whole target instead of a single one
+
 ## 1.1.0 — 2026-09-15
 
 ### Added

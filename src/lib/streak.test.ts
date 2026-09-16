@@ -405,3 +405,118 @@ describe('the clean-day cutoff', () => {
     expect(result.missed.every((day) => day < CLEAN_DAY_FROM)).toBe(true);
   });
 });
+
+/**
+ * A target owed over the week rather than the day — "20 exercises a week".
+ *
+ * The rule is Radar's (radar/src/lib/stats.ts): a day with activity adds one to
+ * the run whatever it was worth, an empty day is skipped rather than charged
+ * while its week can still qualify, the week in progress always qualifies
+ * because it has days left to run, and the only thing that actually takes the
+ * streak down is a *finished* week that fell short.
+ */
+describe('computeStreak on a weekly amount target', () => {
+  const NEXT_MON = '2026-09-14';
+  const weekly = (target: number, rule: StreakRule = 'strict') => ({
+    startedOn: MON,
+    cadence: DAILY,
+    kind: 'count',
+    target,
+    targetPeriod: 'week' as const,
+    rule,
+  });
+
+  it('counts the days that had activity, not the reps', () => {
+    const amounts = { [MON]: 5, '2026-09-09': 10, '2026-09-11': 5 };
+    const result = computeStreak(held(...Object.keys(amounts)), weekly(20), NEXT_MON, amounts);
+    expect(result.current).toBe(3);
+    expect(result.missed).toEqual([]);
+  });
+
+  // The whole point: the week has no opinion about Tuesday.
+  it('does not reset on an empty day inside a week that adds up', () => {
+    const amounts = { [MON]: 20 };
+    const result = computeStreak(held(MON), weekly(20), NEXT_MON, amounts);
+    expect(result.current).toBe(1);
+    expect(result.missed).toEqual([]);
+  });
+
+  // One big day carries the week — the thing a daily target cannot express.
+  it('clears a week off a single saturday', () => {
+    const amounts = { '2026-09-12': 20 };
+    const result = computeStreak(held('2026-09-12'), weekly(20), NEXT_MON, amounts);
+    expect(result.missed).toEqual([]);
+    expect(result.current).toBe(1);
+  });
+
+  it('breaks on a finished week that fell short, and names the week', () => {
+    const amounts = { [MON]: 5, '2026-09-09': 4 };
+    const result = computeStreak(held(MON, '2026-09-09'), weekly(20), NEXT_MON, amounts);
+    expect(result.current).toBe(0);
+    expect(result.missed).toEqual([MON]);
+    expect(result.best).toBe(2);
+  });
+
+  // A week with days left cannot have failed, however little is in it.
+  it('leaves the week in progress alone', () => {
+    const amounts = { [MON]: 1 };
+    const result = computeStreak(held(MON), weekly(20), '2026-09-09', amounts);
+    expect(result.current).toBe(1);
+    expect(result.missed).toEqual([]);
+  });
+
+  it('carries the run across a week that made it', () => {
+    const amounts = { [MON]: 20, '2026-09-14': 20 };
+    const result = computeStreak(held(MON, '2026-09-14'), weekly(20), '2026-09-20', amounts);
+    expect(result.current).toBe(2);
+  });
+
+  it('takes three days off instead of all of them under decay', () => {
+    const amounts = { [MON]: 20, '2026-09-08': 20, '2026-09-09': 20, '2026-09-10': 20 };
+    const result = computeStreak(held(...Object.keys(amounts)), weekly(20, 'decay'), '2026-09-21', amounts);
+    // Four days logged in the first week, which cleared; the second week is
+    // empty and finished, so decay charges it three.
+    expect(result.current).toBe(1);
+  });
+
+  // A token buys the week outright: there is no slot to fill on an amount week,
+  // and a freeze that bought nothing would be a token silently thrown away.
+  it('lets a freeze buy a week that never reached its number', () => {
+    const entries: EntryMap = { [MON]: 'held', '2026-09-09': 'frozen' };
+    const result = computeStreak(entries, weekly(20), NEXT_MON, { [MON]: 2 });
+    expect(result.missed).toEqual([]);
+    expect(result.current).toBe(1);
+  });
+
+  // The sealed phase was lived in the other unit, and rescoring it in today's
+  // would turn a kept run into a broken one on the walk home from settings.
+  it('scores a sealed phase in the unit it was actually lived in', () => {
+    const amounts = { [MON]: 8, '2026-09-08': 8 };
+    const timeline = {
+      ...weekly(20),
+      phases: [
+        { from: MON, to: '2026-09-08', cadence: DAILY, rule: 'strict' as const, target: 8, targetPeriod: 'day' as const },
+      ],
+    };
+    const result = computeStreak(held(MON, '2026-09-08'), timeline, '2026-09-08', amounts);
+    // Both days met the daily 8 they were owed at the time.
+    expect(result.current).toBe(2);
+    expect(result.missed).toEqual([]);
+  });
+});
+
+describe('isAtRisk on a weekly amount target', () => {
+  const habit = { kind: 'count', target: 20, targetPeriod: 'week' as const };
+
+  it('stays quiet mid-week, however little is in', () => {
+    expect(isAtRisk({}, DAILY, 5, '2026-09-09', 1, 6, { habit, amounts: {} })).toBe(false);
+  });
+
+  it('warns on the last evening of a week still short', () => {
+    expect(isAtRisk({}, DAILY, 5, '2026-09-13', 1, 6, { habit, amounts: { [MON]: 4 } })).toBe(true);
+  });
+
+  it('stays quiet on the last evening of a week already in', () => {
+    expect(isAtRisk({}, DAILY, 5, '2026-09-13', 1, 6, { habit, amounts: { [MON]: 20 } })).toBe(false);
+  });
+});

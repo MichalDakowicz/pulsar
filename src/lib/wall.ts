@@ -2,6 +2,7 @@ import { addDays, dateKey, weekdayIndex, weekKey } from '@/lib/dates';
 import { cadenceOn, isTargetDayOn, type Phased } from '@/lib/phases';
 import { judgesByWeek, weeklyQuota, type Cadence } from '@/lib/schedule';
 import { silenceIsClean, type EntryMap } from '@/lib/streak';
+import { isWeeklyTarget, type Targeted } from '@/lib/weekTarget';
 
 /**
  * The wall — the grid of days behind every habit.
@@ -25,6 +26,16 @@ export type WallCell = {
 export type WallWeek = {
   start: string;
   cells: WallCell[];
+  /**
+   * Whether a week-judged habit cleared this week. `undefined` on every habit
+   * scored a day at a time, where the week is not a unit that can be kept.
+   *
+   * It lives on the week rather than being re-derived because the rate needs it:
+   * on a weekly target the days are `partial` by design — four days of five
+   * reps each is a kept week of twenty — and a rate that only counts full days
+   * would score a perfectly kept week at zero.
+   */
+  met?: boolean;
 };
 
 export type WallOptions = {
@@ -39,7 +50,7 @@ export type WallOptions = {
 
 export function buildWall(
   entries: EntryMap,
-  timeline: Phased & { cadence: Cadence; kind?: string },
+  timeline: Phased & Targeted & { cadence: Cadence },
   options: WallOptions,
 ): WallWeek[] {
   const endOn = options.endOn ?? dateKey();
@@ -57,14 +68,14 @@ export function buildWall(
       const day = addDays(start, d);
       cells.push(cellFor(entries, timeline, day, endOn, options.startedOn, progress[day]));
     }
-    weeks.push({ start, cells: quotaWeek(cells, cadenceOn(timeline, start), endOn) });
+    weeks.push(quotaWeek(start, cells, timeline, cadenceOn(timeline, start), endOn));
   }
   return weeks;
 }
 
 function cellFor(
   entries: EntryMap,
-  timeline: Phased & { cadence: Cadence; kind?: string },
+  timeline: Phased & Targeted & { cadence: Cadence },
   day: string,
   endOn: string,
   startedOn: string | undefined,
@@ -77,6 +88,15 @@ function cellFor(
   if (!isTargetDayOn(timeline, day)) return { day, state: 'rest', ratio: 0 };
 
   const state = entries[day];
+  // A week-scoped target has no full days, only days that did some of the week.
+  // So a logged day is painted at what it was worth rather than solid: twenty
+  // of twenty on Saturday fills, five of twenty fills a quarter, and the week
+  // adds up across the row exactly the way the target does.
+  if (isWeeklyTarget(timeline) && (state === 'held' || state === 'repaired')) {
+    const share = ratio ?? 0;
+    if (share >= 1) return { day, state: 'held', ratio: 1 };
+    return { day, state: 'partial', ratio: Math.max(share, 0.02) };
+  }
   if (state === 'held' || state === 'repaired') return { day, state: 'held', ratio: 1 };
   if (state === 'frozen') return { day, state: 'frozen', ratio: 0 };
   if (state === 'skipped') return { day, state: 'rest', ratio: 0 };
@@ -105,13 +125,29 @@ function cellFor(
  * are what went wrong, and the week the wall ends in is left alone: it has not
  * failed while it still has days to run.
  */
-function quotaWeek(cells: WallCell[], cadence: Cadence, endOn: string): WallCell[] {
-  if (!judgesByWeek(cadence)) return cells;
-  const owed = weeklyQuota(cadence);
+function quotaWeek(
+  start: string,
+  cells: WallCell[],
+  timeline: Targeted,
+  cadence: Cadence,
+  endOn: string,
+): WallWeek {
+  const byAmount = isWeeklyTarget(timeline);
+  if (!byAmount && !judgesByWeek(cadence)) return { start, cells };
   const running = cells.some((cell) => cell.day >= endOn);
-  const filled = cells.filter((cell) => cell.state === 'held' || cell.state === 'frozen').length;
-  if (!running && filled < owed) return cells;
-  return cells.map((cell) => (cell.state === 'missed' ? { ...cell, state: 'rest' as const } : cell));
+  // Two units again. A day quota counts filled slots; an amount week adds up
+  // what each day was worth — every ratio is already a share of the week's
+  // target, so a row that sums to one is a week that made it.
+  const met = byAmount
+    ? cells.some((cell) => cell.state === 'frozen') ||
+      cells.reduce((sum, cell) => sum + (cell.state === 'partial' || cell.state === 'held' ? cell.ratio : 0), 0) >= 1
+    : cells.filter((cell) => cell.state === 'held' || cell.state === 'frozen').length >= weeklyQuota(cadence);
+  if (!running && !met) return { start, cells, met: false };
+  return {
+    start,
+    cells: cells.map((cell) => (cell.state === 'missed' ? { ...cell, state: 'rest' as const } : cell)),
+    met: running ? undefined : true,
+  };
 }
 
 /** Flattened day-major order, for a seven-column grid that reads left to right. */
@@ -149,6 +185,10 @@ function settled(cell: WallCell, endOn: string): boolean {
  * Held share of the days that actually came due inside the wall — the "% of
  * days" under each tile. Rest, future and today are excluded from both halves,
  * so a weekday habit is scored out of settled weekdays.
+ *
+ * A `partial` day inside a week that was kept counts as held: on a weekly
+ * target every day is partial by design, and scoring them out would put a
+ * perfect twenty-a-week habit at 0%.
  */
 export function wallRate(weeks: WallWeek[], endOn: string = dateKey()): number {
   let held = 0;
@@ -157,7 +197,7 @@ export function wallRate(weeks: WallWeek[], endOn: string = dateKey()): number {
     for (const cell of week.cells) {
       if (!settled(cell, endOn)) continue;
       due += 1;
-      if (cell.state === 'held') held += 1;
+      if (cell.state === 'held' || (week.met && cell.state === 'partial')) held += 1;
     }
   }
   return due === 0 ? 0 : Math.round((held / due) * 100);
@@ -176,7 +216,7 @@ export function weekdayShape(weeks: WallWeek[], endOn: string = dateKey()): numb
       if (!settled(cell, endOn)) continue;
       const index = weekdayIndex(cell.day);
       due[index] += 1;
-      if (cell.state === 'held') held[index] += 1;
+      if (cell.state === 'held' || (week.met && cell.state === 'partial')) held[index] += 1;
     }
   }
   return held.map((n, i) => (due[i] === 0 ? 0 : n / due[i]));

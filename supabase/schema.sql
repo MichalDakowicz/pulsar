@@ -418,3 +418,26 @@ alter table public.habits
 -- read as every-third-day by the next thing that touches it.
 alter table public.habits
   add column if not exists cadence_per_week int not null default 3;
+
+-- What stretch of time `target` has to add up over: 'day' or 'week'.
+--
+-- A column rather than a new cadence_kind, because the two answer different
+-- questions and folding them together makes one field lie. A cadence says which
+-- days can take an answer; this says what has to add up. The existing 'weekly'
+-- cadence fills its week with *days* — this fills it with *amounts*, so "20
+-- exercises a week" has no opinion about any particular day and twenty on
+-- Saturday clears it.
+--
+-- Only read for kind in ('count','timer'); the client normalizes a binary habit
+-- back to 'day' whatever this says, since a `do` habit has no amount to total.
+alter table public.habits
+  add column if not exists target_period text not null default 'day';
+
+-- Whether the logger will take more than the target asked for.
+--
+-- Off, the stepper stops at the target: the target was the job, and a counter
+-- that keeps climbing past it makes the number the point instead of the habit.
+-- On, the surplus is logged and shown (24 of 20). It never changes what clears
+-- the day or the week — clearing it is clearing it.
+alter table public.habits
+  add column if not exists allow_exceed boolean not null default false;

@@ -9,6 +9,21 @@ import type { EntryState, StreakRule } from '@/lib/streak';
  */
 export type HabitKind = 'do' | 'avoid' | 'count' | 'timer';
 
+/**
+ * What stretch of time the target has to add up over.
+ *
+ * `day` is the original shape and still the default: eight glasses, every day
+ * it is due. `week` is the one that needed a field of its own — "20 exercises a
+ * week" has no opinion about any particular day, only about the seven days it
+ * is in, so the week is what clears and a quiet Tuesday costs nothing.
+ *
+ * It is deliberately not a cadence. The cadence says which days can take an
+ * answer; this says what has to add up. Folding the two together would make
+ * `weekly.perWeek` mean days on one habit and reps on another, which is the
+ * kind of field nobody reads correctly twice.
+ */
+export type TargetPeriod = 'day' | 'week';
+
 /** When nudges land. `anytime` means the habit has no clock, so it has no reminder. */
 export type NudgeWindow = 'exact' | 'morning' | 'evening' | 'anytime';
 
@@ -24,6 +39,17 @@ export type Habit = {
   kind: HabitKind;
   /** Amount for `count`, minutes for `timer`, 1 for `do` / `avoid`. */
   target: number;
+  /** Whether `target` is owed per day or per week. Only read for `count` / `timer`. */
+  targetPeriod: TargetPeriod;
+  /**
+   * Whether the logger will take more than the target asked for.
+   *
+   * Off, the target is the job and the stepper stops there — done is done, and
+   * a number that keeps climbing past it turns a kept day into a scoreboard.
+   * On, the surplus is logged and shown; it never changes what clears the day
+   * or the week, because clearing it is clearing it.
+   */
+  allowExceed: boolean;
   /** Only meaningful for `count` — "glasses", "pages", "reps". */
   unit: string;
   cadence: Cadence;

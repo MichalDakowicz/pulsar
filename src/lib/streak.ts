@@ -1,6 +1,7 @@
 import { addDays, weekKey } from '@/lib/dates';
-import { cadenceOn, ruleOn, targetDaysOn, type Timeline } from '@/lib/phases';
+import { cadenceOn, ruleOn, targetDaysOn, targetOn, targetPeriodOn, type Timeline } from '@/lib/phases';
 import { isTargetDay, judgesByWeek, weeklyQuota, type Cadence } from '@/lib/schedule';
+import { isWeeklyTarget, weekOnTheLine, weekTarget, type Targeted } from '@/lib/weekTarget';
 
 /**
  * The streak rules — the one piece of this app that has to be right.
@@ -107,8 +108,9 @@ function counts(state: EntryState | undefined): boolean {
  */
 export function computeStreak(
   entries: EntryMap,
-  timeline: Timeline & { cadence: Cadence; rule: StreakRule; kind?: string },
+  timeline: Timeline & Targeted & { cadence: Cadence; rule: StreakRule },
   today: string,
+  amounts: Record<string, number> = {},
   missedCap = 30,
 ): StreakResult {
   const days = targetDaysOn(timeline, timeline.startedOn, today);
@@ -121,7 +123,7 @@ export function computeStreak(
   let graceSpent = false;
   // A quota week in progress: how much of it has been answered, and what it
   // owes. Settled when the walk leaves the week, never while it is still open.
-  let quota: { week: string; filled: number; owed: number } | null = null;
+  let quota: { week: string; filled: number; owed: number; frozen: boolean; byAmount: boolean } | null = null;
   // Whether the last quota week that closed was kept. The first week has no
   // week before it, so it is treated as following a good one — a habit cannot
   // be punished for a week that never happened.
@@ -142,7 +144,10 @@ export function computeStreak(
   const settleQuota = (rule: StreakRule) => {
     if (!quota) return;
     const missedWeek = quota.week;
-    const met = quota.filled >= quota.owed;
+    // A token spent inside an amount week buys the week outright. It cannot buy
+    // a slot the way it does on a day quota — there is no slot, only a number —
+    // and a freeze that bought nothing would be a token silently thrown away.
+    const met = quota.filled >= quota.owed || (quota.byAmount && quota.frozen);
     const forgiven = rule === 'grace' && lastWeekMet;
     quota = null;
     if (met) {
@@ -175,20 +180,38 @@ export function computeStreak(
       graceSpent = false;
     }
 
-    if (judgesByWeek(cadence)) {
-      const owed = weeklyQuota(cadence);
-      if (!quota || quota.week !== week) quota = { week, filled: 0, owed };
+    // Asked per day rather than once, the same way the cadence and the miss rule
+    // are: a habit switched from twenty-a-day to twenty-a-week has a sealed
+    // phase behind it that was lived in the other unit, and scoring all of it in
+    // today's unit is how a kept run turns into a broken one overnight.
+    const period = targetPeriodOn(timeline, day);
+    const byAmount = isWeeklyTarget({ ...timeline, targetPeriod: period });
+    if (byAmount || judgesByWeek(cadence)) {
+      // Two units, one branch. A `weekly` cadence owes days and fills them one
+      // at a time; a week-scoped target owes an amount and fills it with what
+      // was actually logged. Everything after this line is the same question
+      // asked of a different number.
+      const owed = byAmount
+        ? weekTarget({ ...timeline, target: targetOn(timeline, day), targetPeriod: period })
+        : weeklyQuota(cadence);
+      if (!quota || quota.week !== week) quota = { week, filled: 0, owed, frozen: false, byAmount };
       // A frozen day fills a slot without adding to the count: the token buys
       // the week, which is exactly what it buys on every other cadence too.
       if (counts(state)) {
+        // Radar's rule, ported: the day contributes one to the run because it
+        // had activity, whatever it was worth. What it was worth is the week's
+        // business, and the week is settled separately — so a day that did two
+        // of twenty still keeps the streak walking, and a week that never
+        // reaches twenty is what finally takes it down.
         run += 1;
         heldCount += 1;
         dueCount += 1;
-        quota.filled += 1;
+        quota.filled += quota.byAmount ? Math.max(0, amounts[day] ?? 0) : 1;
         if (run > best) best = run;
       } else if (state === 'frozen') {
         dueCount += 1;
-        quota.filled += 1;
+        if (quota.byAmount) quota.frozen = true;
+        else quota.filled += 1;
       } else if (state === 'broke') {
         // A logged slip settles the day it is on, and a quota week has no other
         // way to fail early — the week still decides, so it costs a slot.
@@ -264,10 +287,19 @@ export function isAtRisk(
   today: string,
   hoursLeft: number,
   riskWindowHours = 6,
+  weekly?: { habit: Targeted; amounts: Record<string, number> },
 ): boolean {
   if (streak < 2) return false;
   if (!isTargetDay(cadence, today)) return false;
   if (entries[today]) return false;
+  // A week-scoped target is on the line on the last day of its week and not
+  // before: any single day can carry the whole thing, so an unanswered Tuesday
+  // is not news. Asked first, because such a habit may sit on a daily cadence
+  // and would otherwise be warned about every evening it is still open.
+  if (weekly && isWeeklyTarget(weekly.habit)) {
+    if (!weekOnTheLine(weekly.habit, weekly.amounts, today)) return false;
+    return hoursLeft <= riskWindowHours;
+  }
   // A quota habit is only on the line when the week can no longer absorb it:
   // three to go and three days left. Warning every unanswered evening of a
   // 3-a-week habit is the crying-wolf bug with extra steps.
