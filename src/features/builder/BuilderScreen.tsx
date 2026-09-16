@@ -33,6 +33,7 @@ import { useUserSettings } from '@/hooks/useUserSettings';
 import { dateKey } from '@/lib/dates';
 import { targetLabel } from '@/lib/habit';
 import { changedRules, phasesAfterChange, type ChangeScope } from '@/lib/phases';
+import { readError } from '@/lib/utils';
 import { cadenceLabel } from '@/lib/schedule';
 import { sharesAnything } from '@/lib/userSettings';
 import { COLORS } from '@/theme/colors';
@@ -86,7 +87,7 @@ export function BuilderScreen({ initial, habit }: BuilderScreenProps) {
       say(`${draft.name} updated.`);
       router.back();
     } catch (error) {
-      say(error instanceof Error ? error.message : 'that did not save.');
+      say(readError(error));
     }
   };
 
@@ -114,7 +115,7 @@ export function BuilderScreen({ initial, habit }: BuilderScreenProps) {
       say('committed. day one starts now.');
       router.navigate('/');
     } catch (error) {
-      say(error instanceof Error ? error.message : 'that did not save.');
+      say(readError(error));
     }
   };
 

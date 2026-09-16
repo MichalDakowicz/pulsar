@@ -1,6 +1,11 @@
 # Update notes
 
-## 1.3.0 — Unreleased
+## 1.2.1 — 2026-09-16
+
+### Fixed
+
+- A habit that fails to save now says why, instead of only that it did not
+- A missing table or column now names the migration to run, on writes as well as reads
 
 ## 1.2.0 — 2026-09-16
 
