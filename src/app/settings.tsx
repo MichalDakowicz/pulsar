@@ -1,4 +1,3 @@
-import Constants from 'expo-constants';
 import { useRouter } from 'expo-router';
 import { useState } from 'react';
 import { Pressable, ScrollView, Text, View } from 'react-native';
@@ -9,6 +8,7 @@ import { Overline, Segmented, SwitchRow } from '@/components/ui/controls';
 import { SheetDialog } from '@/components/ui/SheetDialog';
 import { useToast } from '@/components/ui/Toast';
 import { signOut } from '@/features/auth/authActions';
+import { AppUpdateControl } from '@/features/settings/AppUpdateControl';
 import { RemindersControl } from '@/features/settings/RemindersControl';
 import { useHabitSettings } from '@/hooks/useHabitSettings';
 import { useNavBarSpace } from '@/hooks/useNavBarSpace';
@@ -30,8 +30,6 @@ export default function Settings() {
   const { say } = useToast();
   const bottom = useNavBarSpace();
   const [signingOut, setSigningOut] = useState(false);
-
-  const version = Constants.expoConfig?.version ?? '1.2.1';
 
   return (
     <ScrollView
@@ -122,7 +120,9 @@ export default function Settings() {
 
         <View className="px-4 pt-7">
           <Overline>about</Overline>
-          <Text className="mt-2 text-sm text-muted-foreground">pulsar {version}</Text>
+          <View className="mt-2">
+            <AppUpdateControl />
+          </View>
           <Text className="mt-1 text-xs text-muted-foreground">
             one account across radar, lidar, sonar and pulsar. signing out here signs you out of this app
             only.

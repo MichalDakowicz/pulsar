@@ -72,7 +72,9 @@ prebuild output, so its `versionName`/`versionCode` are regenerated, never hand-
   Unreleased` section in `UPDATE.md`, and keep working under that same version.
 - Bump `expo.android.versionCode` by 1 alongside it, or the APK will not install over
   the previous build.
-- Whatever surface shows the version in-app (About in Settings) must stay in step.
+- About in Settings reads the installed version through `src/lib/appUpdate.ts`.
+- The Android notice and Settings check compare this app's GitHub release tag
+  `v<version>` with `expo.version`; keep release tags and config in step.
 
 ## 5. Update notes — write as work lands
 
