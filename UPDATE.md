@@ -2,6 +2,14 @@
 
 ## 1.3.0 — Unreleased
 
+### Added
+
+- Sign-in screen can continue with a Ping app already signed in on this phone
+
+### Changed
+
+- Settings: signing out asks whether to leave just Pulsar or every Ping app
+
 ### Fixed
 
 - Android notification icons are larger and show the mark without a background
