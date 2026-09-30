@@ -99,3 +99,18 @@ different thing from putting a habit on a public shelf.
   shared `user_settings` columns and the profile fields listed above.
 - A new Pulsar table gets RLS enabled in the same statement block that creates it, keyed
   to `auth.uid()`, with any non-owner read gated by `private.can_view`.
+
+## Signing in from a sibling
+
+No table and no column, but one dependency on Radar. When another Ping app on the phone
+signs Pulsar in (`PING.md` §9.13), the one-time token it hands over is minted by Radar's
+`sign-in-handoff` edge function (`radar/supabase/functions/sign-in-handoff`) — and when
+Pulsar is the one giving, it calls that same function. Pulsar redeems the token through
+`auth.verifyOtp` into a session of its own, so nothing is shared at rest.
+
+If the function is not deployed, every handoff answers "failed" and the login screen says
+so; email and Google sign-in are untouched. Deploying it is the only setup.
+
+Sign-out passes its scope explicitly. "Every Ping app" is `signOut({ scope: 'global' })`:
+it ends every session the account has, on every device and on the web, which is what
+supabase-js did by default before the choice existed.
