@@ -19,6 +19,7 @@
 
 ### Fixed
 
+- Walls and Stats charts show part-done and frozen days in amber instead of blank squares
 - Android notification icons are larger and show the mark without a background
 
 ## 1.2.1 — 2026-09-16

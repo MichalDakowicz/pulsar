@@ -3,6 +3,7 @@ import { Pressable, Text, View } from 'react-native';
 
 import { WEEKDAY_INITIALS } from '@/lib/dates';
 import type { WallCell, WallWeek } from '@/lib/wall';
+import { accentAlpha } from '@/theme/accentAlpha';
 import { COLORS } from '@/theme/colors';
 
 /**
@@ -14,8 +15,12 @@ import { COLORS } from '@/theme/colors';
  * holes looks two-sevenths broken when it is in fact perfect.
  */
 
+/**
+ * A day part of the way there. Floored well above the empty cell so any logged
+ * amount reads as a start, and graded up towards the solid accent of a full day.
+ */
 function partialColor(ratio: number): string {
-  return `hsl(38 92% 50% / ${(0.25 + ratio * 0.55).toFixed(2)})`;
+  return accentAlpha(0.3 + Math.min(1, ratio) * 0.55);
 }
 
 function cellColor(cell: WallCell): string {
@@ -28,7 +33,7 @@ function cellColor(cell: WallCell): string {
       // bother on a day you cannot finish.
       return partialColor(cell.ratio);
     case 'frozen':
-      return 'hsl(38 92% 50% / 0.2)';
+      return accentAlpha(0.2);
     case 'missed':
       return COLORS.wallEmpty;
     case 'rest':
@@ -173,8 +178,8 @@ export function WallLegend() {
     <View className="mt-3 flex-row items-center gap-2">
       <Text className="text-[10px] text-muted-foreground">missed</Text>
       {swatch(COLORS.wallEmpty, 'missed')}
-      {swatch('hsl(38 92% 50% / 0.2)', 'frozen')}
-      {swatch('hsl(38 92% 50% / 0.55)', 'partial')}
+      {swatch(accentAlpha(0.2), 'frozen')}
+      {swatch(accentAlpha(0.55), 'partial')}
       {swatch(COLORS.accent, 'held')}
       <Text className="text-[10px] text-muted-foreground">held</Text>
       <View className="flex-1" />
