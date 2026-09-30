@@ -1,6 +1,6 @@
 # Update notes
 
-## 1.3.0 — Unreleased
+## 1.3.0 — 2026-09-30
 
 ### Added
 
@@ -10,10 +10,10 @@
 
 ### Changed
 
-- Today and Habits: each habit is a card with four months of its wall and a one-tap corner button
+- Today and Habits: each habit is a card with four months of its wall and a corner button
 - Today: counters take a tap on plus for one and a long press for a bigger jump
 - Today: the wall section is gone, since every card now carries its own
-- Today: open habits come first, then counters in progress, then done, then full counters, then set aside
+- Today: open habits list first, then counters, done, full counters and set aside
 - Today: an avoid habit's corner check logs a slip today, and tapping it again takes it back
 - Settings: signing out asks whether to leave just Pulsar or every Ping app
 
