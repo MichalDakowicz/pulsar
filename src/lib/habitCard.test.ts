@@ -11,6 +11,7 @@ const base: CardInput = {
   weekAmount: 0,
   weekTarget: 0,
   avoid: false,
+  slippedToday: false,
 };
 
 const counter: CardInput = { ...base, counter: true, target: 8 };
@@ -88,8 +89,10 @@ describe('cardAction', () => {
     expect(cardAction({ ...base, today: 'broke', undoable: true }, true)).toBe('undo-slip');
   });
 
-  it('answers an open avoid day with a check, not a set-aside', () => {
-    expect(cardAction({ ...base, avoid: true }, true)).toBe('check');
+  it('gives an avoid habit a slip toggle and nothing else', () => {
+    expect(cardAction({ ...base, avoid: true }, true)).toBe('slip');
+    expect(cardAction({ ...base, avoid: true, today: 'held' }, true)).toBe('slip');
+    expect(cardAction({ ...base, avoid: true, slippedToday: true }, true)).toBe('unslip');
   });
 
   it('has nothing on a rest day', () => {

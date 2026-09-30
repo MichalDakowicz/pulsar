@@ -22,10 +22,13 @@ export function CardActionButton({
 }) {
   if (action === 'none') return null;
 
+  // A logged slip is the checked state of its box: filled, so a mis-tap is
+  // obvious at a glance and the same tap takes it back.
+  const slipped = action === 'unslip';
   const done = action === 'undo-done' || action === 'held';
-  const tick = done || action === 'check';
-  const color = done || action === 'frozen' ? COLORS.accent : COLORS.muted;
-  const edge = done ? 'border-primary/35' : 'border-border';
+  const tick = done || action === 'slip' || slipped;
+  const color = slipped ? COLORS.accentInk : done || action === 'frozen' ? COLORS.accent : COLORS.muted;
+  const edge = slipped ? 'border-primary bg-primary' : done ? 'border-primary/35' : 'border-border';
   const icon =
     action === 'skip' ? (
       <X size={20} color={color} strokeWidth={2} />
@@ -46,8 +49,10 @@ export function CardActionButton({
   }
 
   const label =
-    action === 'check'
-      ? `${name}, came through it`
+    action === 'slip'
+      ? `log a slip on ${name} today`
+      : action === 'unslip'
+      ? `clear today's slip on ${name}`
       : action === 'skip'
       ? `not today on ${name}`
       : action === 'undo-done'

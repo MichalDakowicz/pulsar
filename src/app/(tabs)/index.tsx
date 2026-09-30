@@ -225,6 +225,14 @@ export default function TodayScreen() {
                             ? () => void checkIn.undo(row.habit, row.judged)
                             : undefined
                         }
+                        onSlip={
+                          row.asksYesterday
+                            ? () =>
+                                void (row.entries[board.today] === "broke"
+                                  ? checkIn.clear(row.habit, board.today)
+                                  : checkIn.did(row.habit, board.today))
+                            : undefined
+                        }
                         onAdd={(delta) =>
                           void checkIn.add(
                             row.habit,

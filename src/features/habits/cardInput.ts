@@ -1,4 +1,5 @@
 import type { BoardHabit } from '@/features/habits/useHabitBoard';
+import { addDays } from '@/lib/dates';
 import type { CardInput } from '@/lib/habitCard';
 import { isWeeklyTarget } from '@/lib/weekTarget';
 
@@ -16,5 +17,7 @@ export function toCardInput(row: BoardHabit): CardInput {
     weekAmount: row.weekAmount,
     weekTarget: row.weekTarget,
     avoid: row.asksYesterday,
+    // The row asks about yesterday; the slip is logged on the day after it.
+    slippedToday: row.asksYesterday && row.entries[addDays(row.judged, 1)] === 'broke',
   };
 }

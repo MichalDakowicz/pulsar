@@ -28,6 +28,8 @@ type HabitCardProps = {
   onSkip?: () => void;
   /** Only passed on a card whose answer is free to take back — see `canUndoToday`. */
   onUndo?: () => void;
+  /** Only on an avoid habit: log or clear a slip on the day still running. */
+  onSlip?: () => void;
   /** A counter's stepper. Only passed where the card should count. */
   onAdd?: (delta: number) => void;
   /** False when something above already names the day — the day switch on Today does. */
@@ -54,6 +56,7 @@ export function HabitCard({
   onHold,
   onSkip,
   onUndo,
+  onSlip,
   onAdd,
   namesDay = true,
 }: HabitCardProps) {
@@ -81,7 +84,7 @@ export function HabitCard({
       : habitMeta(habit);
 
   const actionPress =
-    action === 'check' ? onHold : action === 'skip' ? onSkip : action === 'undo-done' || action === 'undo-skip' || action === 'undo-slip' ? onUndo : undefined;
+    action === 'slip' || action === 'unslip' ? onSlip : action === 'skip' ? onSkip : action === 'undo-done' || action === 'undo-skip' || action === 'undo-slip' ? onUndo : undefined;
   const iconDone = tone === 'done';
 
   return (

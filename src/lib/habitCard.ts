@@ -26,6 +26,8 @@ export type CardInput = {
   weekTarget: number;
   /** An avoid habit, answering a day that has already ended. */
   avoid: boolean;
+  /** An avoid habit with a slip logged on the day still running. */
+  slippedToday: boolean;
 };
 
 /** `done` tints the card, `aside` dims it, `risk` is the one red ground. */
@@ -65,18 +67,20 @@ export function cardRank(input: CardInput): number {
 /**
  * The corner button on a card that is not counting.
  *
- * `check` answers an avoid habit's day clean, `skip` sets the day aside, the
- * undos give an answer back, and the static states show the answer without offering to change it — a freeze and a
+ * `slip` logs that an avoid habit was broken today and `unslip` takes that
+ * back, `skip` sets the day aside, the undos give an answer back, and the
+ * static states show the answer without offering to change it — a freeze and a
  * repair spent a token, and a button that pretends it can refund one is a lie.
  */
-export type CardAction = 'check' | 'skip' | 'undo-done' | 'undo-skip' | 'undo-slip' | 'held' | 'frozen' | 'none';
+export type CardAction = 'slip' | 'unslip' | 'skip' | 'undo-done' | 'undo-skip' | 'undo-slip' | 'held' | 'frozen' | 'none';
 
 export function cardAction(input: CardInput, canSkip: boolean): CardAction {
+  // An avoid habit is clean by saying nothing — the day counts itself held at
+  // midnight. So its one button is the report that it was not: tap to log the
+  // slip today, tap again to take a mis-tap back.
+  if (input.avoid) return input.slippedToday ? 'unslip' : 'slip';
   switch (input.today) {
     case 'due':
-      // An avoid habit is asked about a day already over, so the one answer
-      // worth a button is "I came through it" — a set-aside there is noise.
-      if (input.avoid) return 'check';
       return canSkip ? 'skip' : 'none';
     case 'held':
     case 'repaired':
