@@ -2,6 +2,10 @@
 
 ## 1.3.0 — Unreleased
 
+### Fixed
+
+- Android notification icons are larger and show the mark without a background
+
 ## 1.2.1 — 2026-09-16
 
 ### Fixed

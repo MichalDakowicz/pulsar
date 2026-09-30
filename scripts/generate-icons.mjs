@@ -8,6 +8,7 @@
 // here: all four apps generate their icons the same way and one copy of a
 // 40 MB native dependency is enough.
 
+import { Buffer } from 'node:buffer';
 import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import { createRequire } from 'node:module';
 import { dirname, join } from 'node:path';
@@ -53,6 +54,13 @@ const mono = await readFile(join(brand, 'logo-mono.svg'));
 await render(sharp, logo, { size: 1024, pad: 0.18, background: BACKGROUND, out: 'icon.png' });
 await render(sharp, logo, { size: 1024, pad: 0.28, out: 'android-icon-foreground.png' });
 await render(sharp, mono, { size: 1024, pad: 0.28, out: 'android-icon-monochrome.png' });
+// Notifications use a white, tightly trimmed mark without launcher safe-zone padding.
+const notificationMark = await sharp(Buffer.from(mono.toString().replaceAll('currentColor', '#FFFFFF')), { density: 600 })
+  .resize(2048, 2048)
+  .trim({ threshold: 1 })
+  .png()
+  .toBuffer();
+await render(sharp, notificationMark, { size: 96, pad: 0.03, out: 'notification-icon.png' });
 await render(sharp, logo, { size: 512, pad: 0.1, out: 'splash-icon.png' });
 // The favicon stays transparent so the mark sits on the browser's own tab
 // colour instead of a black square in a light theme.
