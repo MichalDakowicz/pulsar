@@ -1,20 +1,18 @@
 import { useRouter } from 'expo-router';
-import { ArchiveRestore, ChevronRight } from 'lucide-react-native';
+import { ArchiveRestore } from 'lucide-react-native';
 import { useState } from 'react';
 import { Pressable, ScrollView, Text, View } from 'react-native';
 
 import { ContentShell } from '@/components/layout/ContentShell';
 import { ScreenTop } from '@/components/layout/ScreenTop';
-import { Mark } from '@/components/marks';
 import { EmptyState, LoadingState, SectionHeader } from '@/components/ui/states';
 import { useToast } from '@/components/ui/Toast';
+import { HabitCard } from '@/features/habits/HabitCard';
 import { useArchiveHabit, useHabits } from '@/features/habits/useHabits';
 import { useHabitBoard } from '@/features/habits/useHabitBoard';
 import { useNavBarSpace } from '@/hooks/useNavBarSpace';
 import { MAX_W } from '@/hooks/useResponsive';
-import { habitMeta } from '@/lib/habit';
 import { COLORS } from '@/theme/colors';
-import type { Habit } from '@/types/habit';
 
 /**
  * Every habit you have, live and archived.
@@ -33,7 +31,7 @@ export default function HabitsScreen() {
   const bottom = useNavBarSpace();
   const [showArchive, setShowArchive] = useState(false);
 
-  const streakFor = (id: string) => board.rows.find((row) => row.habit.id === id)?.streak.current ?? 0;
+  const rowFor = (id: string) => board.rows.find((row) => row.habit.id === id);
 
   if (loading) {
     return (
@@ -68,15 +66,14 @@ export default function HabitsScreen() {
             action={{ label: 'build one', onPress: () => router.navigate('/habit/new') }}
           />
         ) : (
-          <View className="mt-4 gap-2 px-4">
-            {active.map((habit) => (
-              <HabitListRow
-                key={habit.id}
-                habit={habit}
-                streak={streakFor(habit.id)}
-                onPress={() => router.navigate(`/habit/${habit.id}`)}
-              />
-            ))}
+          <View className="mt-4 gap-2.5 px-4">
+            {active.map((habit) => {
+              const row = rowFor(habit.id);
+              if (!row) return null;
+              return (
+                <HabitCard key={habit.id} row={row} onOpen={() => router.navigate(`/habit/${habit.id}`)} />
+              );
+            })}
           </View>
         )}
 
@@ -133,33 +130,5 @@ export default function HabitsScreen() {
         )}
       </ContentShell>
     </ScrollView>
-  );
-}
-
-function HabitListRow({ habit, streak, onPress }: { habit: Habit; streak: number; onPress: () => void }) {
-  return (
-    <Pressable
-      accessibilityRole="button"
-      accessibilityLabel={`${habit.name}, ${streak} day streak`}
-      onPress={onPress}
-      className="flex-row items-center gap-3 rounded-xl bg-secondary p-3"
-    >
-      <View
-        className="h-10 w-10 items-center justify-center rounded-lg"
-        style={{ backgroundColor: COLORS.thumbGround }}
-      >
-        <Mark mark={habit.mark} size={20} color="#fafafa" />
-      </View>
-      <View className="min-w-0 flex-1">
-        <Text className="text-base font-bold text-foreground" numberOfLines={1}>
-          {habit.name}
-        </Text>
-        <Text className="text-xs text-muted-foreground" numberOfLines={1}>
-          {habitMeta(habit)}
-        </Text>
-      </View>
-      <Text className="text-sm font-bold text-primary">{streak}d</Text>
-      <ChevronRight size={18} color={COLORS.muted} />
-    </Pressable>
   );
 }

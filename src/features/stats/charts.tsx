@@ -2,6 +2,7 @@ import { Text, View } from 'react-native';
 import Svg, { Line, Polygon } from 'react-native-svg';
 
 import { WEEKDAY_INITIALS } from '@/lib/dates';
+import { accentAlpha } from '@/theme/accentAlpha';
 import { COLORS } from '@/theme/colors';
 
 /**
@@ -22,7 +23,7 @@ export function WeekBars({ values, labels }: { values: number[]; labels: string[
             style={{
               height: Math.max(4, (value / max) * 76),
               backgroundColor:
-                value === max && value > 0 ? COLORS.accent : `hsl(38 92% 50% / ${(0.25 + (value / max) * 0.4).toFixed(2)})`,
+                value === max && value > 0 ? COLORS.accent : accentAlpha(0.25 + (value / max) * 0.4),
             }}
           />
           <Text className="text-[10px] text-muted-foreground">{labels[index]}</Text>
@@ -77,7 +78,7 @@ export function WeekdayShape({ values }: { values: number[] }) {
           })}
           <Polygon
             points={polygon(values)}
-            fill="hsl(38 92% 50% / 0.22)"
+            fill={accentAlpha(0.22)}
             stroke={COLORS.accent}
             strokeWidth={2}
             strokeLinejoin="round"
@@ -122,7 +123,7 @@ export function ConsistencyBars({ rows }: { rows: { name: string; rate: number }
               className="h-full rounded-full"
               style={{
                 width: `${row.rate}%`,
-                backgroundColor: row.rate > 80 ? COLORS.accent : 'hsl(38 92% 50% / 0.5)',
+                backgroundColor: row.rate > 80 ? COLORS.accent : accentAlpha(0.5),
               }}
             />
           </View>

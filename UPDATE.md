@@ -10,10 +10,16 @@
 
 ### Changed
 
+- Today and Habits: each habit is a card with four months of its wall and a one-tap corner button
+- Today: counters take a tap on plus for one and a long press for a bigger jump
+- Today: the wall section is gone, since every card now carries its own
+- Today: open habits come first, then counters in progress, then done, then full counters, then set aside
+- Today: an avoid habit's corner check logs a slip today, and tapping it again takes it back
 - Settings: signing out asks whether to leave just Pulsar or every Ping app
 
 ### Fixed
 
+- Walls and Stats charts show part-done and frozen days in amber instead of blank squares
 - Android notification icons are larger and show the mark without a background
 
 ## 1.2.1 — 2026-09-16
