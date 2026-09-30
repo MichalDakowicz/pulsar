@@ -2,6 +2,10 @@
 
 ## 1.3.0 — Unreleased
 
+### Added
+
+- Sign-in screen can continue with a Ping app already signed in on this phone
+
 ### Fixed
 
 - Android notification icons are larger and show the mark without a background

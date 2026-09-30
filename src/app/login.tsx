@@ -19,6 +19,9 @@ import { ANDROID_METRICS } from '@/components/ui/controls';
 import { useToast } from '@/components/ui/Toast';
 import { signInWithEmail, signInWithGoogle, signUpWithEmail } from '@/features/auth/authActions';
 import { useAuth } from '@/features/auth/AuthProvider';
+import { SiblingSignIn } from '@/features/auth/SiblingSignIn';
+import { requestSiblingSignIn } from '@/features/auth/siblingHandoff';
+import { useInstalledSiblings } from '@/features/auth/useInstalledSiblings';
 import { MAX_W, useIsDesktop } from '@/hooks/useResponsive';
 import { COLORS } from '@/theme/colors';
 
@@ -33,6 +36,7 @@ export default function Login() {
   const [mode, setMode] = useState<'signIn' | 'signUp'>('signIn');
   const [busy, setBusy] = useState(false);
   const isDesktop = useIsDesktop();
+  const siblings = useInstalledSiblings();
 
   if (user) return <Redirect href={'/' as Href} />;
 
@@ -83,6 +87,12 @@ export default function Login() {
             className={isDesktop ? 'w-full gap-3 rounded-2xl border border-border bg-card p-8' : 'w-full gap-3'}
             style={{ maxWidth: MAX_W.form }}
           >
+            <SiblingSignIn
+              siblings={siblings}
+              disabled={busy}
+              onPick={(app) => void run(() => requestSiblingSignIn(app))}
+            />
+
             {/* Google first: it is the one most people already used to make the
                 account in one of the other three apps. */}
             <Pressable
