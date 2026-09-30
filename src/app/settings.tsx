@@ -6,10 +6,8 @@ import { Pressable, ScrollView, Text, View } from 'react-native';
 import { ContentShell } from '@/components/layout/ContentShell';
 import { ScreenTop } from '@/components/layout/ScreenTop';
 import { Overline, Segmented, SwitchRow } from '@/components/ui/controls';
-import { SheetDialog } from '@/components/ui/SheetDialog';
-import { useToast } from '@/components/ui/Toast';
-import { signOut } from '@/features/auth/authActions';
 import { RemindersControl } from '@/features/settings/RemindersControl';
+import { SignOutSheet } from '@/features/settings/SignOutSheet';
 import { useHabitSettings } from '@/hooks/useHabitSettings';
 import { useNavBarSpace } from '@/hooks/useNavBarSpace';
 import { MAX_W } from '@/hooks/useResponsive';
@@ -27,7 +25,6 @@ export default function Settings() {
   const { settings, updateSettings } = useUserSettings();
   const { settings: habitSettings, updateSettings: updateHabitSettings } = useHabitSettings();
   const { theme, setTheme } = useTheme();
-  const { say } = useToast();
   const bottom = useNavBarSpace();
   const [signingOut, setSigningOut] = useState(false);
 
@@ -124,8 +121,8 @@ export default function Settings() {
           <Overline>about</Overline>
           <Text className="mt-2 text-sm text-muted-foreground">pulsar {version}</Text>
           <Text className="mt-1 text-xs text-muted-foreground">
-            one account across radar, lidar, sonar and pulsar. signing out here signs you out of this app
-            only.
+            one account across radar, lidar, sonar and pulsar. signing out here asks whether to leave just
+            pulsar or every ping app.
           </Text>
         </View>
 
@@ -141,23 +138,7 @@ export default function Settings() {
         </View>
       </ContentShell>
 
-      <SheetDialog
-        open={signingOut}
-        title="sign out?"
-        body="your habits and streaks stay where they are. the same account signs back in."
-        confirmLabel="sign out"
-        dismissLabel="stay"
-        tone="destructive"
-        onConfirm={async () => {
-          setSigningOut(false);
-          try {
-            await signOut();
-          } catch (error) {
-            say(error instanceof Error ? error.message : 'that did not work.');
-          }
-        }}
-        onDismiss={() => setSigningOut(false)}
-      />
+      <SignOutSheet open={signingOut} onClose={() => setSigningOut(false)} />
     </ScrollView>
   );
 }
