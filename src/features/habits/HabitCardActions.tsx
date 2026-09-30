@@ -23,12 +23,13 @@ export function CardActionButton({
   if (action === 'none') return null;
 
   const done = action === 'undo-done' || action === 'held';
+  const tick = done || action === 'check';
   const color = done || action === 'frozen' ? COLORS.accent : COLORS.muted;
   const edge = done ? 'border-primary/35' : 'border-border';
   const icon =
     action === 'skip' ? (
       <X size={20} color={color} strokeWidth={2} />
-    ) : done ? (
+    ) : tick ? (
       <Check size={20} color={color} strokeWidth={2.4} />
     ) : action === 'frozen' ? (
       <Snowflake size={19} color={color} strokeWidth={2.2} />
@@ -45,7 +46,9 @@ export function CardActionButton({
   }
 
   const label =
-    action === 'skip'
+    action === 'check'
+      ? `${name}, came through it`
+      : action === 'skip'
       ? `not today on ${name}`
       : action === 'undo-done'
         ? `undo ${name}`

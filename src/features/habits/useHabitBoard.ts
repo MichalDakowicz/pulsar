@@ -1,10 +1,12 @@
 import { useMemo } from 'react';
 
+import { toCardInput } from '@/features/habits/cardInput';
 import { useEntries } from '@/features/habits/useEntries';
 import { useHabits } from '@/features/habits/useHabits';
 import { useTokens } from '@/features/habits/useTokens';
 import { addDays, dateKey, hoursToMidnight } from '@/lib/dates';
 import { asksAboutYesterday, canUndoToday, dayProgress, dayState, effectiveRule, judgedDay } from '@/lib/habit';
+import { cardRank } from '@/lib/habitCard';
 import { hasRebuilt, isPerfectToday, perfectDays, type HabitSchedule } from '@/lib/perfect';
 import { isTargetDay } from '@/lib/schedule';
 import { headroom, isWeeklyTarget, weekAmount, weekTarget } from '@/lib/weekTarget';
@@ -247,12 +249,12 @@ export function useHabitBoard(): HabitBoard {
     [rows, today],
   );
 
-  // Open first, then answered: the thing still to do should not be below the
-  // thing already done. Computed after the memo above rather than before it —
+  // Open first, then answered — `cardRank` has the full order: the thing still
+  // to do should not be below the thing already done. Computed after the memo above rather than before it —
   // the React Compiler bails on the whole hook when it meets this between the
   // filters and that `useMemo`, and takes its memoization with it.
   const tabs = useMemo(() => {
-    const listed = [...rows].sort((a, b) => Number(b.today === 'due') - Number(a.today === 'due'));
+    const listed = [...rows].sort((a, b) => cardRank(toCardInput(a)) - cardRank(toCardInput(b)));
     return { today: dayTab(listed, false), yesterday: dayTab(listed, true) };
   }, [rows]);
 

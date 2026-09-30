@@ -199,9 +199,6 @@ export default function TodayScreen() {
               ) : (
                 <View className="mt-3.5 gap-2.5">
                   {tab.rows.map((row) => {
-                    // An avoid row answers yesterday and slips today, so both
-                    // days are passed explicitly rather than left to default.
-                    const slipped = row.entries[board.today] === "broke";
                     return (
                       <HabitCard
                         key={row.habit.id}
@@ -228,15 +225,6 @@ export default function TodayScreen() {
                             ? () => void checkIn.undo(row.habit, row.judged)
                             : undefined
                         }
-                        onDid={
-                          row.asksYesterday
-                            ? () =>
-                                void (slipped
-                                  ? checkIn.clear(row.habit, board.today)
-                                  : checkIn.did(row.habit, board.today))
-                            : undefined
-                        }
-                        didToday={slipped}
                         onAdd={(delta) =>
                           void checkIn.add(
                             row.habit,

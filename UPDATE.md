@@ -13,6 +13,8 @@
 - Today and Habits: each habit is a card with four months of its wall and a one-tap corner button
 - Today: counters take a tap on plus for one and a long press for a bigger jump
 - Today: the wall section is gone, since every card now carries its own
+- Today: open habits come first, then counters in progress, then done, then full counters, then set aside
+- Today: yesterday's avoid habits answer with a check in the corner instead of a did-it-today button
 - Settings: signing out asks whether to leave just Pulsar or every Ping app
 
 ### Fixed

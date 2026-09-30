@@ -1,13 +1,19 @@
-import { bigStep, cardAction, cardTone, counterLine, isDone, openDayRing, type CardInput } from '@/lib/habitCard';
+import { bigStep, cardAction, cardRank, cardTone, counterLine, isDone, openDayRing, type CardInput } from '@/lib/habitCard';
 
 const base: CardInput = {
   today: 'due',
   atRisk: false,
   undoable: false,
+  counter: false,
   weekly: false,
+  amount: 0,
+  target: 1,
   weekAmount: 0,
   weekTarget: 0,
+  avoid: false,
 };
+
+const counter: CardInput = { ...base, counter: true, target: 8 };
 
 describe('cardTone', () => {
   it('tints a held day', () => {
@@ -25,7 +31,7 @@ describe('cardTone', () => {
   });
 
   it('does not call a weekly counter done until the week adds up', () => {
-    const logged = { ...base, today: 'held' as const, weekly: true, weekAmount: 5, weekTarget: 20 };
+    const logged = { ...counter, today: 'held' as const, weekly: true, weekAmount: 5, weekTarget: 20 };
     expect(cardTone(logged)).toBe('open');
     expect(cardTone({ ...logged, weekAmount: 20 })).toBe('done');
   });
@@ -33,7 +39,35 @@ describe('cardTone', () => {
 
 describe('isDone', () => {
   it('ignores a weekly habit with no target', () => {
-    expect(isDone({ ...base, weekly: true })).toBe(false);
+    expect(isDone({ ...counter, weekly: true })).toBe(false);
+  });
+
+  it('does not call a daily counter done on its first tap', () => {
+    expect(isDone({ ...counter, today: 'held', amount: 2 })).toBe(false);
+    expect(isDone({ ...counter, today: 'held', amount: 8 })).toBe(true);
+  });
+});
+
+describe('cardRank', () => {
+  it('orders open, counting, answered, full, set aside', () => {
+    const cards: [string, CardInput][] = [
+      ['aside', { ...base, today: 'skipped' }],
+      ['full', { ...counter, today: 'held', amount: 8 }],
+      ['answered', { ...base, today: 'held' }],
+      ['counting', { ...counter, today: 'held', amount: 3 }],
+      ['open', base],
+    ];
+    const sorted = [...cards].sort((a, b) => cardRank(a[1]) - cardRank(b[1])).map(([name]) => name);
+    expect(sorted).toEqual(['open', 'counting', 'answered', 'full', 'aside']);
+  });
+
+  it('puts an untouched counter with the counters, not the open checks', () => {
+    expect(cardRank(counter)).toBe(1);
+  });
+
+  it('counts a frozen or broken day as answered', () => {
+    expect(cardRank({ ...counter, today: 'frozen' })).toBe(2);
+    expect(cardRank({ ...base, today: 'broke' })).toBe(2);
   });
 });
 
@@ -54,6 +88,10 @@ describe('cardAction', () => {
     expect(cardAction({ ...base, today: 'broke', undoable: true }, true)).toBe('undo-slip');
   });
 
+  it('answers an open avoid day with a check, not a set-aside', () => {
+    expect(cardAction({ ...base, avoid: true }, true)).toBe('check');
+  });
+
   it('has nothing on a rest day', () => {
     expect(cardAction({ ...base, today: 'rest' }, true)).toBe('none');
   });
@@ -68,7 +106,7 @@ describe('openDayRing', () => {
   });
 
   it('keeps ringing a weekly counter until the week is met', () => {
-    const logged = { ...base, today: 'held' as const, weekly: true, weekAmount: 5, weekTarget: 20 };
+    const logged = { ...counter, today: 'held' as const, weekly: true, weekAmount: 5, weekTarget: 20 };
     expect(openDayRing(logged)).toBe('accent');
     expect(openDayRing({ ...logged, weekAmount: 20 })).toBeNull();
   });

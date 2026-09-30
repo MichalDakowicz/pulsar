@@ -3,6 +3,7 @@ import { GestureDetector } from 'react-native-gesture-handler';
 import Animated from 'react-native-reanimated';
 
 import { Mark } from '@/components/marks';
+import { toCardInput } from '@/features/habits/cardInput';
 import { CardActionButton, CardCounter } from '@/features/habits/HabitCardActions';
 import { rowMeta } from '@/features/habits/rowMeta';
 import { useCardGesture } from '@/features/habits/useCardGesture';
@@ -10,9 +11,8 @@ import type { BoardHabit } from '@/features/habits/useHabitBoard';
 import { useHabitWall } from '@/features/habits/useHabitWall';
 import { Wall } from '@/features/habits/Wall';
 import { habitMeta } from '@/lib/habit';
-import { bigStep, cardAction, cardTone, counterLine, openDayRing, type CardInput } from '@/lib/habitCard';
+import { bigStep, cardAction, cardTone, counterLine, openDayRing } from '@/lib/habitCard';
 import type { CheckinMode } from '@/lib/habitSettings';
-import { isWeeklyTarget } from '@/lib/weekTarget';
 import { COLORS } from '@/theme/colors';
 
 /** Eighteen weeks is four months: long enough to see a habit's shape, short enough to read on a phone. */
@@ -28,9 +28,6 @@ type HabitCardProps = {
   onSkip?: () => void;
   /** Only passed on a card whose answer is free to take back — see `canUndoToday`. */
   onUndo?: () => void;
-  /** Only on an avoid habit: a slip on the day still running, not the one being asked about. */
-  onDid?: () => void;
-  didToday?: boolean;
   /** A counter's stepper. Only passed where the card should count. */
   onAdd?: (delta: number) => void;
   /** False when something above already names the day — the day switch on Today does. */
@@ -57,28 +54,18 @@ export function HabitCard({
   onHold,
   onSkip,
   onUndo,
-  onDid,
-  didToday,
   onAdd,
   namesDay = true,
 }: HabitCardProps) {
   const { habit, streak, today } = row;
   const weeks = useHabitWall(row, WEEKS);
-  const weekly = isWeeklyTarget(habit);
-  const input: CardInput = {
-    today,
-    atRisk: row.atRisk,
-    undoable: row.undoable,
-    weekly,
-    weekAmount: row.weekAmount,
-    weekTarget: row.weekTarget,
-  };
+  const input = toCardInput(row);
+  const { weekly } = input;
   const tone = cardTone(input);
   const live = !!mode;
   // A counter is answered a bit at a time, so it carries a stepper. Not on a day
   // that was frozen, set aside or never owed — those already have an answer.
-  const counting =
-    live && !!onAdd && (habit.kind === 'count' || habit.kind === 'timer') && !['rest', 'frozen', 'skipped'].includes(today);
+  const counting = live && !!onAdd && input.counter && !['rest', 'frozen', 'skipped'].includes(today);
   const open = today === 'due';
   const action = live && !counting ? cardAction(input, !!onSkip) : 'none';
   const ringTone = live ? openDayRing(input) : null;
@@ -94,7 +81,7 @@ export function HabitCard({
       : habitMeta(habit);
 
   const actionPress =
-    action === 'skip' ? onSkip : action === 'undo-done' || action === 'undo-skip' || action === 'undo-slip' ? onUndo : undefined;
+    action === 'check' ? onHold : action === 'skip' ? onSkip : action === 'undo-done' || action === 'undo-skip' || action === 'undo-slip' ? onUndo : undefined;
   const iconDone = tone === 'done';
 
   return (
@@ -170,22 +157,6 @@ export function HabitCard({
           />
         </Pressable>
       </GestureDetector>
-
-      {/* The slip answers the day still running, which on an avoid habit is not
-          the day the card is asking about — so it stays even on an answered card. */}
-      {live && onDid && (
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel={didToday ? `clear today's slip on ${habit.name}` : `log a slip on ${habit.name} today`}
-          hitSlop={6}
-          onPress={onDid}
-          className="border-t border-border/50 py-2"
-        >
-          <Text className="text-center text-[11px] font-semibold text-muted-foreground">
-            {didToday ? "clear today's slip" : 'did it today'}
-          </Text>
-        </Pressable>
-      )}
     </View>
   );
 }

@@ -15,10 +15,17 @@ export type CardInput = {
   atRisk: boolean;
   /** Whether the day's answer can be taken back for free. */
   undoable: boolean;
+  /** A count or timer habit, answered a bit at a time. */
+  counter: boolean;
   /** A week-scoped counter: a logged day is a contribution, not a finish. */
   weekly: boolean;
+  /** What the judged day has logged, and what it owes. */
+  amount: number;
+  target: number;
   weekAmount: number;
   weekTarget: number;
+  /** An avoid habit, answering a day that has already ended. */
+  avoid: boolean;
 };
 
 /** `done` tints the card, `aside` dims it, `risk` is the one red ground. */
@@ -32,26 +39,44 @@ export function cardTone(input: CardInput): CardTone {
 }
 
 /**
- * Whether the card reads as finished. On a weekly target the day is `held` the
- * moment anything is logged, so the week is what has to add up first.
+ * Whether the card reads as finished. A counter's day is `held` the moment
+ * anything is logged, so on a counter the number is what has to add up — the
+ * week's on a weekly target, the day's otherwise.
  */
 export function isDone(input: CardInput): boolean {
-  if (input.weekly) return input.weekTarget > 0 && input.weekAmount >= input.weekTarget;
+  if (input.counter && input.today !== 'frozen' && input.today !== 'repaired') {
+    if (input.weekly) return input.weekTarget > 0 && input.weekAmount >= input.weekTarget;
+    return input.target > 0 && input.amount >= input.target;
+  }
   return input.today === 'held' || input.today === 'repaired';
+}
+
+/**
+ * Where a card sits in its list, lowest first: what still needs a gesture,
+ * then counters still adding up, then what is answered, then counters that
+ * are full, then what was set aside. An answer never sits above a question.
+ */
+export function cardRank(input: CardInput): number {
+  if (input.today === 'skipped') return 4;
+  if (input.counter && input.today !== 'frozen') return isDone(input) ? 3 : 1;
+  return input.today === 'due' ? 0 : 2;
 }
 
 /**
  * The corner button on a card that is not counting.
  *
- * `skip` sets the day aside, the two undos give an answer back, and the three
- * static states show the answer without offering to change it — a freeze and a
+ * `check` answers an avoid habit's day clean, `skip` sets the day aside, the
+ * undos give an answer back, and the static states show the answer without offering to change it — a freeze and a
  * repair spent a token, and a button that pretends it can refund one is a lie.
  */
-export type CardAction = 'skip' | 'undo-done' | 'undo-skip' | 'undo-slip' | 'held' | 'frozen' | 'none';
+export type CardAction = 'check' | 'skip' | 'undo-done' | 'undo-skip' | 'undo-slip' | 'held' | 'frozen' | 'none';
 
 export function cardAction(input: CardInput, canSkip: boolean): CardAction {
   switch (input.today) {
     case 'due':
+      // An avoid habit is asked about a day already over, so the one answer
+      // worth a button is "I came through it" — a set-aside there is noise.
+      if (input.avoid) return 'check';
       return canSkip ? 'skip' : 'none';
     case 'held':
     case 'repaired':
@@ -76,7 +101,7 @@ export function cardAction(input: CardInput, canSkip: boolean): CardAction {
 export function openDayRing(input: CardInput): 'accent' | 'muted' | null {
   if (input.today === 'skipped') return 'muted';
   if (input.today === 'due') return 'accent';
-  if (input.weekly && !isDone(input) && input.today === 'held') return 'accent';
+  if (input.counter && input.today === 'held' && !isDone(input)) return 'accent';
   return null;
 }
 

@@ -64,13 +64,29 @@ function Cell({
     // A ringed day still waiting on an answer sits on the empty ground, so the
     // outline reads as a square and not as a gap.
     backgroundColor: ring && fill === 'transparent' ? COLORS.wallEmpty : fill,
-    // An editable day is outlined rather than recoloured: the colour is the
-    // answer, and a day you can still change has not got a different answer.
-    borderWidth: ring ? 1.5 : editable ? 1 : 0,
-    borderColor: edge ?? 'transparent',
   } as const;
+  // The outline is drawn over the cell rather than as its border. A border on
+  // a `flex: 1` cell counts towards its size, so the one outlined day grew and
+  // shoved the rest of its row out of line with the rows above and below.
+  // An editable day is outlined rather than recoloured: the colour is the
+  // answer, and a day you can still change has not got a different answer.
+  const outline = edge ? (
+    <View
+      pointerEvents="none"
+      style={{
+        position: 'absolute',
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
+        borderRadius: 2,
+        borderWidth: ring ? 1.5 : 1,
+        borderColor: edge,
+      }}
+    />
+  ) : null;
 
-  if (!editable || !onPress) return <View style={style} />;
+  if (!editable || !onPress) return <View style={style}>{outline}</View>;
 
   return (
     <Pressable
@@ -78,7 +94,9 @@ function Cell({
       accessibilityLabel={`change ${cell.day}`}
       onPress={() => onPress(cell.day)}
       style={style}
-    />
+    >
+      {outline}
+    </Pressable>
   );
 }
 
