@@ -12,14 +12,12 @@ import {
   SectionHeader,
   Stat,
 } from "@/components/ui/states";
-import { CountStepper } from "@/features/habits/CountStepper";
-import { HabitRow } from "@/features/habits/HabitRow";
+import { HabitCard } from "@/features/habits/HabitCard";
 import { RiskBanner } from "@/features/habits/RiskBanner";
 import { SiblingStreaks } from "@/features/habits/SiblingStreaks";
 import { heroCopy, TodayHero } from "@/features/habits/TodayHero";
 import { useCheckIn } from "@/features/habits/useCheckIn";
 import { nextDueLabel, useHabitBoard } from "@/features/habits/useHabitBoard";
-import { WallTile } from "@/features/habits/WallTile";
 import { useHabitSettings } from "@/hooks/useHabitSettings";
 import { useNavBarSpace } from "@/hooks/useNavBarSpace";
 import { MAX_W } from "@/hooks/useResponsive";
@@ -199,75 +197,57 @@ export default function TodayScreen() {
                     : "nothing is scheduled today. the wall knows — a rest day is not a hole in it."}
                 </Text>
               ) : (
-                <View className="mt-3.5 gap-2">
+                <View className="mt-3.5 gap-2.5">
                   {tab.rows.map((row) => {
                     // An avoid row answers yesterday and slips today, so both
                     // days are passed explicitly rather than left to default.
                     const slipped = row.entries[board.today] === "broke";
-                    // A counter is answered a bit at a time, so it carries the
-                    // stepper as well as the row. Not on a day that was frozen,
-                    // set aside or never owed — those already have an answer,
-                    // and a control under them would offer to contradict it.
-                    const counting =
-                      (row.habit.kind === "count" ||
-                        row.habit.kind === "timer") &&
-                      row.today !== "rest" &&
-                      row.today !== "frozen" &&
-                      row.today !== "skipped";
                     return (
-                      <View key={row.habit.id} className="gap-2">
-                        <HabitRow
-                          row={row}
-                          mode={settings.checkinMode}
-                          // The switch above already says which day this is.
-                          namesDay={!hasYesterday}
-                          onOpen={() =>
-                            router.navigate(`/habit/${row.habit.id}`)
-                          }
-                          onHold={() =>
-                            void checkIn.hold(
-                              row.habit,
-                              row.streak.current + 1,
-                              holdAmount(row.habit, row.weekAmount),
-                              row.judged,
-                            )
-                          }
-                          onSkip={
-                            row.today === "due"
-                              ? () => void checkIn.skip(row.habit, row.judged)
-                              : undefined
-                          }
-                          onUndo={
-                            row.undoable
-                              ? () => void checkIn.undo(row.habit, row.judged)
-                              : undefined
-                          }
-                          onDid={
-                            row.asksYesterday
-                              ? () =>
-                                  void (slipped
-                                    ? checkIn.clear(row.habit, board.today)
-                                    : checkIn.did(row.habit, board.today))
-                              : undefined
-                          }
-                          didToday={slipped}
-                        />
-                        {counting && (
-                          <CountStepper
-                            row={row}
-                            onAdd={(delta) =>
-                              void checkIn.add(
-                                row.habit,
-                                row.judged,
-                                row.amount,
-                                delta,
-                                row.headroom,
-                                row.weekAmount,
-                              )
-                            }
-                          />
-                        )}
-                      </View>
+                      <HabitCard
+                        key={row.habit.id}
+                        row={row}
+                        mode={settings.checkinMode}
+                        // The switch above already says which day this is.
+                        namesDay={!hasYesterday}
+                        onOpen={() => router.navigate(`/habit/${row.habit.id}`)}
+                        onHold={() =>
+                          void checkIn.hold(
+                            row.habit,
+                            row.streak.current + 1,
+                            holdAmount(row.habit, row.weekAmount),
+                            row.judged,
+                          )
+                        }
+                        onSkip={
+                          row.today === "due"
+                            ? () => void checkIn.skip(row.habit, row.judged)
+                            : undefined
+                        }
+                        onUndo={
+                          row.undoable
+                            ? () => void checkIn.undo(row.habit, row.judged)
+                            : undefined
+                        }
+                        onDid={
+                          row.asksYesterday
+                            ? () =>
+                                void (slipped
+                                  ? checkIn.clear(row.habit, board.today)
+                                  : checkIn.did(row.habit, board.today))
+                            : undefined
+                        }
+                        didToday={slipped}
+                        onAdd={(delta) =>
+                          void checkIn.add(
+                            row.habit,
+                            row.judged,
+                            row.amount,
+                            delta,
+                            row.headroom,
+                            row.weekAmount,
+                          )
+                        }
+                      />
                     );
                   })}
                 </View>
@@ -322,19 +302,6 @@ export default function TodayScreen() {
                   )}
                 </View>
               )}
-            </View>
-
-            <View className="px-4 pb-2 pt-5">
-              <SectionHeader title="the wall" meta="last 5 weeks" />
-              <View className="mt-3.5 flex-row flex-wrap gap-3">
-                {board.rows.map((row) => (
-                  <WallTile
-                    key={row.habit.id}
-                    row={row}
-                    onPress={() => router.navigate(`/habit/${row.habit.id}`)}
-                  />
-                ))}
-              </View>
             </View>
           </>
         )}

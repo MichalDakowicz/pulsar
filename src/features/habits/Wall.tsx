@@ -14,6 +14,10 @@ import { COLORS } from '@/theme/colors';
  * holes looks two-sevenths broken when it is in fact perfect.
  */
 
+function partialColor(ratio: number): string {
+  return `hsl(38 92% 50% / ${(0.25 + ratio * 0.55).toFixed(2)})`;
+}
+
 function cellColor(cell: WallCell): string {
   switch (cell.state) {
     case 'held':
@@ -22,7 +26,7 @@ function cellColor(cell: WallCell): string {
       // The ratio is visible rather than rounded away: six of eight glasses is
       // not the same as none, and a wall that says it is teaches you not to
       // bother on a day you cannot finish.
-      return `hsl(38 92% 50% / ${(0.25 + cell.ratio * 0.55).toFixed(2)})`;
+      return partialColor(cell.ratio);
     case 'frozen':
       return 'hsl(38 92% 50% / 0.2)';
     case 'missed':
@@ -30,7 +34,9 @@ function cellColor(cell: WallCell): string {
     case 'rest':
       return COLORS.wallRest;
     case 'future':
-      return 'transparent';
+      // Today paints `future` until it is answered, but a counter already part
+      // of the way there shows how far — the wall should not hide a start.
+      return cell.ratio > 0 ? partialColor(cell.ratio) : 'transparent';
   }
 }
 
@@ -38,23 +44,30 @@ function Cell({
   cell,
   gap,
   editable,
+  ring,
   onPress,
 }: {
   cell: WallCell;
   gap: number;
   editable: boolean;
+  /** The open day's outline, when this cell is it. */
+  ring?: string;
   onPress?: (day: string) => void;
 }) {
+  const fill = cellColor(cell);
+  const edge = ring ?? (editable ? COLORS.accent : undefined);
   const style = {
     flex: 1,
     aspectRatio: 1,
     borderRadius: 2,
     marginRight: gap,
-    backgroundColor: cellColor(cell),
+    // A ringed day still waiting on an answer sits on the empty ground, so the
+    // outline reads as a square and not as a gap.
+    backgroundColor: ring && fill === 'transparent' ? COLORS.wallEmpty : fill,
     // An editable day is outlined rather than recoloured: the colour is the
     // answer, and a day you can still change has not got a different answer.
-    borderWidth: editable ? 1 : 0,
-    borderColor: editable ? COLORS.accent : 'transparent',
+    borderWidth: ring ? 1.5 : editable ? 1 : 0,
+    borderColor: edge ?? 'transparent',
   } as const;
 
   if (!editable || !onPress) return <View style={style} />;
@@ -83,6 +96,8 @@ type WallProps = {
   /** Days still open for a free edit — outlined, and the only tappable ones. */
   editable?: ReadonlySet<string>;
   onPressDay?: (day: string) => void;
+  /** Outline one day — the one a habit card is still asking about. */
+  ring?: { day: string; color: string };
   label: string;
 };
 
@@ -93,6 +108,7 @@ export function Wall({
   showWeekdays,
   editable,
   onPressDay,
+  ring,
   label,
 }: WallProps) {
   const rows = useMemo(() => {
@@ -120,6 +136,7 @@ export function Wall({
               cell={cell}
               gap={gap}
               editable={!!editable?.has(cell.day)}
+              ring={ring && cell.day === ring.day ? ring.color : undefined}
               onPress={onPressDay}
             />
           ))}

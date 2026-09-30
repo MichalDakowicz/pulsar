@@ -10,6 +10,9 @@
 
 ### Changed
 
+- Today and Habits: each habit is a card with four months of its wall and a one-tap corner button
+- Today: counters take a tap on plus for one and a long press for a bigger jump
+- Today: the wall section is gone, since every card now carries its own
 - Settings: signing out asks whether to leave just Pulsar or every Ping app
 
 ### Fixed
