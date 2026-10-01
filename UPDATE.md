@@ -2,6 +2,10 @@
 
 ## 1.4.0 — Unreleased
 
+### Changed
+
+- Android: signed with a new key, so remove the old version once before installing
+
 ## 1.3.0 — 2026-09-30
 
 ### Added
