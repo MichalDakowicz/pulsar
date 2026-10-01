@@ -2,6 +2,11 @@
 
 ## 1.4.0 — Unreleased
 
+### Added
+
+- Sign-in screen: scan a QR code shown by a signed-in phone to get in, or show one on the web
+- Settings: show a code that signs another device in, or scan a browser's code to let it in
+
 ### Changed
 
 - Android: signed with a new key, so remove the old version once before installing

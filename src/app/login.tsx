@@ -20,6 +20,7 @@ import { useToast } from '@/components/ui/Toast';
 import { signInWithEmail, signInWithGoogle, signUpWithEmail } from '@/features/auth/authActions';
 import { useAuth } from '@/features/auth/AuthProvider';
 import { SiblingSignIn } from '@/features/auth/SiblingSignIn';
+import { QrSignInEntry } from '@/features/auth/qr/QrSignInEntry';
 import { requestSiblingSignIn } from '@/features/auth/siblingHandoff';
 import { useInstalledSiblings } from '@/features/auth/useInstalledSiblings';
 import { MAX_W, useIsDesktop } from '@/hooks/useResponsive';
@@ -106,6 +107,8 @@ export default function Login() {
               <GoogleIcon width={18} height={18} />
               <Text className="font-medium text-background">sign in with google</Text>
             </Pressable>
+
+            <QrSignInEntry disabled={busy} />
 
             <View className="my-1 flex-row items-center gap-3">
               <View className="h-px flex-1 bg-border" />

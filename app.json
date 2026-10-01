@@ -32,6 +32,13 @@
         }
       ],
       [
+        "expo-camera",
+        {
+          "cameraPermission": "Pulsar uses the camera to scan a QR code that signs another device in.",
+          "recordAudioAndroid": false
+        }
+      ],
+      [
         "expo-notifications",
         {
           "icon": "./assets/images/notification-icon.png",
