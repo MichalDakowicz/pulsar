@@ -5,6 +5,7 @@ import { Pressable, ScrollView, Text, View } from 'react-native';
 import { ContentShell } from '@/components/layout/ContentShell';
 import { ScreenTop } from '@/components/layout/ScreenTop';
 import { Overline, Segmented, SwitchRow } from '@/components/ui/controls';
+import { QrLoginControl } from '@/features/auth/qr/QrLoginControl';
 import { AppUpdateControl } from '@/features/settings/AppUpdateControl';
 import { RemindersControl } from '@/features/settings/RemindersControl';
 import { SignOutSheet } from '@/features/settings/SignOutSheet';
@@ -113,6 +114,11 @@ export default function Settings() {
             <Text className="text-base font-semibold text-foreground">replay the walkthrough</Text>
             <Text className="text-xs text-muted-foreground">the first-run tour, again</Text>
           </Pressable>
+        </View>
+
+        <View className="gap-3 px-4 pt-7">
+          <Overline>other devices</Overline>
+          <QrLoginControl />
         </View>
 
         <View className="px-4 pt-7">
