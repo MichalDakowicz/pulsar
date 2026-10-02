@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { useEffect, useMemo } from 'react';
+import { useMemo } from 'react';
 
 import { useAuth } from '@/features/auth/AuthProvider';
 import { dateKey } from '@/lib/dates';
@@ -44,7 +44,7 @@ type PactRow = {
   created_at: string;
 };
 
-function pactsKey(userId: string | undefined) {
+export function pactsKey(userId: string | undefined) {
   return ['pacts', userId] as const;
 }
 
@@ -67,7 +67,6 @@ function normalize(row: PactRow, userId: string): Pact {
 
 export function usePacts() {
   const { user } = useAuth();
-  const queryClient = useQueryClient();
   const queryKey = pactsKey(user?.id);
 
   const query = useQuery({
@@ -83,21 +82,6 @@ export function usePacts() {
     },
     enabled: !!user,
   });
-
-  // A partner accepting should land on your pact card without a pull to
-  // refresh — the whole point of a pact is that it is live.
-  useEffect(() => {
-    if (!user) return;
-    const channel = supabase
-      .channel(`habit_pacts:${user.id}:${Math.random().toString(36).slice(2)}`)
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'habit_pacts' }, () =>
-        queryClient.invalidateQueries({ queryKey }),
-      )
-      .subscribe();
-    return () => {
-      supabase.removeChannel(channel);
-    };
-  }, [user, queryClient, queryKey]);
 
   const pacts = useMemo(() => query.data ?? [], [query.data]);
 

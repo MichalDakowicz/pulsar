@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { useEffect, useMemo } from 'react';
+import { useMemo } from 'react';
 
 import { useAuth } from '@/features/auth/AuthProvider';
 import { dateKey } from '@/lib/dates';
@@ -13,7 +13,7 @@ import type { Habit } from '@/types/habit';
  * reachable from a wall that was drawn before it was archived.
  */
 
-function habitsKey(userId: string | undefined) {
+export function habitsKey(userId: string | undefined) {
   return ['habits', userId] as const;
 }
 
@@ -30,7 +30,6 @@ async function fetchHabits(userId: string): Promise<Habit[]> {
 
 export function useHabits() {
   const { user } = useAuth();
-  const queryClient = useQueryClient();
   const queryKey = habitsKey(user?.id);
 
   const query = useQuery({
@@ -38,21 +37,6 @@ export function useHabits() {
     queryFn: () => fetchHabits(user!.id),
     enabled: !!user,
   });
-
-  useEffect(() => {
-    if (!user) return;
-    const channel = supabase
-      .channel(`habits:${user.id}:${Math.random().toString(36).slice(2)}`)
-      .on(
-        'postgres_changes',
-        { event: '*', schema: 'public', table: 'habits', filter: `user_id=eq.${user.id}` },
-        () => queryClient.invalidateQueries({ queryKey }),
-      )
-      .subscribe();
-    return () => {
-      supabase.removeChannel(channel);
-    };
-  }, [user, queryClient, queryKey]);
 
   const habits = useMemo(() => query.data ?? [], [query.data]);
   const active = useMemo(() => habits.filter((habit) => !habit.archivedAt), [habits]);

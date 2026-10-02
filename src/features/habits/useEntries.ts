@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { useEffect, useMemo } from 'react';
+import { useMemo } from 'react';
 
 import { useAuth } from '@/features/auth/AuthProvider';
 import { addDays, dateKey } from '@/lib/dates';
@@ -19,7 +19,12 @@ import type { HabitEntry } from '@/types/habit';
 
 export const HISTORY_DAYS = 400;
 
-function entriesKey(userId: string | undefined) {
+// The window is ~every check-in for ~every habit, so re-reading it is the costliest
+// call in the app. Realtime (useHabitsRealtime) and our own optimistic writes keep
+// it current; a full read is only the catch-up after the app was away.
+const ENTRIES_STALE_MS = 5 * 60 * 1000;
+
+export function entriesKey(userId: string | undefined) {
   return ['habit-entries', userId] as const;
 }
 
@@ -36,29 +41,14 @@ async function fetchEntries(userId: string): Promise<HabitEntry[]> {
 
 export function useEntries() {
   const { user } = useAuth();
-  const queryClient = useQueryClient();
   const queryKey = entriesKey(user?.id);
 
   const query = useQuery({
     queryKey,
     queryFn: () => fetchEntries(user!.id),
     enabled: !!user,
+    staleTime: ENTRIES_STALE_MS,
   });
-
-  useEffect(() => {
-    if (!user) return;
-    const channel = supabase
-      .channel(`habit_entries:${user.id}:${Math.random().toString(36).slice(2)}`)
-      .on(
-        'postgres_changes',
-        { event: '*', schema: 'public', table: 'habit_entries', filter: `user_id=eq.${user.id}` },
-        () => queryClient.invalidateQueries({ queryKey }),
-      )
-      .subscribe();
-    return () => {
-      supabase.removeChannel(channel);
-    };
-  }, [user, queryClient, queryKey]);
 
   const entries = useMemo(() => query.data ?? [], [query.data]);
   const byHabit = useMemo(() => entriesByHabit(entries), [entries]);
@@ -112,10 +102,11 @@ export function useSetEntry() {
       queryClient.setQueryData(queryKey, next);
       return { previous };
     },
+    // No refetch on success: the optimistic row is what was written, and the
+    // realtime echo swaps in the server's timestamp.
     onError: (_error, _input, context) => {
       if (context?.previous) queryClient.setQueryData(queryKey, context.previous);
     },
-    onSettled: () => queryClient.invalidateQueries({ queryKey }),
   });
 }
 
@@ -147,6 +138,5 @@ export function useClearEntry() {
     onError: (_error, _input, context) => {
       if (context?.previous) queryClient.setQueryData(queryKey, context.previous);
     },
-    onSettled: () => queryClient.invalidateQueries({ queryKey }),
   });
 }
