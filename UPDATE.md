@@ -2,6 +2,10 @@
 
 ## 1.5.0 — Unreleased
 
+### Fixed
+
+- The app icon, splash and web favicon are the same size as the other Ping apps
+
 ## 1.4.0 — 2026-10-01
 
 ### Added
