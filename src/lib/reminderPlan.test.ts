@@ -194,3 +194,20 @@ describe('planFingerprint', () => {
     expect(planFingerprint(a)).not.toBe(planFingerprint(c));
   });
 });
+
+describe('habits checked more than once a day', () => {
+  const meds = habit({ name: 'meds', times: ['08:00', '22:00'], steps: { names: ['morning', 'night'], doneToday: [] } });
+
+  it('names the check each reminder is for', () => {
+    const today = plan([meds]).filter((item) => item.id.includes(TODAY));
+    expect(today.map((item) => item.body)).toEqual(['morning · time to hold it', 'night · time to hold it']);
+  });
+
+  it('drops only the reminder for a check already in today', () => {
+    const rows = plan([{ ...meds, steps: { names: ['morning', 'night'], doneToday: [0] } }]);
+    const today = rows.filter((item) => item.id.includes(TODAY));
+    expect(today.map((item) => hourOf(item.at))).toEqual([22]);
+    // Tomorrow's morning reminder is untouched — the check was only done today.
+    expect(rows.some((item) => item.id.includes('2026-09-17') && hourOf(item.at) === 8)).toBe(true);
+  });
+});

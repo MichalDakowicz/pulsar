@@ -5,6 +5,7 @@ import {
   dayProgress,
   dayState,
   effectiveRule,
+  fullDayAmount,
   habitMeta,
   hasReminders,
   asksAboutYesterday,
@@ -27,6 +28,8 @@ const BASE: Habit = {
   target: 8,
   targetPeriod: 'day',
   allowExceed: false,
+  checksPerDay: 1,
+  checksNamed: true,
   unit: 'glasses',
   cadence: { kind: 'daily' },
   challenge: 'open',
@@ -207,5 +210,22 @@ describe('dayTabLabel', () => {
   // bare "yesterday" with two waiting would finish the job.
   it('says only its name when nothing is waiting', () => {
     expect(dayTabLabel('today', 0)).toBe('today');
+  });
+});
+
+describe('fullDayAmount', () => {
+  it('is the whole target on a daily counter, every check on a multi-step habit, one elsewhere', () => {
+    expect(fullDayAmount(BASE)).toBe(8);
+    expect(fullDayAmount({ ...BASE, targetPeriod: 'week' })).toBe(1);
+    expect(fullDayAmount({ ...BASE, kind: 'do', checksPerDay: 2 })).toBe(0b11);
+    expect(fullDayAmount({ ...BASE, kind: 'do', checksPerDay: 3 })).toBe(0b111);
+    expect(fullDayAmount({ ...BASE, kind: 'avoid' })).toBe(1);
+  });
+});
+
+describe('dayProgress on a multi-step habit', () => {
+  it('is the share of checks that are in', () => {
+    expect(dayProgress({ ...BASE, kind: 'do', checksPerDay: 2 }, 0b10)).toBe(0.5);
+    expect(dayProgress({ ...BASE, kind: 'do', checksPerDay: 2 }, 0b11)).toBe(1);
   });
 });

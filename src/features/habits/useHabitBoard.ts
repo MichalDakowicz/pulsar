@@ -1,24 +1,16 @@
 import { useMemo } from 'react';
 
+import { boardRow, type BoardHabit } from '@/features/habits/boardRow';
 import { toCardInput } from '@/features/habits/cardInput';
 import { useEntries } from '@/features/habits/useEntries';
 import { useHabits } from '@/features/habits/useHabits';
 import { useTokens } from '@/features/habits/useTokens';
 import { addDays, dateKey, hoursToMidnight } from '@/lib/dates';
-import { asksAboutYesterday, canUndoToday, dayProgress, dayState, effectiveRule, judgedDay } from '@/lib/habit';
 import { cardRank } from '@/lib/habitCard';
 import { hasRebuilt, isPerfectToday, perfectDays, type HabitSchedule } from '@/lib/perfect';
 import { isTargetDay } from '@/lib/schedule';
-import { headroom, isWeeklyTarget, weekAmount, weekTarget } from '@/lib/weekTarget';
-import {
-  computeStreak,
-  hitRate,
-  isAtRisk,
-  repairableDays,
-  silenceIsClean,
-  type EntryMap,
-  type StreakResult,
-} from '@/lib/streak';
+import { scoredEntries } from '@/lib/scoring';
+import type { EntryMap } from '@/lib/streak';
 import type { Habit } from '@/types/habit';
 
 /**
@@ -30,46 +22,7 @@ import type { Habit } from '@/types/habit';
  * screens read it.
  */
 
-export type BoardHabit = {
-  habit: Habit;
-  streak: StreakResult;
-  /** The resolution of the day being asked about: an entry state, `due`, or `rest`. */
-  today: 'held' | 'frozen' | 'repaired' | 'skipped' | 'broke' | 'due' | 'rest';
-  /** The day this row is actually about — yesterday for an avoid habit. */
-  judged: string;
-  /** Whether the row is asking about a day that has already ended. */
-  asksYesterday: boolean;
-  /**
-   * Whether the answer on screen can be taken back. An avoid habit's clean day
-   * is inferred rather than logged, so there is nothing to give back — offering
-   * undo on it would be a gesture that clears an entry which was never written.
-   */
-  undoable: boolean;
-  /** 0–1 of today's target, for the row fill on a counter habit. */
-  progress: number;
-  amount: number;
-  /**
-   * What the Monday-anchored week the judged day falls in has logged so far, and
-   * what it owes. Both 0 on a habit whose target is not week-scoped.
-   *
-   * The week is the row's real subject on such a habit: today's number is only
-   * interesting as a contribution, and a row that showed 5 without saying 5 of
-   * what would be a row that has to be tapped to be read.
-   */
-  weekAmount: number;
-  weekTarget: number;
-  /**
-   * The most the logger will still accept in one go — `Infinity` when the habit
-   * allows exceeding. Computed here so the stepper never has to know the rule.
-   */
-  headroom: number;
-  rate: number;
-  atRisk: boolean;
-  /** Recent misses that could still be filled in — empty when there is nothing to repair. */
-  repairable: string[];
-  entries: EntryMap;
-  amounts: Record<string, number>;
-};
+export type { BoardHabit } from '@/features/habits/boardRow';
 
 /**
  * One side of the day switch on Today: the rows it lists and the two counts the
@@ -163,65 +116,38 @@ export function useHabitBoard(): HabitBoard {
     [active],
   );
 
+  // What each day was worth, once, for everything downstream: the streak, the
+  // day's state, the risk and the perfect days all have to agree that three
+  // glasses of eight was not a kept day.
+  const scored = useMemo(() => {
+    const out = new Map<string, EntryMap>();
+    for (const habit of active) {
+      out.set(habit.id, scoredEntries(habit, byHabit.get(habit.id) ?? {}, amounts.get(habit.id) ?? {}));
+    }
+    return out;
+  }, [active, byHabit, amounts]);
+
   const perfect = useMemo(() => {
     if (schedules.length === 0) return { days: [], count: 0, cleanRun: 0 };
     const earliest = schedules.reduce((min, h) => (h.startedOn < min ? h.startedOn : min), today);
-    return perfectDays(schedules, byHabit, earliest, today);
-  }, [schedules, byHabit, today]);
+    return perfectDays(schedules, scored, earliest, today);
+  }, [schedules, scored, today]);
 
   const tokens = useTokens(perfect.count);
 
-  const rows = useMemo<BoardHabit[]>(() => {
-    return active.map((habit) => {
-      const entries = byHabit.get(habit.id) ?? {};
-      const habitAmounts = amounts.get(habit.id) ?? {};
-      // Everything about this row keys off the day it is asking about, not off
-      // the calendar: for an avoid habit those are different days, and mixing
-      // them is how a clean day gets scored twice or not at all.
-      const judged = judgedDay(habit, today);
-      // `effectiveRule` rather than the raw field, so hard mode still forces
-      // strict on the current phase; the sealed ones already carry their own.
-      const streak = computeStreak(entries, { ...habit, rule: effectiveRule(habit) }, judged, habitAmounts);
-      const state = dayState(habit, entries, judged);
-      const amount = habitAmounts[judged] ?? 0;
-      const weekly = isWeeklyTarget(habit);
-
-      return {
-        habit,
-        streak,
-        today: state,
-        judged,
-        asksYesterday: asksAboutYesterday(habit),
-        undoable: entries[judged] !== undefined && canUndoToday(state),
-        // A held day is full whatever the counter says: the target was met, and
-        // a bar that stops at 97% on a day you finished reads as a failure.
-        // A held day is full whatever the counter says — except on a weekly
-        // target, where a logged day is a contribution rather than a finish and
-        // painting it full would say the week was done on its first evening.
-        progress: weekly
-          ? dayProgress(habit, amount)
-          : state === 'held' || state === 'repaired'
-            ? 1
-            : dayProgress(habit, amount),
-        amount,
-        weekAmount: weekly ? weekAmount(habitAmounts, judged) : 0,
-        weekTarget: weekTarget(habit),
-        headroom: headroom(habit, amount, habitAmounts, judged),
-        rate: hitRate(streak),
-        // An avoid habit has no deadline to warn about: the day it is judged on
-        // has already ended, and it ended clean unless a slip was logged.
-        atRisk:
-          !silenceIsClean(habit, judged) &&
-          isAtRisk(entries, habit.cadence, streak.current, judged, hoursLeft, 6, {
-            habit,
-            amounts: habitAmounts,
-          }),
-        repairable: repairableDays(streak, judged),
-        entries,
-        amounts: habitAmounts,
-      };
-    });
-  }, [active, byHabit, amounts, today, hoursLeft]);
+  const rows = useMemo<BoardHabit[]>(
+    () =>
+      active.map((habit) =>
+        boardRow(habit, {
+          raw: byHabit.get(habit.id) ?? {},
+          entries: scored.get(habit.id) ?? {},
+          amounts: amounts.get(habit.id) ?? {},
+          today,
+          hoursLeft,
+        }),
+      ),
+    [active, byHabit, scored, amounts, today, hoursLeft],
+  );
 
   const open = rows.filter((row) => row.today === 'due');
   const done = rows.filter(
@@ -274,7 +200,7 @@ export function useHabitBoard(): HabitBoard {
     perfectCount: perfect.count,
     cleanRun: perfect.cleanRun,
     rebuilt,
-    perfectToday: isPerfectToday(schedules, byHabit, today),
+    perfectToday: isPerfectToday(schedules, scored, today),
     tokens: tokens.tokens,
     tokensToNext: tokens.toNext,
     tokensSpent: tokens.spent,

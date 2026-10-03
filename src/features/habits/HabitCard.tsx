@@ -3,26 +3,35 @@ import { GestureDetector } from 'react-native-gesture-handler';
 import Animated from 'react-native-reanimated';
 
 import { Mark } from '@/components/marks';
+import { CardTrailing } from '@/features/habits/CardTrailing';
 import { toCardInput } from '@/features/habits/cardInput';
-import { CardActionButton, CardCounter } from '@/features/habits/HabitCardActions';
+import { CounterBar } from '@/features/habits/CounterBar';
 import { rowMeta } from '@/features/habits/rowMeta';
+import { TypeTags } from '@/features/habits/TypeTags';
 import { useCardGesture } from '@/features/habits/useCardGesture';
 import type { BoardHabit } from '@/features/habits/useHabitBoard';
 import { useHabitWall } from '@/features/habits/useHabitWall';
 import { Wall } from '@/features/habits/Wall';
 import { habitMeta } from '@/lib/habit';
-import { cardAction, cardTone, counterLine, jumps, openDayRing } from '@/lib/habitCard';
+import { cardAction, cardTone, counterLine, openDayRing } from '@/lib/habitCard';
 import type { CheckinMode } from '@/lib/habitSettings';
+import { isMultiStep } from '@/lib/steps';
+import type { CardLayout } from '@/store/cardLook';
 import { COLORS } from '@/theme/colors';
 
 /** Eighteen weeks is four months: long enough to see a habit's shape, short enough to read on a phone. */
 const WEEKS = 18;
+
+/** Days whose answer is already in, so nothing on the card should offer another. */
+const SETTLED = ['rest', 'frozen', 'skipped'];
 
 type HabitCardProps = {
   row: BoardHabit;
   onOpen: () => void;
   /** The check-in setting. Left out, the card is a read-only summary (Habits). */
   mode?: CheckinMode;
+  /** How the card is drawn — with its wall, as a tagged row, or both (Settings). */
+  layout?: CardLayout;
   onHold?: () => void;
   /** Only passed on a card that can still be set aside. */
   onSkip?: () => void;
@@ -32,6 +41,8 @@ type HabitCardProps = {
   onSlip?: () => void;
   /** A counter's stepper. Only passed where the card should count. */
   onAdd?: (delta: number) => void;
+  /** One check of a habit done more than once a day. */
+  onStep?: (step: number) => void;
   /** False when something above already names the day — the day switch on Today does. */
   namesDay?: boolean;
 };
@@ -44,41 +55,44 @@ const TONE_CLASS = {
 } as const;
 
 /**
- * One habit: its mark, its name, how today stands, and four months of its wall
- * underneath. The wall is what makes a card worth looking at twice — a row that
- * only says "3 day streak" hides whether those three days came after thirty or
- * after nothing.
+ * One habit: its mark, its name, how today stands, and — unless it is drawn as
+ * a tagged row — four months of its wall underneath. The wall is what makes a
+ * card worth looking at twice; the tags are what make a list of them readable
+ * at a glance. Settings decides which the user would rather have.
  */
 export function HabitCard({
   row,
   onOpen,
   mode,
+  layout = 'calendar',
   onHold,
   onSkip,
   onUndo,
   onSlip,
   onAdd,
+  onStep,
   namesDay = true,
 }: HabitCardProps) {
-  const { habit, streak, today } = row;
+  const { habit, today } = row;
   const weeks = useHabitWall(row, WEEKS);
   const input = toCardInput(row);
-  const { weekly } = input;
   const tone = cardTone(input);
   const live = !!mode;
-  // A counter is answered a bit at a time, so it carries a stepper. Not on a day
-  // that was frozen, set aside or never owed — those already have an answer.
-  const counting = live && !!onAdd && input.counter && !['rest', 'frozen', 'skipped'].includes(today);
+  const tagged = layout !== 'calendar';
+  // A counter is answered a bit at a time, so it carries a stepper; a habit
+  // checked twice a day carries one control per check. Not on a day that was
+  // frozen, set aside or never owed — those already have an answer.
+  const counting = live && !!onAdd && input.counter && !SETTLED.includes(today);
+  const stepping = live && !!onStep && isMultiStep(habit) && !SETTLED.includes(today);
   const open = today === 'due';
-  const action = live && !counting ? cardAction(input, !!onSkip) : 'none';
+  const action = live && !counting && !stepping ? cardAction(input, !!onSkip) : 'none';
   const ringTone = live ? openDayRing(input) : null;
 
   const gesture = useCardGesture({ mode: mode ?? 'swipe', open: live && open, onCommit: onHold, onUndo });
 
-  const owed = weekly ? row.weekTarget : habit.target;
   const unit = habit.kind === 'timer' ? 'min' : habit.unit;
   const sub = counting
-    ? counterLine({ weekly, amount: row.amount, target: habit.target, weekAmount: row.weekAmount, weekTarget: row.weekTarget, unit })
+    ? counterLine({ weekly: input.weekly, amount: row.amount, target: habit.target, weekAmount: row.weekAmount, weekTarget: row.weekTarget, unit })
     : live
       ? rowMeta(row, namesDay)
       : habitMeta(habit);
@@ -98,11 +112,7 @@ export function HabitCard({
         style={gesture.fillStyle}
       />
       {gesture.holdPct > 0 && (
-        <View
-          pointerEvents="none"
-          className="absolute bottom-0 left-0 h-[3px] bg-primary"
-          style={{ width: `${gesture.holdPct}%` }}
-        />
+        <View pointerEvents="none" className="absolute bottom-0 left-0 h-[3px] bg-primary" style={{ width: `${gesture.holdPct}%` }} />
       )}
 
       <GestureDetector gesture={gesture.pan}>
@@ -120,7 +130,7 @@ export function HabitCard({
           onLongPress={gesture.startHold}
           onPressOut={gesture.stopHold}
           delayLongPress={120}
-          className="gap-3.5 p-3.5"
+          className={tagged ? 'gap-3 p-3' : 'gap-3.5 p-3.5'}
         >
           <View className="flex-row items-center gap-3">
             <View
@@ -129,37 +139,47 @@ export function HabitCard({
             >
               <Mark mark={habit.mark} size={20} color={iconDone ? COLORS.accentInk : COLORS.foreground} />
             </View>
-            <View className="min-w-0 flex-1 gap-0.5">
+            <View className="min-w-0 flex-1 gap-1">
               <Text className="text-base font-semibold tracking-tight text-foreground" numberOfLines={1}>
                 {habit.name}
               </Text>
-              <Text className="text-xs text-muted-foreground" numberOfLines={1}>
-                {sub}
-              </Text>
+              {tagged ? (
+                <TypeTags habit={habit} />
+              ) : (
+                !counting && (
+                  <Text className="text-xs text-muted-foreground" numberOfLines={1}>
+                    {sub}
+                  </Text>
+                )
+              )}
+              {counting && (
+                <CounterBar
+                  amount={input.weekly ? row.weekAmount : row.amount}
+                  target={input.weekly ? row.weekTarget : habit.target}
+                  caption={`${unit} ${input.weekly ? 'this week' : 'today'}`}
+                />
+              )}
             </View>
-            {counting && onAdd ? (
-              <CardCounter
-                name={habit.name}
-                unit={unit}
-                canLess={row.amount > 0}
-                canMore={row.headroom > 0}
-                jumpsMore={jumps(owed, 'more', row.amount, row.headroom)}
-                jumpsLess={jumps(owed, 'less', row.amount, row.headroom)}
-                onAdd={onAdd}
-              />
-            ) : (
-              <CardActionButton action={action} name={habit.name} onPress={actionPress} />
-            )}
-            {!live && <Text className="text-sm font-bold text-primary">{streak.current}d</Text>}
+            <CardTrailing
+              row={row}
+              mode={counting ? 'count' : stepping ? 'steps' : live ? 'action' : 'summary'}
+              action={action}
+              tagged={tagged}
+              onAction={actionPress}
+              onAdd={onAdd}
+              onStep={onStep}
+            />
           </View>
 
-          <Wall
-            weeks={weeks}
-            layout="week"
-            gap={3}
-            ring={ringTone ? { day: row.judged, color: ringTone === 'accent' ? COLORS.accent : COLORS.mutedDeep } : undefined}
-            label={`${habit.name}, last ${WEEKS} weeks`}
-          />
+          {layout !== 'tagged' && (
+            <Wall
+              weeks={weeks}
+              layout="week"
+              gap={3}
+              ring={ringTone ? { day: row.judged, color: ringTone === 'accent' ? COLORS.accent : COLORS.mutedDeep } : undefined}
+              label={`${habit.name}, last ${WEEKS} weeks`}
+            />
+          )}
         </Pressable>
       </GestureDetector>
     </View>

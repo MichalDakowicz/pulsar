@@ -50,6 +50,17 @@ export type Habit = {
    * or the week, because clearing it is clearing it.
    */
   allowExceed: boolean;
+  /**
+   * How many times a day a `do` habit is checked — 2 for meds morning and night.
+   * 1 on everything else. A day's steps live as a bitmask in the entry's amount;
+   * see `lib/steps`.
+   */
+  checksPerDay: number;
+  /**
+   * Whether the checks split the day — morning and night, a sun and a moon — or
+   * are just done that many times, unlabelled. Only read when checksPerDay > 1.
+   */
+  checksNamed: boolean;
   /** Only meaningful for `count` — "glasses", "pages", "reps". */
   unit: string;
   cadence: Cadence;

@@ -5,10 +5,18 @@
 ### Added
 
 - Sign-in screen: continue with bazaar when it is installed on this phone
-- Builder: a counter offers more units, and an other field for one you type yourself
+- Builder: type any unit for a counter, with the common ones underneath to tap
+- Habits: check a habit two or three times a day — morning and night with a sun and moon, or plain
+- Builder: turn an existing habit into a twice-a-day one, and choose how far back it applies
+- Settings: show habits as the calendar, compact tagged rows, or both
 
 ### Changed
 
+- Builder: a habit is one sentence, and tapping any part of it changes that part
+- Builder: every mark is shown at once in rows, instead of a strip that scrolls sideways
+- Builder: a weekly total is an answer to when it is due, and each habit says what a miss is
+- Today: a counter shows a bar with its count on it, beside what it counts
+- Streaks: a counter day that ends under its target is a miss from today; the wall still shades it
 - Sign-in screen: ping apps on this phone sit behind one choose an app button
 - Today: holding plus or minus on a counter opens a sheet of bigger steps, like +5 and +10
 

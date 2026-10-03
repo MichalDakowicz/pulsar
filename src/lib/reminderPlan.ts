@@ -50,6 +50,13 @@ export type ReminderHabit = {
   doneToday: boolean;
   /** Due today at all. A rest day gets no warning. */
   dueToday: boolean;
+  /**
+   * On a habit checked more than once a day, the name of each check, one per
+   * time ("morning", "night"), and which of them are already in today. A check
+   * that is done drops its own reminder for today and nothing else — the night
+   * dose still nudges after the morning one is taken.
+   */
+  steps?: { names: string[]; doneToday: number[] };
 };
 
 export type PlannedReminder = {
@@ -90,7 +97,9 @@ function days(n: number): string {
   return `${n} day${n === 1 ? '' : 's'}`;
 }
 
-function dueBody(habit: ReminderHabit): string {
+function dueBody(habit: ReminderHabit, slot: number): string {
+  const step = habit.steps?.names[slot];
+  if (step) return `${step} · time to hold it`;
   return habit.target ? `${habit.target} today` : 'time to hold it';
 }
 
@@ -104,7 +113,7 @@ function riskBody(habit: ReminderHabit): string {
 
 function row(habit: ReminderHabit, day: string, kind: ReminderKind, slot: number, when: number): PlannedReminder {
   const title = kind === 'risk' ? `${habit.name} · ${days(habit.streak)} on the line` : habit.name;
-  const body = kind === 'risk' ? riskBody(habit) : kind === 'due' ? dueBody(habit) : followUpBody(habit);
+  const body = kind === 'risk' ? riskBody(habit) : kind === 'due' ? dueBody(habit, slot) : followUpBody(habit);
   return { id: `pulsar:${habit.id}:${day}:${kind}:${slot}`, habitId: habit.id, kind, at: when, title, body };
 }
 
@@ -120,7 +129,10 @@ function habitDay(habit: ReminderHabit, day: string, settings: HabitSettings, is
   }
 
   const slots = habit.times.map(minutesOfDay).filter((m): m is number => m !== null);
-  slots.forEach((minutes, index) => out.push(row(habit, day, 'due', index, at(day, minutes))));
+  slots.forEach((minutes, index) => {
+    if (isToday && habit.steps?.doneToday.includes(index)) return;
+    out.push(row(habit, day, 'due', index, at(day, minutes)));
+  });
 
   const follows = habit.escalate ? followUpCount(settings) : 0;
   const last = slots.length > 0 ? Math.max(...slots) : null;

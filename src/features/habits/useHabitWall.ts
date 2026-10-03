@@ -1,8 +1,7 @@
 import { useMemo } from 'react';
 
 import type { BoardHabit } from '@/features/habits/useHabitBoard';
-import { dayProgress } from '@/lib/habit';
-import { targetOn } from '@/lib/phases';
+import { progressByDay } from '@/lib/habit';
 import { buildWall, type WallWeek } from '@/lib/wall';
 
 /**
@@ -15,10 +14,7 @@ import { buildWall, type WallWeek } from '@/lib/wall';
 export function useHabitWall(row: BoardHabit, weeks: number): WallWeek[] {
   const { habit, entries, amounts } = row;
   return useMemo(() => {
-    const progress: Record<string, number> = {};
-    for (const [day, amount] of Object.entries(amounts)) {
-      progress[day] = dayProgress({ kind: habit.kind, target: targetOn(habit, day) }, amount);
-    }
+    const progress = progressByDay(habit, amounts);
     return buildWall(entries, habit, { weeks, startedOn: habit.startedOn, progress });
   }, [entries, amounts, habit, weeks]);
 }

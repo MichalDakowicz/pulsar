@@ -441,3 +441,26 @@ alter table public.habits
 -- the day or the week — clearing it is clearing it.
 alter table public.habits
   add column if not exists allow_exceed boolean not null default false;
+
+-- How many times a day a `do` habit is checked: 2 for meds in the morning and
+-- at night, 3 with a midday one. 1 is every habit that existed before it.
+--
+-- A day's entry keeps which checks were made as a bitmask in
+-- habit_entries.amount (bit 0 the first, bit 1 the second), so the entries
+-- table needs nothing new: the day is still one row, and the unique
+-- (habit_id, day) constraint still makes a double tap idempotent. The bits
+-- rather than a count, because the checks are not interchangeable — each one
+-- keeps a streak of its own (src/lib/steps.ts).
+--
+-- The client leaves this column out of an insert when it holds the default and
+-- only writes it on an edit that changes it, so every other habit keeps saving
+-- on a database this has not been run on.
+alter table public.habits
+  add column if not exists checks_per_day int not null default 1;
+
+-- Whether a habit's checks split the day — morning and night, drawn as a sun
+-- and a moon — or are plain, done that many times with no name each. Only read
+-- when checks_per_day > 1. Like that column, the client leaves it out of a
+-- write when it holds the default, so ordinary habits save without it.
+alter table public.habits
+  add column if not exists checks_named boolean not null default true;
