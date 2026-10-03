@@ -23,6 +23,13 @@ export type BoardHabit = {
   streak: StreakResult;
   /** The resolution of the day being asked about: an entry state, `due`, or `rest`. */
   today: 'held' | 'frozen' | 'repaired' | 'skipped' | 'broke' | 'due' | 'rest';
+  /**
+   * The resolution of the calendar day, which is what the ring on Today counts.
+   * The same as `today` on everything but an avoid habit: its row asks about
+   * yesterday, while the ring asks about today, where it is kept until a slip
+   * is logged — the reading the perfect-day walk already gives it.
+   */
+  ring: 'held' | 'frozen' | 'repaired' | 'skipped' | 'broke' | 'due' | 'rest';
   /** The day this row is actually about — yesterday for an avoid habit. */
   judged: string;
   /** Whether the row is asking about a day that has already ended. */
@@ -97,6 +104,10 @@ export function boardRow(habit: Habit, { raw, entries, amounts: habitAmounts, to
     habit,
     streak,
     today: state,
+    // Read off the row's own day, the ring stayed a day behind: last night's
+    // slip left today short with nothing on it to close, and today's changed
+    // nothing until tomorrow.
+    ring: judged === today ? state : dayState(habit, entries, today),
     judged,
     asksYesterday: asksAboutYesterday(habit),
     undoable: entries[judged] !== undefined && canUndoToday(state),

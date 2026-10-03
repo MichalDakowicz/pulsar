@@ -149,16 +149,18 @@ export function useHabitBoard(): HabitBoard {
     [active, byHabit, scored, amounts, today, hoursLeft],
   );
 
-  const open = rows.filter((row) => row.today === 'due');
+  // Split by the calendar day, not the day each row asks about — these are the
+  // ring's counts, and the ring says "held today".
+  const open = rows.filter((row) => row.ring === 'due');
   const done = rows.filter(
     (row) =>
-      row.today === 'held' ||
-      row.today === 'repaired' ||
-      row.today === 'frozen' ||
-      row.today === 'skipped' ||
-      row.today === 'broke',
+      row.ring === 'held' ||
+      row.ring === 'repaired' ||
+      row.ring === 'frozen' ||
+      row.ring === 'skipped' ||
+      row.ring === 'broke',
   );
-  const resting = rows.filter((row) => row.today === 'rest');
+  const resting = rows.filter((row) => row.ring === 'rest');
 
 
   // The most valuable streak on the line, not the first one found — if only one
@@ -192,7 +194,7 @@ export function useHabitBoard(): HabitBoard {
     todayTab: tabs.today,
     yesterdayTab: tabs.yesterday,
     dueCount: open.length + done.length,
-    doneCount: done.filter((row) => row.today === 'held' || row.today === 'repaired').length,
+    doneCount: done.filter((row) => row.ring === 'held' || row.ring === 'repaired').length,
     undoableCount: done.filter((row) => row.undoable).length,
     atRisk,
     bestStreak: rows.reduce((max, row) => Math.max(max, row.streak.best, row.streak.current), 0),
