@@ -12,7 +12,8 @@ export function StrictnessScale({ value, onChange }: { value: Strictness; onChan
 
   return (
     <View accessibilityRole="radiogroup" accessibilityLabel="how strict" className="relative flex-row">
-      <View className="absolute left-[12.5%] right-[12.5%] top-[9px] h-1 rounded-full bg-white/15">
+      {/* From the first knob's centre to the last's: each stop is a quarter wide. */}
+      <View className="absolute top-[9px] h-1 rounded-full bg-white/15" style={{ left: '12.5%', right: '12.5%' }}>
         <View className="h-1 rounded-full bg-primary" style={{ width: `${(position / (STRICTNESS.length - 1)) * 100}%` }} />
       </View>
       {STRICTNESS.map((stop, index) => {
