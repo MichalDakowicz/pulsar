@@ -2,6 +2,10 @@
 
 ## 1.5.0 — Unreleased
 
+### Changed
+
+- Sign-in screen: ping apps on this phone sit behind one choose an app button
+
 ### Fixed
 
 - The app icon, splash and web favicon are the same size as the other Ping apps
