@@ -12,7 +12,7 @@
 
 ### Fixed
 
-- Today: the bars under radar's streak are radar blue instead of pulsar amber
+- Today: the bars under radar's streak are blue for films and purple for episodes, not amber
 - Sign-in screen: continuing with an app that is already open now signs you in
 - The app icon, splash and web favicon are the same size as the other Ping apps
 
