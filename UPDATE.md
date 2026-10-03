@@ -2,6 +2,10 @@
 
 ## 1.5.0 — Unreleased
 
+### Added
+
+- Sign-in screen: continue with bazaar when it is installed on this phone
+
 ### Changed
 
 - Sign-in screen: ping apps on this phone sit behind one choose an app button
