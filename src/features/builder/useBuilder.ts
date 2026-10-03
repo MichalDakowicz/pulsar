@@ -127,6 +127,7 @@ export function toHabitDraft(state: BuilderState): Omit<Habit, 'id' | 'userId' |
     // A `do` habit carrying `week` would be a habit nothing could ever clear.
     targetPeriod: state.kind === 'count' || state.kind === 'timer' ? state.targetPeriod : 'day',
     allowExceed: state.kind === 'count' || state.kind === 'timer' ? state.allowExceed : false,
+    checksPerDay: 1,
     unit: state.kind === 'count' ? cleanUnit(state.unit) : '',
     cadence: state.cadence,
     challenge: state.challenge,

@@ -1,4 +1,5 @@
 import { normalizePhases } from '@/lib/phases';
+import { clampChecks } from '@/lib/steps';
 import type { Cadence } from '@/lib/schedule';
 import type { StreakRule } from '@/lib/streak';
 import type { Challenge, Habit, HabitEntry, HabitKind, NudgeWindow, TargetPeriod } from '@/types/habit';
@@ -22,6 +23,8 @@ export type HabitRow = {
   target_period: string;
   /** Whether the logger will take more than the target asked for. */
   allow_exceed: boolean;
+  /** 1–3. Missing on a database the column has not been added to yet. */
+  checks_per_day?: number | null;
   unit: string;
   cadence_kind: string;
   cadence_days: number[] | null;
@@ -106,6 +109,9 @@ export function normalizeHabit(row: HabitRow): Habit {
     targetPeriod:
       row.kind === 'count' || row.kind === 'timer' ? oneOf(PERIODS, row.target_period, 'day') : 'day',
     allowExceed: row.allow_exceed ?? false,
+    // Only a `do` habit can be checked more than once a day; anything else that
+    // claims to be is read as once, the way a binary habit's period is.
+    checksPerDay: row.kind === 'do' ? clampChecks(row.checks_per_day) : 1,
     unit: row.unit ?? '',
     cadence: cadenceFromRow(row),
     phases: normalizePhases(row.phases),
@@ -137,6 +143,12 @@ export function habitToRow(habit: Partial<Habit>): Record<string, unknown> {
   if (habit.target !== undefined) row.target = habit.target;
   if (habit.targetPeriod !== undefined) row.target_period = habit.targetPeriod;
   if (habit.allowExceed !== undefined) row.allow_exceed = habit.allowExceed;
+  // Written only when it says something. Once is the column's default, and a
+  // write that names the column fails outright on a database that has not had
+  // the migration yet — so every ordinary habit keeps saving while it has not.
+  if (habit.checksPerDay !== undefined && clampChecks(habit.checksPerDay) > 1) {
+    row.checks_per_day = clampChecks(habit.checksPerDay);
+  }
   if (habit.unit !== undefined) row.unit = habit.unit;
   if (habit.cadence !== undefined) Object.assign(row, cadenceToRow(habit.cadence));
   if (habit.phases !== undefined) row.phases = habit.phases;

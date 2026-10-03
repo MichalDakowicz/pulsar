@@ -1,6 +1,7 @@
 import { addDays } from '@/lib/dates';
 import { isTargetDayOn, type Phase } from '@/lib/phases';
 import { cadenceLabel, type Cadence } from '@/lib/schedule';
+import { clampChecks, isMultiStep, stepsDone } from '@/lib/steps';
 import { silenceIsClean, type EntryMap, type EntryState } from '@/lib/streak';
 import { dayShareOfWeek, isWeeklyTarget, weekTarget } from '@/lib/weekTarget';
 import type { Habit, HabitKind, NudgeWindow } from '@/types/habit';
@@ -77,12 +78,14 @@ export function canFreeze(habit: Pick<Habit, 'hard'>, tokens: number): boolean {
  * A week-scoped target is measured against the *week's* number rather than a
  * seventh of it, so ten of twenty fills the cell half — see `dayShareOfWeek`.
  * It can read above 1 when the habit allows exceeding, which every caller
- * either clamps for display or wants to know about.
+ * either clamps for display or wants to know about. A multi-step habit is worth
+ * the share of its steps that are in — morning without night is half a day.
  */
 export function dayProgress(
-  habit: Pick<Habit, 'kind' | 'target'> & Partial<Pick<Habit, 'targetPeriod' | 'allowExceed'>>,
+  habit: Pick<Habit, 'kind' | 'target'> & Partial<Pick<Habit, 'targetPeriod' | 'allowExceed' | 'checksPerDay'>>,
   amount: number,
 ): number {
+  if (isMultiStep(habit)) return stepsDone(amount, clampChecks(habit.checksPerDay)) / clampChecks(habit.checksPerDay);
   if (habit.kind === 'do' || habit.kind === 'avoid') return amount > 0 ? 1 : 0;
   if (isWeeklyTarget(habit)) return dayShareOfWeek(habit, amount);
   if (habit.target <= 0) return amount > 0 ? 1 : 0;
@@ -127,6 +130,20 @@ export function holdAmount(
   if (habit.kind !== 'count' && habit.kind !== 'timer') return 1;
   if (isWeeklyTarget(habit)) return Math.max(1, weekTarget(habit) - weekLogged);
   return Math.max(1, Math.round(habit.target));
+}
+
+/**
+ * What a day answered late as kept is worth: the whole target on a daily
+ * counter, every check on a multi-step habit, one on anything binary. Writing a
+ * 1 would be scored as the short day it is not (`lib/scoring`). A week-scoped
+ * target has no whole day to give, so it keeps the 1 it always wrote.
+ */
+export function fullDayAmount(
+  habit: Pick<Habit, 'kind' | 'target'> & Partial<Pick<Habit, 'targetPeriod' | 'checksPerDay'>>,
+): number {
+  if (isMultiStep(habit)) return (1 << clampChecks(habit.checksPerDay)) - 1;
+  if ((habit.kind === 'count' || habit.kind === 'timer') && !isWeeklyTarget(habit)) return Math.max(1, Math.round(habit.target));
+  return 1;
 }
 
 /**

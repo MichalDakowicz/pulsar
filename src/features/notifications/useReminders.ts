@@ -7,6 +7,7 @@ import { useHabitSettings } from '@/hooks/useHabitSettings';
 import { hasReminders, targetLabel } from '@/lib/habit';
 import { planReminders, type ReminderHabit } from '@/lib/reminderPlan';
 import { clearReminders, syncReminders } from '@/lib/reminderScheduler';
+import { hasStep, isMultiStep, stepNames } from '@/lib/steps';
 
 /**
  * Keeps Android's reminder queue in step with the habits.
@@ -48,6 +49,14 @@ export function useReminders() {
         // forever. What settles today for it is today's own answer: a slip.
         doneToday: row.asksYesterday ? board.today in row.entries : row.today !== 'due',
         dueToday: row.today !== 'rest',
+        steps: isMultiStep(row.habit)
+          ? {
+              names: stepNames(row.habit.checksPerDay),
+              doneToday: stepNames(row.habit.checksPerDay)
+                .map((_, step) => step)
+                .filter((step) => hasStep(row.amount, step)),
+            }
+          : undefined,
       })),
     [board.rows, board.today],
   );

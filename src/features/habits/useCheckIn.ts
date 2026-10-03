@@ -6,6 +6,8 @@ import { useToast } from '@/components/ui/Toast';
 import { useClearEntry, useSetEntry } from '@/features/habits/useEntries';
 import { useTokens } from '@/features/habits/useTokens';
 import { formatDayShort } from '@/lib/dates';
+import { fullDayAmount } from '@/lib/habit';
+import { allStepsDone, clampChecks, hasStep, stepNames, toggleStep } from '@/lib/steps';
 import { isWeeklyTarget, weekTarget } from '@/lib/weekTarget';
 import type { EntryState } from '@/lib/streak';
 import { clearedTier, TIER_NAMES } from '@/lib/tiers';
@@ -87,6 +89,37 @@ export function useCheckIn(perfectCount: number) {
         if (Platform.OS !== 'web') void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
         say(weekly ? `${habit.name} — the week is in at ${after}.` : `${habit.name} done — ${after} ${habit.unit}.`);
       }
+    },
+    [setEntry, clearEntry, say],
+  );
+
+  /**
+   * One check of a habit done more than once a day — the morning dose, the
+   * night one. It flips that check's bit on the day and leaves the others
+   * alone; taking the last one off clears the day rather than writing a zero,
+   * for the same reason a counter does.
+   */
+  const tick = useCallback(
+    async (habit: Habit, day: string, current: number, step: number) => {
+      const next = toggleStep(current, step);
+      if (Platform.OS !== 'web') void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+      const restore = () =>
+        void (current === 0
+          ? clearEntry.mutateAsync({ habitId: habit.id, day })
+          : setEntry.mutateAsync({ habitId: habit.id, day, state: 'held', amount: current }));
+      if (next === 0) {
+        await clearEntry.mutateAsync({ habitId: habit.id, day });
+        return;
+      }
+      await setEntry.mutateAsync({ habitId: habit.id, day, state: 'held', amount: next });
+      if (!hasStep(next, step)) return;
+      const checks = clampChecks(habit.checksPerDay);
+      if (allStepsDone(next, checks)) {
+        if (Platform.OS !== 'web') void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+        say(`${habit.name} — all ${checks} in. the day is held.`, { label: 'undo', onPress: restore });
+        return;
+      }
+      say(`${habit.name} · ${stepNames(checks)[step]} done.`, { label: 'undo', onPress: restore });
     },
     [setEntry, clearEntry, say],
   );
@@ -182,7 +215,7 @@ export function useCheckIn(perfectCount: number) {
         habitId: habit.id,
         day,
         state,
-        amount: state === 'held' ? 1 : 0,
+        amount: state === 'held' ? fullDayAmount(habit) : 0,
       });
       say(state === 'held' ? `${formatDayShort(day)} held.` : `${formatDayShort(day)} set aside.`);
     },
@@ -213,5 +246,5 @@ export function useCheckIn(perfectCount: number) {
     [clearEntry, say],
   );
 
-  return { hold, add, freeze, repair, skip, did, backfill, clear, undo, tokens };
+  return { hold, add, tick, freeze, repair, skip, did, backfill, clear, undo, tokens };
 }
