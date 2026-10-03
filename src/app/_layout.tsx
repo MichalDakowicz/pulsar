@@ -9,6 +9,7 @@ import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 import { ToastProvider } from '@/components/ui/Toast';
 import { AuthProvider, useAuth } from '@/features/auth/AuthProvider';
+import { HandoffReplay } from '@/features/auth/HandoffReplay';
 import { UpdateNotice } from '@/features/updates/UpdateNotice';
 import { HabitsSync } from '@/features/habits/HabitsSync';
 import { ReminderSync } from '@/features/notifications/ReminderSync';
@@ -56,6 +57,7 @@ export default function RootLayout() {
                   <ReminderSync />
                   <HabitsSync />
                   <UpdateNotice />
+                  <HandoffReplay />
                   <Stack screenOptions={{ headerShown: false }} />
                 </AuthGate>
               </ToastProvider>
