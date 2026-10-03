@@ -75,6 +75,14 @@ export const COLORS = {
   accent: 'hsl(38 92% 50%)',
   accentSoft: 'hsla(38,92%,50%,0.15)',
   accentInk: 'hsl(0 0% 5%)',
+  /**
+   * Radar's two series, for the one place Pulsar speaks for Radar: the face marks
+   * on the "elsewhere" strip. Radar draws films blue (its accent, #3b82f6) and
+   * television purple (#a855f7) everywhere — recap, stats, the streak calendar —
+   * so the strip must too. Both hold 3:1 on either ground, so no light variants.
+   */
+  radarFilms: 'hsl(217 91% 60%)',
+  radarTv: 'hsl(271 91% 65%)',
   foreground: 'hsl(0 0% 98%)',
   muted: 'hsl(0 0% 63.9%)',
   mutedDeep: 'hsl(0 0% 45%)',
