@@ -1,7 +1,7 @@
 import { isMeasured, type BuilderState } from '@/lib/builder';
 import { WINDOW_TIMES } from '@/lib/habit';
 import type { Cadence } from '@/lib/schedule';
-import { clampChecks, STEP_DEFAULT_TIME, STEP_TIMES, stepNames } from '@/lib/steps';
+import { clampChecks, stepDefaultTimes, stepTimeOptions } from '@/lib/steps';
 import type { HabitKind, NudgeWindow } from '@/types/habit';
 
 /**
@@ -141,8 +141,9 @@ export function withKind(state: BuilderState, kind: HabitKind): BuilderState {
   return withTimes(settleRhythm(next));
 }
 
-export function withChecks(state: BuilderState, checks: number): BuilderState {
-  return withTimes(settleRhythm({ ...state, checksPerDay: clampChecks(checks) }));
+/** Once, or two or three checks — named for the parts of the day, or plain. */
+export function withChecks(state: BuilderState, checks: number, named = true): BuilderState {
+  return withTimes(settleRhythm({ ...state, checksPerDay: clampChecks(checks), checksNamed: named }));
 }
 
 /* ── nudges ──────────────────────────────────────────────────────────────── */
@@ -154,9 +155,11 @@ export function withChecks(state: BuilderState, checks: number): BuilderState {
 function withTimes(state: BuilderState): BuilderState {
   if (state.window === 'anytime') return { ...state, times: [] };
   if (state.checksPerDay > 1) {
-    const steps = stepNames(state.checksPerDay);
-    // A time the step does not offer would leave its row with nothing selected.
-    const times = steps.map((step, i) => (STEP_TIMES[step].includes(state.times[i]) ? state.times[i] : STEP_DEFAULT_TIME[step]));
+    const defaults = stepDefaultTimes(state.checksPerDay, state.checksNamed);
+    // A time the check does not offer would leave its row with nothing selected.
+    const times = defaults.map((fallback, i) =>
+      stepTimeOptions(state.checksPerDay, state.checksNamed, i).includes(state.times[i]) ? state.times[i] : fallback,
+    );
     return { ...state, window: 'exact', times };
   }
   if (state.window === 'morning' || state.window === 'evening') {
@@ -168,8 +171,7 @@ function withTimes(state: BuilderState): BuilderState {
 export function withWindow(state: BuilderState, window: NudgeWindow): BuilderState {
   if (window === 'anytime') return { ...state, window, times: [] };
   if (state.checksPerDay > 1) {
-    const steps = stepNames(state.checksPerDay);
-    return { ...state, window: 'exact', times: steps.map((step) => STEP_DEFAULT_TIME[step]) };
+    return { ...state, window: 'exact', times: stepDefaultTimes(state.checksPerDay, state.checksNamed) };
   }
   if (window === 'exact') return { ...state, window, times: state.times.length > 0 ? state.times : ['08:00'] };
   return { ...state, window, times: WINDOW_TIMES[window] };

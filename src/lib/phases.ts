@@ -35,6 +35,13 @@ export type Rules = {
    * lived under: `day`. `targetPeriodOn` supplies it.
    */
   targetPeriod?: TargetPeriod;
+  /**
+   * How many checks a day owed. Sealed because a day's checks are stored as
+   * which ones were made: a habit that became twice a day reads every older
+   * day as one check of two unless the phase says that day only owed one.
+   * Optional for the same reason as the period — older phases owed one.
+   */
+  checksPerDay?: number;
 };
 
 /** A closed, inclusive stretch of the past still judged by superseded rules. */
@@ -79,6 +86,12 @@ export function targetPeriodOn(
   day: string,
 ): TargetPeriod {
   return phaseOn(timeline.phases, day)?.targetPeriod ?? timeline.targetPeriod ?? 'day';
+}
+
+/** The checks a day owed under the rules of the day itself — 1 on anything older than the field. */
+export function checksOn(timeline: Phased & { checksPerDay?: number }, day: string): number {
+  const checks = phaseOn(timeline.phases, day)?.checksPerDay ?? timeline.checksPerDay ?? 1;
+  return Math.max(1, Math.min(3, Math.round(checks)));
 }
 
 /** `isTargetDay` against the cadence that was in force that day, not today's. */
@@ -136,6 +149,7 @@ export function phasesAfterChange(
       rule: timeline.rule,
       target: timeline.target,
       targetPeriod: timeline.targetPeriod,
+      checksPerDay: timeline.checksPerDay ?? 1,
     },
   ];
 }
@@ -166,15 +180,17 @@ const CHANGE_LABELS = {
   rule: 'what a miss costs',
   target: 'the target',
   targetPeriod: 'what the target is owed over',
+  checksPerDay: 'how many checks a day',
 } as const;
 
-/** Which of the three changed, in words, for the sheet that asks how far back it reaches. */
+/** Which rules changed, in words, for the sheet that asks how far back it reaches. */
 export function changedRules(before: Rules, after: Rules): string[] {
   const out: string[] = [];
   if (!sameCadence(before.cadence, after.cadence)) out.push(CHANGE_LABELS.cadence);
   if (before.rule !== after.rule) out.push(CHANGE_LABELS.rule);
   if (before.target !== after.target) out.push(CHANGE_LABELS.target);
   if ((before.targetPeriod ?? 'day') !== (after.targetPeriod ?? 'day')) out.push(CHANGE_LABELS.targetPeriod);
+  if ((before.checksPerDay ?? 1) !== (after.checksPerDay ?? 1)) out.push(CHANGE_LABELS.checksPerDay);
   return out;
 }
 
@@ -251,6 +267,9 @@ export function normalizePhases(value: unknown, anchor = ''): Phase[] {
       targetPeriod: PERIODS.includes(raw.targetPeriod as TargetPeriod)
         ? (raw.targetPeriod as TargetPeriod)
         : 'day',
+      // Likewise a phase from before the checks existed owed one a day.
+      checksPerDay:
+        typeof raw.checksPerDay === 'number' ? Math.max(1, Math.min(3, Math.round(raw.checksPerDay))) : 1,
     });
   }
   // Sorted and de-overlapped: `rulesOn` takes the first match, so an out-of-order

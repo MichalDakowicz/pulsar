@@ -7,7 +7,7 @@ import { useClearEntry, useSetEntry } from '@/features/habits/useEntries';
 import { useTokens } from '@/features/habits/useTokens';
 import { formatDayShort } from '@/lib/dates';
 import { fullDayAmount } from '@/lib/habit';
-import { allStepsDone, clampChecks, hasStep, stepNames, toggleStep } from '@/lib/steps';
+import { allStepsDone, clampChecks, hasStep, stepNames, stepsDone, toggleStep } from '@/lib/steps';
 import { isWeeklyTarget, weekTarget } from '@/lib/weekTarget';
 import type { EntryState } from '@/lib/streak';
 import { clearedTier, TIER_NAMES } from '@/lib/tiers';
@@ -119,7 +119,8 @@ export function useCheckIn(perfectCount: number) {
         say(`${habit.name} — all ${checks} in. the day is held.`, { label: 'undo', onPress: restore });
         return;
       }
-      say(`${habit.name} · ${stepNames(checks)[step]} done.`, { label: 'undo', onPress: restore });
+      const said = habit.checksNamed ? `${stepNames(checks)[step]} done` : `${stepsDone(next, checks)} of ${checks} in`;
+      say(`${habit.name} · ${said}.`, { label: 'undo', onPress: restore });
     },
     [setEntry, clearEntry, say],
   );

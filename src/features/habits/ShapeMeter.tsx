@@ -21,7 +21,9 @@ export function ShapeMeter({ row, stepStyle }: { row: BoardHabit; stepStyle: Ste
   const { habit } = row;
 
   if (isMultiStep(habit)) {
-    return <StepControl name={habit.name} checks={habit.checksPerDay} amount={row.amount} look={stepStyle} />;
+    return (
+      <StepControl name={habit.name} checks={habit.checksPerDay} named={habit.checksNamed} amount={row.amount} look={stepStyle} />
+    );
   }
   if (habit.kind === 'count' || habit.kind === 'timer') {
     const weekly = isWeeklyTarget(habit);

@@ -113,7 +113,7 @@ export default function HabitDetail() {
           <Text className="mt-2 text-xs text-muted-foreground">a miss here is {missLine(habit)}.</Text>
           {row.steps.length > 0 && (
             <Text className="mt-1 text-xs font-semibold text-foreground">
-              {row.steps.map((step) => `${step.name} ${step.streak}d`).join(' · ')}
+              {row.steps.map((step) => (step.name ? `${step.name} ${step.streak}d` : `${step.streak}d`)).join(' · ')}
             </Text>
           )}
         </View>

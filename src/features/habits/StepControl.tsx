@@ -10,6 +10,8 @@ type StepControlProps = {
   checks: number;
   /** The day's checks as a bitmask (`lib/steps`). */
   amount: number;
+  /** Morning and night (a sun and a moon), or plain checks with nothing on them. */
+  named: boolean;
   look: StepStyle;
   /** Left out, the control only shows — the Habits tab summary. */
   onToggle?: (step: number) => void;
@@ -20,8 +22,8 @@ type StepControlProps = {
  * night dose can be ticked without the morning one standing in for it. Drawn as
  * bars or as a sun and a moon, by the setting.
  */
-export function StepControl({ name, checks, amount, look, onToggle }: StepControlProps) {
-  const steps = stepNames(checks);
+export function StepControl({ name, checks, amount, named, look, onToggle }: StepControlProps) {
+  const steps = stepNames(checks, named);
 
   return (
     <View className="flex-row items-center gap-1.5">
@@ -48,7 +50,11 @@ export function StepControl({ name, checks, amount, look, onToggle }: StepContro
                   done ? 'border-primary bg-primary' : 'border-border',
                 ].join(' ')}
               >
-                <Mark mark={step === 'night' ? 'moon' : 'sun'} size={16} color={done ? COLORS.accentInk : COLORS.muted} />
+                {named ? (
+                  <Mark mark={step === 'night' ? 'moon' : 'sun'} size={16} color={done ? COLORS.accentInk : COLORS.muted} />
+                ) : (
+                  done && <Mark mark="check" size={16} color={COLORS.accentInk} />
+                )}
               </View>
             )}
           </Pressable>

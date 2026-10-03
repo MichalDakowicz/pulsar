@@ -171,8 +171,18 @@ describe('the sentence', () => {
     expect(words.stakes).toBe('a short week ends it');
   });
 
-  it('names a habit checked twice a day', () => {
-    expect(sentence(withChecks(named(), 2)).measure).toBe('twice a day');
+  it('names a habit checked twice a day by its parts of the day, or by the count when plain', () => {
+    expect(sentence(withChecks(named(), 2)).measure).toBe('morning & night');
+    expect(sentence(withChecks(named(), 2, false)).measure).toBe('twice a day');
+    expect(sentence(withChecks(named(), 3, false)).measure).toBe('three times a day');
+  });
+
+  it('gives plain checks any-time defaults, and keeps a time the check still offers', () => {
+    expect(withChecks(named(), 2, false).times).toEqual(['08:00', '19:00']);
+    const midday = withStepTime(withChecks(named(), 2, false), 1, '12:00');
+    expect(withChecks(midday, 2, true).times).toEqual(['08:00', '22:00']);
+    expect(toHabitDraft(withChecks(named(), 2, false)).checksNamed).toBe(false);
+    expect(toHabitDraft(named()).checksNamed).toBe(true);
   });
 
   it('writes a pledge in weeks for a weekly total', () => {

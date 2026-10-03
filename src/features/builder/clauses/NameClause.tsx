@@ -1,4 +1,4 @@
-import { ScrollView, Pressable, View } from 'react-native';
+import { Pressable, View } from 'react-native';
 
 import { MARKS, Mark } from '@/components/marks';
 import { Field, Overline } from '@/components/ui/controls';
@@ -21,7 +21,9 @@ export function NameClause({ state, apply, onSubmit }: ClauseProps & { onSubmit:
       />
       <View className="gap-2.5">
         <Overline>its mark</Overline>
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 6 }}>
+        {/* Every mark on screen at once, row after row: a strip that scrolls
+            sideways hides most of them behind the edge. */}
+        <View className="flex-row flex-wrap gap-2">
           {MARKS.map((mark) => {
             const active = state.mark === mark.key;
             return (
@@ -37,7 +39,7 @@ export function NameClause({ state, apply, onSubmit }: ClauseProps & { onSubmit:
               </Pressable>
             );
           })}
-        </ScrollView>
+        </View>
       </View>
     </View>
   );

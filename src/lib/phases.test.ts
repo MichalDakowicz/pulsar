@@ -1,4 +1,5 @@
 import {
+  checksOn,
   cadenceOn,
   changedRules,
   currentPhaseFrom,
@@ -104,7 +105,14 @@ describe('phasesAfterChange', () => {
       cadence: DAILY,
       rule: 'strict',
       target: 1,
+      checksPerDay: 1,
     });
+  });
+
+  it('seals the checks a day owed, so a habit made twice a day keeps its old days whole', () => {
+    const phases = phasesAfterChange({ ...habit, checksPerDay: 1 }, 'from-now', '2026-09-10');
+    expect(checksOn({ checksPerDay: 2, phases }, '2026-09-09')).toBe(1);
+    expect(checksOn({ checksPerDay: 2, phases }, '2026-09-10')).toBe(2);
   });
 
   it('leaves the change day itself to the new rules', () => {
@@ -178,6 +186,12 @@ describe('changedRules', () => {
     const a: Cadence = { kind: 'interval', every: 3, anchor: '2026-01-01' };
     const b: Cadence = { kind: 'interval', every: 3, anchor: '2026-06-01' };
     expect(rulesChanged({ ...before, cadence: a }, { ...before, cadence: b })).toBe(false);
+  });
+
+  it('names a change to the checks a day', () => {
+    expect(changedRules({ ...before, checksPerDay: 1 }, { ...before, checksPerDay: 2 })).toEqual(['how many checks a day']);
+    // A row from before the field is one check, which is the same as saying it.
+    expect(changedRules(before, { ...before, checksPerDay: 1 })).toEqual([]);
   });
 
   it('names each of the three that moved', () => {

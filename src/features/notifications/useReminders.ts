@@ -51,7 +51,8 @@ export function useReminders() {
         dueToday: row.today !== 'rest',
         steps: isMultiStep(row.habit)
           ? {
-              names: stepNames(row.habit.checksPerDay),
+              // Plain checks have no name to put in a reminder.
+              names: row.habit.checksNamed ? stepNames(row.habit.checksPerDay) : [],
               doneToday: stepNames(row.habit.checksPerDay)
                 .map((_, step) => step)
                 .filter((step) => hasStep(row.amount, step)),

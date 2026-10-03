@@ -25,6 +25,8 @@ export type HabitRow = {
   allow_exceed: boolean;
   /** 1–3. Missing on a database the column has not been added to yet. */
   checks_per_day?: number | null;
+  /** Morning/night checks, or plain ones. Missing before the migration: named. */
+  checks_named?: boolean | null;
   unit: string;
   cadence_kind: string;
   cadence_days: number[] | null;
@@ -112,6 +114,7 @@ export function normalizeHabit(row: HabitRow): Habit {
     // Only a `do` habit can be checked more than once a day; anything else that
     // claims to be is read as once, the way a binary habit's period is.
     checksPerDay: row.kind === 'do' ? clampChecks(row.checks_per_day) : 1,
+    checksNamed: row.checks_named ?? true,
     unit: row.unit ?? '',
     cadence: cadenceFromRow(row),
     phases: normalizePhases(row.phases),
@@ -143,12 +146,8 @@ export function habitToRow(habit: Partial<Habit>): Record<string, unknown> {
   if (habit.target !== undefined) row.target = habit.target;
   if (habit.targetPeriod !== undefined) row.target_period = habit.targetPeriod;
   if (habit.allowExceed !== undefined) row.allow_exceed = habit.allowExceed;
-  // Written only when it says something. Once is the column's default, and a
-  // write that names the column fails outright on a database that has not had
-  // the migration yet — so every ordinary habit keeps saving while it has not.
-  if (habit.checksPerDay !== undefined && clampChecks(habit.checksPerDay) > 1) {
-    row.checks_per_day = clampChecks(habit.checksPerDay);
-  }
+  if (habit.checksPerDay !== undefined) row.checks_per_day = clampChecks(habit.checksPerDay);
+  if (habit.checksNamed !== undefined) row.checks_named = habit.checksNamed;
   if (habit.unit !== undefined) row.unit = habit.unit;
   if (habit.cadence !== undefined) Object.assign(row, cadenceToRow(habit.cadence));
   if (habit.phases !== undefined) row.phases = habit.phases;

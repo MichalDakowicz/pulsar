@@ -16,6 +16,12 @@ export type ClauseProps = {
   /** Make a change that answers the clause, and move on if nothing else is left to ask. */
   choose: (move: Move) => void;
   editing: boolean;
+  /**
+   * The saved habit is checked more than once a day, so its kind is fixed: its
+   * days are stored as which checks were made, and read as a counter they would
+   * turn into amounts nobody logged.
+   */
+  kindLocked: boolean;
 };
 
 /** The question at the top of a clause. */

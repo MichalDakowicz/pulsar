@@ -26,8 +26,10 @@ export type BuilderState = {
   name: string;
   mark: string;
   kind: HabitKind;
-  /** 2 or 3 for a do habit checked more than once a day. Set at build time only. */
+  /** 2 or 3 for a do habit checked more than once a day. */
   checksPerDay: number;
+  /** Morning and night, or plain checks with no name. */
+  checksNamed: boolean;
   amount: number;
   unit: string;
   minutes: number;
@@ -53,6 +55,7 @@ export function blankBuilder(): BuilderState {
     mark: 'pulse',
     kind: 'do',
     checksPerDay: 1,
+    checksNamed: true,
     amount: 8,
     unit: 'glasses',
     minutes: 10,
@@ -79,6 +82,7 @@ export function builderFromHabit(habit: Habit): BuilderState {
     mark: habit.mark,
     kind: habit.kind,
     checksPerDay: clampChecks(habit.checksPerDay),
+    checksNamed: habit.checksNamed,
     amount: habit.kind === 'count' ? habit.target : 8,
     unit: habit.unit || 'glasses',
     minutes: habit.kind === 'timer' ? habit.target : 10,
@@ -158,6 +162,7 @@ export function toHabitDraft(state: BuilderState): Omit<Habit, 'id' | 'userId' |
     targetPeriod: shape.targetPeriod,
     allowExceed: isMeasured(state.kind) ? state.allowExceed : false,
     checksPerDay: shape.checksPerDay,
+    checksNamed: shape.checksPerDay > 1 ? state.checksNamed : true,
     unit: state.kind === 'count' ? shape.unit : '',
     cadence: state.cadence,
     challenge: state.challenge,

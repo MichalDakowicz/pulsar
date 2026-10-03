@@ -39,6 +39,20 @@ describe('dayReachedTarget', () => {
     expect(dayReachedTarget(meds, D0, 0b11)).toBe(true);
   });
 
+  it('judges each day by the checks it owed then', () => {
+    const madeTwice = {
+      kind: 'do',
+      checksPerDay: 2,
+      phases: [{ from: BEFORE, to: D0, cadence: { kind: 'daily' as const }, rule: 'strict' as const, target: 1, checksPerDay: 1 }],
+    };
+    expect(dayReachedTarget(madeTwice, D0, 0b01)).toBe(true);
+    expect(dayReachedTarget(madeTwice, D1, 0b01)).toBe(false);
+    // Back to once a day: the past twice-a-day days still need both.
+    const madeOnce = { kind: 'do', checksPerDay: 1, phases: [{ ...madeTwice.phases[0], checksPerDay: 2 }] };
+    expect(dayReachedTarget(madeOnce, D0, 0b01)).toBe(false);
+    expect(scoredEntries(madeOnce, { [D0]: 'held' }, { [D0]: 0b01 })).toEqual({});
+  });
+
   it('never judges a plain do habit by amount', () => {
     expect(dayReachedTarget({ kind: 'do' }, D0, 1)).toBe(true);
   });

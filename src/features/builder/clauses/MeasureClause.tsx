@@ -6,7 +6,6 @@ import { Note, Question, type ClauseProps } from '@/features/builder/clauses/sha
 import { UnitField } from '@/features/builder/clauses/UnitField';
 import { isMeasured } from '@/lib/builder';
 import { amountOptions, minuteOptions, withChecks, withKind } from '@/lib/builderEdits';
-import { checksLabel, stepNames } from '@/lib/steps';
 import { COLORS } from '@/theme/colors';
 import type { HabitKind } from '@/types/habit';
 
@@ -17,12 +16,22 @@ const KINDS: { kind: HabitKind; label: string; icon: LucideIcon }[] = [
   { kind: 'avoid', label: 'avoid', icon: Ban },
 ];
 
+/**
+ * How many checks a day, and how they read: named for the parts of the day
+ * (morning and night, a sun and a moon) or plain, just done that many times.
+ */
+const CHECKS: { checks: number; named: boolean; label: string }[] = [
+  { checks: 1, named: true, label: 'once' },
+  { checks: 2, named: true, label: 'twice · morning & night' },
+  { checks: 2, named: false, label: 'twice' },
+  { checks: 3, named: true, label: '3 times · morning to night' },
+  { checks: 3, named: false, label: '3 times' },
+];
+
 /** How a day is judged, and only the numbers that kind needs. */
-export function MeasureClause({ state, apply, choose, editing }: ClauseProps) {
+export function MeasureClause({ state, apply, choose, editing, kindLocked }: ClauseProps) {
   const week = state.targetPeriod === 'week' && isMeasured(state.kind);
-  // The checks a day are set once. Changing them later would reread every day
-  // already logged, since a day's checks are stored as which ones were made.
-  const locked = editing && state.checksPerDay > 1;
+  const locked = kindLocked;
 
   return (
     <View className="gap-5">
@@ -51,31 +60,27 @@ export function MeasureClause({ state, apply, choose, editing }: ClauseProps) {
         })}
       </View>
 
-      {state.kind === 'do' &&
-        (editing ? (
-          state.checksPerDay > 1 && (
-            <Note>{`checked ${checksLabel(state.checksPerDay)} — ${stepNames(state.checksPerDay).join(' and ')}. the checks are set when a habit is built.`}</Note>
-          )
-        ) : (
-          <View className="gap-2.5">
-            <Overline>how many times a day</Overline>
-            <View className="flex-row flex-wrap gap-2">
-              {[1, 2, 3].map((checks) => (
-                <Chip
-                  key={checks}
-                  label={checks === 1 ? 'once' : checks === 2 ? 'twice — morning & night' : '3 times'}
-                  selected={state.checksPerDay === checks}
-                  onPress={() => choose((current) => withChecks(current, checks))}
-                />
-              ))}
-            </View>
-            {state.checksPerDay > 1 && (
-              <Text className="text-xs text-muted-foreground">
-                each check keeps a streak of its own. the day is only full once all {state.checksPerDay} are in.
-              </Text>
-            )}
+      {state.kind === 'do' && (
+        <View className="gap-2.5">
+          <Overline>how many times a day</Overline>
+          <View className="flex-row flex-wrap gap-2">
+            {CHECKS.map(({ checks, named, label }) => (
+              <Chip
+                key={label}
+                label={label}
+                selected={state.checksPerDay === checks && (checks === 1 || state.checksNamed === named)}
+                onPress={() => choose((current) => withChecks(current, checks, named))}
+              />
+            ))}
           </View>
-        ))}
+          {state.checksPerDay > 1 && (
+            <Text className="text-xs text-muted-foreground">
+              each check keeps a streak of its own. the day is only full once all {state.checksPerDay} are in.
+              {editing ? ' saving asks how far back the change reaches.' : ''}
+            </Text>
+          )}
+        </View>
+      )}
 
       {state.kind === 'count' && (
         <View className="gap-2.5">

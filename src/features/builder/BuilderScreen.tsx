@@ -41,7 +41,13 @@ export function BuilderScreen({ initial, habit }: BuilderScreenProps) {
   const save = useBuilderSave(habit);
   const bottom = useNavBarSpace();
   const { state } = builder;
-  const props = { state, apply: builder.apply, choose: builder.choose, editing };
+  const props = {
+    state,
+    apply: builder.apply,
+    choose: builder.choose,
+    editing,
+    kindLocked: editing && (habit?.checksPerDay ?? 1) > 1,
+  };
 
   const moveOn = () => {
     if (builder.stuck) {

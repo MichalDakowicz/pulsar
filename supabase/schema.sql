@@ -452,7 +452,15 @@ alter table public.habits
 -- rather than a count, because the checks are not interchangeable — each one
 -- keeps a streak of its own (src/lib/steps.ts).
 --
--- The client only writes this column for a habit checked more than once, so
--- every other habit keeps saving on a database this has not been run on.
+-- The client leaves this column out of an insert when it holds the default and
+-- only writes it on an edit that changes it, so every other habit keeps saving
+-- on a database this has not been run on.
 alter table public.habits
   add column if not exists checks_per_day int not null default 1;
+
+-- Whether a habit's checks split the day — morning and night, drawn as a sun
+-- and a moon — or are plain, done that many times with no name each. Only read
+-- when checks_per_day > 1. Like that column, the client leaves it out of a
+-- write when it holds the default, so ordinary habits save without it.
+alter table public.habits
+  add column if not exists checks_named boolean not null default true;

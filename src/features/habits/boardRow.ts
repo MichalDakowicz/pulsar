@@ -1,5 +1,5 @@
 import { asksAboutYesterday, canUndoToday, dayProgress, dayState, effectiveRule, judgedDay } from '@/lib/habit';
-import { isMultiStep, stepEntries, stepNames } from '@/lib/steps';
+import { isMultiStep, stepEntries, stepNames, stepStartsOn } from '@/lib/steps';
 import { headroom, isWeeklyTarget, weekAmount, weekTarget } from '@/lib/weekTarget';
 import {
   computeStreak,
@@ -64,9 +64,10 @@ export type BoardHabit = {
   amounts: Record<string, number>;
   /**
    * One streak per check on a habit checked more than once a day — the morning
-   * dose and the night dose are kept, and lost, separately. Empty otherwise.
+   * dose and the night dose are kept, and lost, separately. `name` is null on
+   * plain checks, which are drawn unlabelled. Empty on a habit checked once.
    */
-  steps: { name: string; streak: number }[];
+  steps: { name: string | null; streak: number }[];
 };
 
 type RowInput = {
@@ -124,11 +125,16 @@ export function boardRow(habit: Habit, { raw, entries, amounts: habitAmounts, to
     entries,
     amounts: habitAmounts,
     // Walked over the raw record: a step's day is kept by its own bit, not
-    // by the full day the habit's streak waits for.
+    // by the full day the habit's streak waits for — and only from the day
+    // the check existed, so a habit made twice a day starts its night at zero.
     steps: isMultiStep(habit)
-      ? stepNames(habit.checksPerDay).map((name, step) => ({
-          name,
-          streak: computeStreak(stepEntries(raw, habitAmounts, step), timeline, judged).current,
+      ? stepNames(habit.checksPerDay, habit.checksNamed).map((name, step) => ({
+          name: habit.checksNamed ? name : null,
+          streak: computeStreak(
+            stepEntries(raw, habitAmounts, step),
+            { ...timeline, startedOn: stepStartsOn(habit, step) ?? habit.startedOn },
+            judged,
+          ).current,
         }))
       : [],
   };

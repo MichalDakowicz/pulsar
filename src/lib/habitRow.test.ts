@@ -163,3 +163,23 @@ describe('entriesByHabit / amountsByHabit', () => {
     expect(amountsByHabit(entries).get('a')).toEqual({ '2026-09-10': 8, '2026-09-11': 0 });
   });
 });
+
+describe('the check columns', () => {
+  it('read as one named check on a database without them', () => {
+    const habit = normalizeHabit(ROW);
+    expect(habit.checksPerDay).toBe(1);
+    expect(habit.checksNamed).toBe(true);
+  });
+
+  it('read plain twice-a-day checks, and never more than one on anything but a do habit', () => {
+    expect(normalizeHabit({ ...ROW, kind: 'do', checks_per_day: 2, checks_named: false })).toMatchObject({
+      checksPerDay: 2,
+      checksNamed: false,
+    });
+    expect(normalizeHabit({ ...ROW, kind: 'count', checks_per_day: 2 }).checksPerDay).toBe(1);
+  });
+
+  it('write whatever they are given', () => {
+    expect(habitToRow({ checksPerDay: 2, checksNamed: false })).toEqual({ checks_per_day: 2, checks_named: false });
+  });
+});

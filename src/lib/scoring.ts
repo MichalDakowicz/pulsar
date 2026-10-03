@@ -1,5 +1,5 @@
-import { targetOn, targetPeriodOn, type Phased } from '@/lib/phases';
-import { allStepsDone, clampChecks, isMultiStep } from '@/lib/steps';
+import { checksOn, targetOn, targetPeriodOn, type Phased } from '@/lib/phases';
+import { allStepsDone } from '@/lib/steps';
 import type { EntryMap } from '@/lib/streak';
 import type { TargetPeriod } from '@/types/habit';
 
@@ -38,7 +38,12 @@ type Scorable = Phased & {
 
 /** Whether a held day reached what it owed. Week-scoped targets are the week's business, not the day's. */
 export function dayReachedTarget(habit: Scorable, day: string, amount: number): boolean {
-  if (isMultiStep(habit)) return allStepsDone(amount, clampChecks(habit.checksPerDay));
+  // The checks that day owed, not today's: a habit made twice a day keeps the
+  // days it lived as once a day, unless the change was applied to the whole run.
+  if (habit.kind === 'do') {
+    const checks = checksOn(habit, day);
+    return checks > 1 ? allStepsDone(amount, checks) : true;
+  }
   if (habit.kind !== 'count' && habit.kind !== 'timer') return true;
   if (day < PARTIAL_MISS_FROM) return true;
   if (targetPeriodOn(habit, day) === 'week') return true;
@@ -46,7 +51,9 @@ export function dayReachedTarget(habit: Scorable, day: string, amount: number): 
 }
 
 export function scoredEntries(habit: Scorable, entries: EntryMap, amounts: Record<string, number>): EntryMap {
-  const counts = habit.kind === 'count' || habit.kind === 'timer' || isMultiStep(habit);
+  const everMulti =
+    habit.kind === 'do' && ((habit.checksPerDay ?? 1) > 1 || (habit.phases ?? []).some((phase) => (phase.checksPerDay ?? 1) > 1));
+  const counts = habit.kind === 'count' || habit.kind === 'timer' || everMulti;
   if (!counts) return entries;
   const out: EntryMap = {};
   for (const [day, state] of Object.entries(entries)) {

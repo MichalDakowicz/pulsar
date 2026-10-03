@@ -6,12 +6,14 @@
 
 - Sign-in screen: continue with bazaar when it is installed on this phone
 - Builder: type any unit for a counter, with the common ones underneath to tap
-- Habits: check a habit twice or three times a day, each check with its own streak
+- Habits: check a habit twice or three times a day, as morning and night or plain checks
+- Builder: turn an existing habit into a twice-a-day one, and choose how far back it applies
 - Settings: pick calendar, tagged rows or both for habits, and bars or sun and moon for checks
 
 ### Changed
 
 - Builder: a habit is one sentence, and tapping any part of it changes that part
+- Builder: every mark is shown at once in rows, instead of a strip that scrolls sideways
 - Builder: a weekly total is an answer to when it is due, and each habit says what a miss is
 - Today: a counter shows a bar with its count on it, beside what it counts
 - Streaks: a counter day that ends under its target is a miss from today; the wall still shades it

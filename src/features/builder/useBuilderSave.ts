@@ -33,9 +33,15 @@ export function useBuilderSave(habit?: Habit) {
   const saveEdit = async (draft: NewHabit, scope: ChangeScope | null) => {
     if (!habit) return;
     try {
-      // An edit never moves the day the habit started, never clears its phases
-      // by accident, and never changes how many checks a day it takes.
-      const { startedOn: _startedOn, phases: _phases, checksPerDay: _checks, ...patch } = draft;
+      // An edit never moves the day the habit started and never clears its
+      // phases by accident. The check fields go only when they changed, so an
+      // edit to anything else saves on a database without those columns.
+      const { startedOn: _startedOn, phases: _phases, checksPerDay, checksNamed, ...rest } = draft;
+      const patch = {
+        ...rest,
+        ...(checksPerDay !== habit.checksPerDay ? { checksPerDay } : {}),
+        ...(checksNamed !== habit.checksNamed ? { checksNamed } : {}),
+      };
       await update.mutateAsync({
         id: habit.id,
         patch: scope ? { ...patch, phases: phasesAfterChange(habit, scope, dateKey()) } : patch,

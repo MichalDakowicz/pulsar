@@ -29,6 +29,7 @@ const BASE: Habit = {
   targetPeriod: 'day',
   allowExceed: false,
   checksPerDay: 1,
+  checksNamed: true,
   unit: 'glasses',
   cadence: { kind: 'daily' },
   challenge: 'open',

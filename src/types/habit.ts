@@ -56,6 +56,11 @@ export type Habit = {
    * see `lib/steps`.
    */
   checksPerDay: number;
+  /**
+   * Whether the checks split the day — morning and night, a sun and a moon — or
+   * are just done that many times, unlabelled. Only read when checksPerDay > 1.
+   */
+  checksNamed: boolean;
   /** Only meaningful for `count` — "glasses", "pages", "reps". */
   unit: string;
   cadence: Cadence;

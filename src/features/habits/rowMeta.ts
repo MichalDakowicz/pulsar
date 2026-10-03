@@ -14,7 +14,8 @@ export function rowMeta(row: BoardHabit, namesDay: boolean): string {
   const when = asksYesterday && namesDay ? 'yesterday' : null;
   // A habit checked twice a day keeps a streak per check, and the two can be
   // far apart — a missed night dose does not touch the morning's run.
-  const checks = row.steps.length > 0 ? row.steps.map((step) => `${step.name} ${step.streak}d`).join(' · ') : null;
+  const checks =
+    row.steps.length > 0 ? row.steps.map((step) => (step.name ? `${step.name} ${step.streak}d` : `${step.streak}d`)).join(' · ') : null;
   if (today === 'held' || today === 'repaired') {
     if (checks) return checks;
     return [when && `${when} held`, `${streak.current} day streak`].filter(Boolean).join(' · ');

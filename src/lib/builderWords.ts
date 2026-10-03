@@ -1,6 +1,7 @@
 import { builderTarget, type BuilderState, type Clause } from '@/lib/builder';
 import { rhythmOf, strictnessOf, type Strictness } from '@/lib/builderEdits';
 import { cadenceLabel } from '@/lib/schedule';
+import { checksWords } from '@/lib/steps';
 import { cleanUnit } from '@/lib/units';
 
 /** The builder's draft in words: the sentence it is drawn as, and the pledge it offers. */
@@ -55,11 +56,9 @@ export function sentence(state: BuilderState): Record<Clause, string> {
         ? `${builderTarget(state)} ${unit}`
         : state.kind === 'timer'
           ? `${builderTarget(state)} min`
-          : state.checksPerDay === 2
-            ? 'twice a day'
-            : state.checksPerDay === 3
-              ? 'three times a day'
-              : 'check it off';
+          : state.checksPerDay > 1
+            ? checksWords(state.checksPerDay, state.checksNamed)
+            : 'check it off';
   return {
     name: state.name.trim() || 'name it',
     measure,

@@ -30,9 +30,11 @@ export function CardLookControl() {
         />
       </View>
       <View className="border-t border-border/50 py-4">
-        <Text className="text-base font-semibold text-foreground">habits checked twice a day</Text>
+        <Text className="text-base font-semibold text-foreground">habits checked more than once a day</Text>
         <Text className="mb-3 text-xs text-muted-foreground">
-          {stepStyle === 'pips' ? 'one bar per check, filled when it is in.' : 'a sun for the morning, a moon for the night.'}
+          {stepStyle === 'pips'
+            ? 'one bar per check, filled when it is in.'
+            : 'round checks — a sun and a moon on a morning-and-night habit, blank on a plain one.'}
         </Text>
         <Segmented<StepStyle>
           label="how checks show"

@@ -68,11 +68,18 @@ export function useCreateHabit() {
   return useMutation({
     mutationFn: async (habit: NewHabit): Promise<Habit> => {
       if (!user) throw new Error('Not signed in');
+      const row = habitToRow({ ...habit, startedOn: habit.startedOn || dateKey() });
+      // The check columns are left to their defaults when that is all they say.
+      // A write that names a column fails outright on a database the migration
+      // has not reached yet, and an ordinary habit should never be the one that
+      // finds out.
+      if (row.checks_per_day === 1) delete row.checks_per_day;
+      if (row.checks_named === true) delete row.checks_named;
       const { data, error } = await supabase
         .from('habits')
         .insert({
           user_id: user.id,
-          ...habitToRow({ ...habit, startedOn: habit.startedOn || dateKey() }),
+          ...row,
           // New habits land at the bottom rather than the top: the order you
           // built them in is the order you check them off in.
           sort: habits.length,

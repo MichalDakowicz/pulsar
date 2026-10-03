@@ -3,7 +3,7 @@ import { View } from 'react-native';
 import { Chip, Overline, SwitchRow } from '@/components/ui/controls';
 import { Note, Question, type ClauseProps } from '@/features/builder/clauses/shared';
 import { TIME_OPTIONS, toggleTime, withStepTime, withWindow } from '@/lib/builderEdits';
-import { STEP_TIMES, stepNames } from '@/lib/steps';
+import { stepNames, stepTimeOptions } from '@/lib/steps';
 
 /** When Pulsar pushes. A habit checked twice a day gets a time per check. */
 export function NudgeClause({ state, apply, choose }: ClauseProps) {
@@ -28,11 +28,11 @@ export function NudgeClause({ state, apply, choose }: ClauseProps) {
 
       {multi && !off && (
         <View className="gap-4">
-          {stepNames(state.checksPerDay).map((step, index) => (
+          {stepNames(state.checksPerDay, state.checksNamed).map((step, index) => (
             <View key={step} className="gap-2.5">
-              <Overline>{step}</Overline>
+              <Overline>{state.checksNamed ? step : `${step} check`}</Overline>
               <View className="flex-row flex-wrap gap-2">
-                {STEP_TIMES[step].map((time) => (
+                {stepTimeOptions(state.checksPerDay, state.checksNamed, index).map((time) => (
                   <Chip
                     key={time}
                     label={time}

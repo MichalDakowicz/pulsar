@@ -1,5 +1,5 @@
 import { addDays } from '@/lib/dates';
-import { isTargetDayOn, targetOn, type Phase } from '@/lib/phases';
+import { checksOn, isTargetDayOn, targetOn, type Phase } from '@/lib/phases';
 import { cadenceLabel, type Cadence } from '@/lib/schedule';
 import { clampChecks, isMultiStep, stepsDone } from '@/lib/steps';
 import { silenceIsClean, type EntryMap, type EntryState } from '@/lib/streak';
@@ -105,7 +105,7 @@ export function progressByDay(
 ): Record<string, number> {
   const out: Record<string, number> = {};
   for (const [day, amount] of Object.entries(amounts)) {
-    out[day] = dayProgress({ kind: habit.kind, target: targetOn(habit, day), checksPerDay: habit.checksPerDay }, amount);
+    out[day] = dayProgress({ kind: habit.kind, target: targetOn(habit, day), checksPerDay: checksOn(habit, day) }, amount);
   }
   return out;
 }

@@ -44,7 +44,16 @@ export function CardTrailing({ row, mode, action, tagged, stepStyle, onAction, o
     );
   }
   if (mode === 'steps' && onStep) {
-    return <StepControl name={habit.name} checks={habit.checksPerDay} amount={row.amount} look={stepStyle} onToggle={onStep} />;
+    return (
+      <StepControl
+        name={habit.name}
+        checks={habit.checksPerDay}
+        named={habit.checksNamed}
+        amount={row.amount}
+        look={stepStyle}
+        onToggle={onStep}
+      />
+    );
   }
   if (mode === 'action') return <CardActionButton action={action} name={habit.name} onPress={onAction} />;
 

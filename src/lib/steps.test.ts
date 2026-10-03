@@ -1,14 +1,17 @@
 import {
   allStepsDone,
-  checksLabel,
+  checksWords,
   clampChecks,
   hasStep,
   isMultiStep,
   lastDoneStep,
   nextOpenStep,
   stepEntries,
+  stepDefaultTimes,
   stepNames,
   stepsDone,
+  stepStartsOn,
+  stepTimeOptions,
   toggleStep,
 } from '@/lib/steps';
 import { computeStreak } from '@/lib/streak';
@@ -36,7 +39,8 @@ describe('step bits', () => {
   it('names the steps in the order of the day', () => {
     expect(stepNames(2)).toEqual(['morning', 'night']);
     expect(stepNames(3)).toEqual(['morning', 'midday', 'night']);
-    expect(checksLabel(2)).toBe('twice a day');
+    expect(checksWords(2, true)).toBe('morning & night');
+    expect(checksWords(2, false)).toBe('twice a day');
   });
 
   it('ticks and unticks one step without touching the other', () => {
@@ -85,5 +89,45 @@ describe('stepEntries', () => {
     expect(morning.current).toBe(2);
     // The missed night on the 2nd ended it; the freeze on the 3rd held what was left.
     expect(night.current).toBe(0);
+  });
+});
+
+describe('plain checks', () => {
+  it('are numbered rather than named', () => {
+    expect(stepNames(2, false)).toEqual(['1st', '2nd']);
+    expect(stepNames(3, false)).toEqual(['1st', '2nd', '3rd']);
+  });
+
+  it('take any time of day, where a named check keeps to its part of it', () => {
+    expect(stepTimeOptions(2, true, 1)).toEqual(['21:00', '22:00', '22:30', '23:00']);
+    expect(stepTimeOptions(2, false, 1)).toContain('12:00');
+    expect(stepDefaultTimes(2, true)).toEqual(['08:00', '22:00']);
+    expect(stepDefaultTimes(2, false)).toEqual(['08:00', '19:00']);
+  });
+});
+
+describe('stepStartsOn', () => {
+  const phase = (to: string, checksPerDay: number) => ({
+    from: '2026-09-01',
+    to,
+    cadence: { kind: 'daily' as const },
+    rule: 'strict' as const,
+    target: 1,
+    checksPerDay,
+  });
+
+  it('starts every check with the habit when it always had them', () => {
+    expect(stepStartsOn({ startedOn: '2026-09-01', checksPerDay: 2 }, 1)).toBe('2026-09-01');
+  });
+
+  it('starts a check added later on the day it was added', () => {
+    const timeline = { startedOn: '2026-09-01', checksPerDay: 2, phases: [phase('2026-09-30', 1)] };
+    // The one check it always had was the morning's bit, so the morning keeps its run.
+    expect(stepStartsOn(timeline, 0)).toBe('2026-09-01');
+    expect(stepStartsOn(timeline, 1)).toBe('2026-10-01');
+  });
+
+  it('has no start for a check the habit no longer has', () => {
+    expect(stepStartsOn({ startedOn: '2026-09-01', checksPerDay: 2 }, 2)).toBeNull();
   });
 });
