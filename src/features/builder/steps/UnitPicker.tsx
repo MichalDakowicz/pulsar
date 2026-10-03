@@ -14,6 +14,10 @@ import { isPresetUnit, UNIT_MAX, UNIT_PRESETS } from '@/lib/units';
  */
 export function UnitPicker({ unit, onChange }: { unit: string; onChange: (unit: string) => void }) {
   const [custom, setCustom] = useState(() => !isPresetUnit(unit));
+  // Focus the field only when "other" was just tapped. A habit that already has a
+  // custom unit opens the builder with the field showing, and a keyboard that
+  // pops up unasked on opening a step is worse than one extra tap.
+  const [justOpened, setJustOpened] = useState(false);
 
   return (
     <View className="gap-2.5">
@@ -25,6 +29,7 @@ export function UnitPicker({ unit, onChange }: { unit: string; onChange: (unit: 
             selected={!custom && unit === preset}
             onPress={() => {
               setCustom(false);
+              setJustOpened(false);
               onChange(preset);
             }}
           />
@@ -34,6 +39,7 @@ export function UnitPicker({ unit, onChange }: { unit: string; onChange: (unit: 
           selected={custom}
           onPress={() => {
             setCustom(true);
+            setJustOpened(true);
             // Starting from the preset that was picked would leave the user
             // deleting a word before they can type their own.
             if (isPresetUnit(unit)) onChange('');
@@ -46,6 +52,7 @@ export function UnitPicker({ unit, onChange }: { unit: string; onChange: (unit: 
           onChangeText={onChange}
           placeholder="what are you counting?"
           maxLength={UNIT_MAX}
+          autoFocus={justOpened}
           autoCapitalize="none"
           accessibilityLabel="unit"
         />
