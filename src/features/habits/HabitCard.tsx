@@ -11,7 +11,7 @@ import type { BoardHabit } from '@/features/habits/useHabitBoard';
 import { useHabitWall } from '@/features/habits/useHabitWall';
 import { Wall } from '@/features/habits/Wall';
 import { habitMeta } from '@/lib/habit';
-import { bigStep, cardAction, cardTone, counterLine, openDayRing } from '@/lib/habitCard';
+import { cardAction, cardTone, counterLine, jumps, openDayRing } from '@/lib/habitCard';
 import type { CheckinMode } from '@/lib/habitSettings';
 import { COLORS } from '@/theme/colors';
 
@@ -140,9 +140,11 @@ export function HabitCard({
             {counting && onAdd ? (
               <CardCounter
                 name={habit.name}
+                unit={unit}
                 canLess={row.amount > 0}
                 canMore={row.headroom > 0}
-                bigStep={bigStep(owed)}
+                jumpsMore={jumps(owed, 'more', row.amount, row.headroom)}
+                jumpsLess={jumps(owed, 'less', row.amount, row.headroom)}
                 onAdd={onAdd}
               />
             ) : (

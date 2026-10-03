@@ -9,6 +9,7 @@
 ### Changed
 
 - Sign-in screen: ping apps on this phone sit behind one choose an app button
+- Today: holding plus or minus on a counter opens a sheet of bigger steps, like +5 and +10
 
 ### Fixed
 
