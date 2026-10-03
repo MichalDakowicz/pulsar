@@ -18,6 +18,17 @@ describe('stepBlocker', () => {
     expect(stepBlocker(state)).toBe('pick at least one day, or it can never come due.');
   });
 
+  it('will not let a counter past the target step with nothing to count', () => {
+    const state = { ...blankBuilder(), step: 1, name: 'water', kind: 'count' as const, unit: '  ' };
+    expect(stepBlocker(state)).toBe('say what you are counting.');
+    expect(stepBlocker({ ...state, unit: 'bottles' })).toBeNull();
+  });
+
+  it('does not ask a habit that counts nothing for a unit', () => {
+    const state = { ...blankBuilder(), step: 1, name: 'walk', kind: 'do' as const, unit: '' };
+    expect(stepBlocker(state)).toBeNull();
+  });
+
   it('will not let an exact-time habit past the nudge step with no time', () => {
     const state = { ...blankBuilder(), step: 2, name: 'walk', window: 'exact' as const, times: [] };
     expect(stepBlocker(state)).toBe('pick a time, or switch the window to anytime.');
@@ -50,6 +61,11 @@ describe('toHabitDraft', () => {
   it('forces strict under hard mode', () => {
     const draft = toHabitDraft({ ...blankBuilder(), name: 'walk', hard: true, rule: 'grace' });
     expect(draft.rule).toBe('strict');
+  });
+
+  it('stores a typed unit tidied', () => {
+    const draft = toHabitDraft({ ...blankBuilder(), name: 'water', kind: 'count', unit: '  Water  Bottles ' });
+    expect(draft.unit).toBe('water bottles');
   });
 
   it('clears the unit on a habit that does not count anything', () => {

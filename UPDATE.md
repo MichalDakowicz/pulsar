@@ -5,6 +5,7 @@
 ### Added
 
 - Sign-in screen: continue with bazaar when it is installed on this phone
+- Builder: a counter offers more units, and an other field for one you type yourself
 
 ### Changed
 
