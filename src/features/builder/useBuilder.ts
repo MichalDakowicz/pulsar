@@ -4,6 +4,7 @@ import { dateKey } from '@/lib/dates';
 import { cadenceLabel, isEmptyCadence, type Cadence } from '@/lib/schedule';
 import { challengeLabel, targetLabel } from '@/lib/habit';
 import type { StreakRule } from '@/lib/streak';
+import { cleanUnit } from '@/lib/units';
 import type { Challenge, Habit, HabitKind, NudgeWindow, TargetPeriod } from '@/types/habit';
 
 /**
@@ -126,7 +127,7 @@ export function toHabitDraft(state: BuilderState): Omit<Habit, 'id' | 'userId' |
     // A `do` habit carrying `week` would be a habit nothing could ever clear.
     targetPeriod: state.kind === 'count' || state.kind === 'timer' ? state.targetPeriod : 'day',
     allowExceed: state.kind === 'count' || state.kind === 'timer' ? state.allowExceed : false,
-    unit: state.kind === 'count' ? state.unit : '',
+    unit: state.kind === 'count' ? cleanUnit(state.unit) : '',
     cadence: state.cadence,
     challenge: state.challenge,
     window: state.window,
@@ -148,6 +149,7 @@ export function stepBlocker(state: BuilderState): string | null {
   if (state.step === 0 && !state.name.trim()) return 'give it a name first.';
   if (state.step === 1 && isEmptyCadence(state.cadence)) return 'pick at least one day, or it can never come due.';
   if (state.step === 1 && state.kind === 'count' && state.amount < 1) return 'a target of zero is not a target.';
+  if (state.step === 1 && state.kind === 'count' && !cleanUnit(state.unit)) return 'say what you are counting.';
   // A weekly target on a cadence that only offers some days is not wrong, but a
   // weekly target on a cadence that offers none can never be answered at all.
   if (state.step === 1 && state.targetPeriod === 'week' && isEmptyCadence(state.cadence)) {
@@ -163,7 +165,7 @@ export type SummaryRow = { key: string; value: string };
 
 export function builderSummary(state: BuilderState): SummaryRow[] {
   const rows: SummaryRow[] = [];
-  const target = targetLabel({ kind: state.kind, target: builderTarget(state), unit: state.unit });
+  const target = targetLabel({ kind: state.kind, target: builderTarget(state), unit: cleanUnit(state.unit) });
   rows.push({ key: 'target', value: [target, cadenceLabel(state.cadence)].filter(Boolean).join(' · ') });
   rows.push({ key: 'length', value: challengeLabel(state.challenge) });
   rows.push({

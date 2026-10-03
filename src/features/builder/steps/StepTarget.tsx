@@ -3,6 +3,7 @@ import { Pressable, Text, View } from 'react-native';
 
 import { Chip, Overline, Segmented, SwitchRow } from '@/components/ui/controls';
 import type { StepProps } from '@/features/builder/steps/shared';
+import { UnitPicker } from '@/features/builder/steps/UnitPicker';
 import { WEEKDAY_INITIALS } from '@/lib/dates';
 import type { Challenge, TargetPeriod } from '@/types/habit';
 
@@ -163,11 +164,7 @@ export function StepTarget({ state, set }: StepProps) {
               {`${state.unit} a ${state.targetPeriod === 'week' ? 'week' : 'day'}`}
             </Text>
           </View>
-          <View className="flex-row flex-wrap gap-2">
-            {['glasses', 'pages', 'reps', 'ml', 'times'].map((unit) => (
-              <Chip key={unit} label={unit} selected={state.unit === unit} onPress={() => set('unit', unit)} />
-            ))}
-          </View>
+          <UnitPicker unit={state.unit} onChange={(unit) => set('unit', unit)} />
         </View>
       )}
 
