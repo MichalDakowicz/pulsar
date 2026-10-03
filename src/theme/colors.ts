@@ -75,6 +75,12 @@ export const COLORS = {
   accent: 'hsl(38 92% 50%)',
   accentSoft: 'hsla(38,92%,50%,0.15)',
   accentInk: 'hsl(0 0% 5%)',
+  /**
+   * Radar's accent (its dark `--primary`), for the one place Pulsar speaks for
+   * Radar: the face marks on the "elsewhere" strip. Mid-blue holds 3:1 on both
+   * grounds, so there is no light variant.
+   */
+  radar: 'hsl(217 91% 60%)',
   foreground: 'hsl(0 0% 98%)',
   muted: 'hsl(0 0% 63.9%)',
   mutedDeep: 'hsl(0 0% 45%)',

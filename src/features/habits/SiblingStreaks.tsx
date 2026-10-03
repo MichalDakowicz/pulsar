@@ -13,6 +13,7 @@ import {
   type SiblingStreak,
 } from '@/lib/siblingStreaks';
 import { useRadarFace } from '@/store/radarFace';
+import { COLORS } from '@/theme/colors';
 
 /**
  * The streaks you already have in the other apps.
@@ -108,12 +109,12 @@ function RadarSlot({ faces }: { faces: SiblingStreak[] }) {
           {turnable && (
             <View className="mt-1.5 flex-row gap-1">
               {faces.map((option) => (
+                // The turned-to face is Radar's blue, not Pulsar's amber: this slot
+                // is Radar speaking, and the bar is the only part of it that is colour.
                 <View
                   key={option.face}
-                  className={[
-                    'h-[3px] flex-1 rounded-full',
-                    option.face === showing.face ? 'bg-primary' : 'bg-border',
-                  ].join(' ')}
+                  className={['h-[3px] flex-1 rounded-full', option.face === showing.face ? '' : 'bg-border'].join(' ')}
+                  style={option.face === showing.face ? { backgroundColor: COLORS.radar } : undefined}
                 />
               ))}
             </View>
