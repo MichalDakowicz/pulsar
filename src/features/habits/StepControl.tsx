@@ -44,8 +44,9 @@ export function StepControl({ name, checks, amount, named, onToggle }: StepContr
           >
             {named ? (
               <View
+                // The same rounded square as every other button in a card's corner.
                 className={[
-                  'h-10 w-10 items-center justify-center rounded-full border-2',
+                  'h-11 w-11 items-center justify-center rounded-xl border',
                   done ? 'border-primary bg-primary' : 'border-border',
                 ].join(' ')}
               >

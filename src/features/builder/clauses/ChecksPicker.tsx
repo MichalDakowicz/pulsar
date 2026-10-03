@@ -42,7 +42,7 @@ export function ChecksPicker({ checks, named, onPick }: ChecksPickerProps) {
           >
             {choice.checks === 1 ? (
               // One check is the ordinary tick every habit already has.
-              <View className="h-10 w-10 items-center justify-center rounded-full border-2 border-primary bg-primary">
+              <View className="h-11 w-11 items-center justify-center rounded-xl border border-primary bg-primary">
                 <Check size={17} color={COLORS.accentInk} strokeWidth={3} />
               </View>
             ) : (
