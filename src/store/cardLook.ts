@@ -12,26 +12,22 @@ import { mmkvStorage } from '@/lib/mmkvStorage';
  * - `tagged` is one compact row: the name, the type tags and a meter shaped
  *   like the habit, and no wall.
  * - `both` is the tagged row with the wall still under it.
+ *
+ * How a habit checked more than once a day draws its checks is not here: the
+ * habit says whether it is morning and night (a sun and a moon) or plain (bars).
  */
 export type CardLayout = 'calendar' | 'tagged' | 'both';
 
-/** How a habit checked more than once a day shows its checks: bars, or a sun and a moon. */
-export type StepStyle = 'pips' | 'sunmoon';
-
 type CardLookState = {
   layout: CardLayout;
-  stepStyle: StepStyle;
   setLayout: (layout: CardLayout) => void;
-  setStepStyle: (stepStyle: StepStyle) => void;
 };
 
 export const useCardLook = create<CardLookState>()(
   persist(
     (set) => ({
       layout: 'calendar',
-      stepStyle: 'pips',
       setLayout: (layout) => set({ layout }),
-      setStepStyle: (stepStyle) => set({ stepStyle }),
     }),
     { name: 'card-look', storage: createJSONStorage(() => mmkvStorage), version: 1 },
   ),

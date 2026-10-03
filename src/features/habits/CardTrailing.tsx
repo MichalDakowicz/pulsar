@@ -5,7 +5,6 @@ import { ShapeMeter } from '@/features/habits/ShapeMeter';
 import { StepControl } from '@/features/habits/StepControl';
 import type { BoardHabit } from '@/features/habits/useHabitBoard';
 import { jumps, type CardAction } from '@/lib/habitCard';
-import type { StepStyle } from '@/store/cardLook';
 
 type CardTrailingProps = {
   row: BoardHabit;
@@ -13,7 +12,6 @@ type CardTrailingProps = {
   mode: 'count' | 'steps' | 'action' | 'summary';
   action: CardAction;
   tagged: boolean;
-  stepStyle: StepStyle;
   onAction?: () => void;
   onAdd?: (delta: number) => void;
   onStep?: (step: number) => void;
@@ -25,7 +23,7 @@ type CardTrailingProps = {
  * else — and, on the read-only Habits tab, the streak, with the habit's shape
  * meter beside it when the row is tagged.
  */
-export function CardTrailing({ row, mode, action, tagged, stepStyle, onAction, onAdd, onStep }: CardTrailingProps) {
+export function CardTrailing({ row, mode, action, tagged, onAction, onAdd, onStep }: CardTrailingProps) {
   const { habit } = row;
 
   if (mode === 'count' && onAdd) {
@@ -50,7 +48,6 @@ export function CardTrailing({ row, mode, action, tagged, stepStyle, onAction, o
         checks={habit.checksPerDay}
         named={habit.checksNamed}
         amount={row.amount}
-        look={stepStyle}
         onToggle={onStep}
       />
     );
@@ -59,7 +56,7 @@ export function CardTrailing({ row, mode, action, tagged, stepStyle, onAction, o
 
   return (
     <View className="items-end gap-1">
-      {tagged && <ShapeMeter row={row} stepStyle={stepStyle} />}
+      {tagged && <ShapeMeter row={row} />}
       <Text className="text-sm font-bold text-primary">{row.streak.current}d</Text>
     </View>
   );

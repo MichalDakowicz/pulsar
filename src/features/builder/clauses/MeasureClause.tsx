@@ -2,6 +2,7 @@ import { Ban, Check, Hash, Minus, Plus, Timer, type LucideIcon } from 'lucide-re
 import { Pressable, Text, View } from 'react-native';
 
 import { Chip, Overline, SwitchRow } from '@/components/ui/controls';
+import { ChecksPicker } from '@/features/builder/clauses/ChecksPicker';
 import { Note, Question, type ClauseProps } from '@/features/builder/clauses/shared';
 import { UnitField } from '@/features/builder/clauses/UnitField';
 import { isMeasured } from '@/lib/builder';
@@ -14,18 +15,6 @@ const KINDS: { kind: HabitKind; label: string; icon: LucideIcon }[] = [
   { kind: 'count', label: 'count', icon: Hash },
   { kind: 'timer', label: 'time', icon: Timer },
   { kind: 'avoid', label: 'avoid', icon: Ban },
-];
-
-/**
- * How many checks a day, and how they read: named for the parts of the day
- * (morning and night, a sun and a moon) or plain, just done that many times.
- */
-const CHECKS: { checks: number; named: boolean; label: string }[] = [
-  { checks: 1, named: true, label: 'once' },
-  { checks: 2, named: true, label: 'twice · morning & night' },
-  { checks: 2, named: false, label: 'twice' },
-  { checks: 3, named: true, label: '3 times · morning to night' },
-  { checks: 3, named: false, label: '3 times' },
 ];
 
 /** How a day is judged, and only the numbers that kind needs. */
@@ -63,16 +52,11 @@ export function MeasureClause({ state, apply, choose, editing, kindLocked }: Cla
       {state.kind === 'do' && (
         <View className="gap-2.5">
           <Overline>how many times a day</Overline>
-          <View className="flex-row flex-wrap gap-2">
-            {CHECKS.map(({ checks, named, label }) => (
-              <Chip
-                key={label}
-                label={label}
-                selected={state.checksPerDay === checks && (checks === 1 || state.checksNamed === named)}
-                onPress={() => choose((current) => withChecks(current, checks, named))}
-              />
-            ))}
-          </View>
+          <ChecksPicker
+            checks={state.checksPerDay}
+            named={state.checksNamed}
+            onPick={(checks, named) => choose((current) => withChecks(current, checks, named))}
+          />
           {state.checksPerDay > 1 && (
             <Text className="text-xs text-muted-foreground">
               each check keeps a streak of its own. the day is only full once all {state.checksPerDay} are in.

@@ -8,7 +8,6 @@ import { weekFilled } from '@/lib/habitCard';
 import { judgesByWeek } from '@/lib/schedule';
 import { isMultiStep } from '@/lib/steps';
 import { isWeeklyTarget } from '@/lib/weekTarget';
-import type { StepStyle } from '@/store/cardLook';
 import { COLORS } from '@/theme/colors';
 
 /**
@@ -17,13 +16,11 @@ import { COLORS } from '@/theme/colors';
  * done twice a day. Read-only — the summary on the Habits tab, where a glance
  * should say which kind of habit each row is before the name is read.
  */
-export function ShapeMeter({ row, stepStyle }: { row: BoardHabit; stepStyle: StepStyle }) {
+export function ShapeMeter({ row }: { row: BoardHabit }) {
   const { habit } = row;
 
   if (isMultiStep(habit)) {
-    return (
-      <StepControl name={habit.name} checks={habit.checksPerDay} named={habit.checksNamed} amount={row.amount} look={stepStyle} />
-    );
+    return <StepControl name={habit.name} checks={habit.checksPerDay} named={habit.checksNamed} amount={row.amount} />;
   }
   if (habit.kind === 'count' || habit.kind === 'timer') {
     const weekly = isWeeklyTarget(habit);

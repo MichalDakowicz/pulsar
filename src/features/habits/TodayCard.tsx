@@ -26,7 +26,7 @@ type TodayCardProps = {
  */
 export function TodayCard({ row, mode, checkIn, today, namesDay }: TodayCardProps) {
   const router = useRouter();
-  const { layout, stepStyle } = useCardLook();
+  const { layout } = useCardLook();
   const { habit, judged } = row;
   const multi = isMultiStep(habit);
 
@@ -39,7 +39,6 @@ export function TodayCard({ row, mode, checkIn, today, namesDay }: TodayCardProp
       row={row}
       mode={mode}
       layout={layout}
-      stepStyle={stepStyle}
       namesDay={namesDay}
       onOpen={() => router.navigate(`/habit/${habit.id}`)}
       onHold={() =>

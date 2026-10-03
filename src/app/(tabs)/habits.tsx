@@ -31,7 +31,7 @@ export default function HabitsScreen() {
   const { say } = useToast();
   const bottom = useNavBarSpace();
   const [showArchive, setShowArchive] = useState(false);
-  const { layout, stepStyle } = useCardLook();
+  const { layout } = useCardLook();
 
   const rowFor = (id: string) => board.rows.find((row) => row.habit.id === id);
 
@@ -77,7 +77,6 @@ export default function HabitsScreen() {
                   key={habit.id}
                   row={row}
                   layout={layout}
-                  stepStyle={stepStyle}
                   onOpen={() => router.navigate(`/habit/${habit.id}`)}
                 />
               );

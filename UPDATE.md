@@ -6,9 +6,9 @@
 
 - Sign-in screen: continue with bazaar when it is installed on this phone
 - Builder: type any unit for a counter, with the common ones underneath to tap
-- Habits: check a habit twice or three times a day, as morning and night or plain checks
+- Habits: check a habit two or three times a day — morning and night with a sun and moon, or plain
 - Builder: turn an existing habit into a twice-a-day one, and choose how far back it applies
-- Settings: pick calendar, tagged rows or both for habits, and bars or sun and moon for checks
+- Settings: show habits as the calendar, compact tagged rows, or both
 
 ### Changed
 

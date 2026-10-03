@@ -16,7 +16,7 @@ import { habitMeta } from '@/lib/habit';
 import { cardAction, cardTone, counterLine, openDayRing } from '@/lib/habitCard';
 import type { CheckinMode } from '@/lib/habitSettings';
 import { isMultiStep } from '@/lib/steps';
-import type { CardLayout, StepStyle } from '@/store/cardLook';
+import type { CardLayout } from '@/store/cardLook';
 import { COLORS } from '@/theme/colors';
 
 /** Eighteen weeks is four months: long enough to see a habit's shape, short enough to read on a phone. */
@@ -32,7 +32,6 @@ type HabitCardProps = {
   mode?: CheckinMode;
   /** How the card is drawn — with its wall, as a tagged row, or both (Settings). */
   layout?: CardLayout;
-  stepStyle?: StepStyle;
   onHold?: () => void;
   /** Only passed on a card that can still be set aside. */
   onSkip?: () => void;
@@ -66,7 +65,6 @@ export function HabitCard({
   onOpen,
   mode,
   layout = 'calendar',
-  stepStyle = 'pips',
   onHold,
   onSkip,
   onUndo,
@@ -167,7 +165,6 @@ export function HabitCard({
               mode={counting ? 'count' : stepping ? 'steps' : live ? 'action' : 'summary'}
               action={action}
               tagged={tagged}
-              stepStyle={stepStyle}
               onAction={actionPress}
               onAdd={onAdd}
               onStep={onStep}
