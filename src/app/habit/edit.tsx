@@ -2,11 +2,11 @@ import { useLocalSearchParams } from 'expo-router';
 
 import { LoadingState } from '@/components/ui/states';
 import { BuilderScreen } from '@/features/builder/BuilderScreen';
-import { builderFromHabit } from '@/features/builder/useBuilder';
+import { builderFromHabit } from '@/lib/builder';
 import { useHabit } from '@/features/habits/useHabits';
 
 /**
- * Editing runs the same five steps as building. The alternative was a flat
+ * Editing runs the same sentence as building. The alternative was a flat
  * settings form, which would be the one path into a habit that the builder gates
  * do not guard.
  */
