@@ -1,4 +1,4 @@
-import { bigStep, cardAction, cardRank, cardTone, counterLine, isDone, openDayRing, type CardInput } from '@/lib/habitCard';
+import { cardAction, cardRank, cardTone, counterLine, isDone, jumps, openDayRing, type CardInput } from '@/lib/habitCard';
 
 const base: CardInput = {
   today: 'due',
@@ -129,10 +129,40 @@ describe('counterLine', () => {
   });
 });
 
-describe('bigStep', () => {
-  it('scales with the target', () => {
-    expect(bigStep(20)).toBe(10);
-    expect(bigStep(200)).toBe(100);
-    expect(bigStep(1)).toBe(1);
+describe('jumps', () => {
+  const deltas = (list: ReturnType<typeof jumps>) => list.map((jump) => jump.delta);
+
+  it('scales with the target and never offers a one', () => {
+    expect(deltas(jumps(20, 'more', 0, Infinity))).toEqual([5, 10]);
+    expect(deltas(jumps(200, 'more', 0, Infinity))).toEqual([50, 100]);
+    expect(deltas(jumps(8, 'more', 0, Infinity))).toEqual([2, 4]);
+  });
+
+  it('offers nothing when the target is too small for a jump', () => {
+    expect(jumps(1, 'more', 0, Infinity)).toEqual([]);
+    expect(jumps(2, 'less', 5, 0)).toEqual([]);
+  });
+
+  it('takes off with a negative delta', () => {
+    expect(deltas(jumps(20, 'less', 12, 8))).toEqual([-5, -10]);
+  });
+
+  it('switches off a jump the room cannot take, rather than dropping it', () => {
+    expect(jumps(20, 'more', 14, 6)).toEqual([
+      { delta: 5, enabled: true },
+      { delta: 10, enabled: false },
+    ]);
+    expect(jumps(20, 'more', 20, 0).every((jump) => !jump.enabled)).toBe(true);
+  });
+
+  it('switches off taking off more than is logged', () => {
+    expect(jumps(20, 'less', 7, 13)).toEqual([
+      { delta: -5, enabled: true },
+      { delta: -10, enabled: false },
+    ]);
+  });
+
+  it('has no ceiling when the habit may run past its target', () => {
+    expect(jumps(20, 'more', 40, Infinity).every((jump) => jump.enabled)).toBe(true);
   });
 });

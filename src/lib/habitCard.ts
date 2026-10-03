@@ -128,12 +128,25 @@ export function counterLine(opts: {
   return `${opts.amount} / ${opts.target} ${opts.unit} today`;
 }
 
+export type Jump = { delta: number; enabled: boolean };
+
 /**
- * What a long press on the plus adds: the biggest jump the target warrants, so
- * two hundred press-ups do not take two hundred taps. One when the target is
- * too small to have a jump worth offering.
+ * What the sheet behind a long press on the plus or the minus offers: the jumps
+ * the target warrants, so two hundred press-ups do not take two hundred taps.
+ * A target too small to have a jump worth offering has none, and the press does
+ * nothing rather than opening an empty sheet.
+ *
+ * A jump the counter cannot take is kept and switched off instead of dropped,
+ * for the reason the plus greys at the target: a chip that vanishes reads as a
+ * bug, a dead one as the job done. Taking off more than is logged would only
+ * ever clear the day, which is not what a -10 says.
  */
-export function bigStep(owed: number): number {
-  const sizes = stepSizes(owed);
-  return sizes[sizes.length - 1] ?? 1;
+export function jumps(owed: number, direction: 'more' | 'less', amount: number, room: number): Jump[] {
+  return stepSizes(owed)
+    .filter((size) => size > 1)
+    .map((size) =>
+      direction === 'more'
+        ? { delta: size, enabled: size <= room }
+        : { delta: -size, enabled: size <= amount },
+    );
 }
