@@ -1,4 +1,4 @@
-import { cardAction, cardRank, cardTone, counterLine, isDone, jumps, openDayRing, type CardInput } from '@/lib/habitCard';
+import { cardAction, cardRank, cardTone, counterLine, isDone, jumps, openDayRing, weekFilled, type CardInput } from '@/lib/habitCard';
 
 const base: CardInput = {
   today: 'due',
@@ -164,5 +164,21 @@ describe('jumps', () => {
 
   it('has no ceiling when the habit may run past its target', () => {
     expect(jumps(20, 'more', 40, Infinity).every((jump) => jump.enabled)).toBe(true);
+  });
+});
+
+describe('weekFilled', () => {
+  // 2026-09-14 is a Monday.
+  it('counts the answered days of the week so far', () => {
+    const entries = {
+      '2026-09-13': 'held' as const,
+      '2026-09-14': 'held' as const,
+      '2026-09-15': 'frozen' as const,
+      '2026-09-16': 'skipped' as const,
+      '2026-09-18': 'held' as const,
+    };
+    // Sunday the 13th is last week; the skip fills nothing; Friday has not come yet.
+    expect(weekFilled(entries, '2026-09-17')).toBe(2);
+    expect(weekFilled(entries, '2026-09-20')).toBe(3);
   });
 });

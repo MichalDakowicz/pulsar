@@ -1,3 +1,5 @@
+import { addDays, weekKey } from '@/lib/dates';
+import type { EntryMap } from '@/lib/streak';
 import { stepSizes } from '@/lib/weekTarget';
 
 /**
@@ -149,4 +151,21 @@ export function jumps(owed: number, direction: 'more' | 'less', amount: number, 
         ? { delta: size, enabled: size <= room }
         : { delta: -size, enabled: size <= amount },
     );
+}
+
+/**
+ * How many days of the week `day` falls in are already answered, up to and
+ * including it — the filled pips on a "three times a week" habit. A frozen day
+ * fills its slot, as it does for the streak.
+ */
+export function weekFilled(entries: EntryMap, day: string): number {
+  const monday = weekKey(day);
+  let filled = 0;
+  for (let i = 0; i < 7; i++) {
+    const date = addDays(monday, i);
+    if (date > day) break;
+    const state = entries[date];
+    if (state === 'held' || state === 'repaired' || state === 'frozen') filled += 1;
+  }
+  return filled;
 }

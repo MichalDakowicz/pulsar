@@ -12,9 +12,9 @@ import {
   SectionHeader,
   Stat,
 } from "@/components/ui/states";
-import { HabitCard } from "@/features/habits/HabitCard";
 import { RiskBanner } from "@/features/habits/RiskBanner";
 import { SiblingStreaks } from "@/features/habits/SiblingStreaks";
+import { TodayCard } from "@/features/habits/TodayCard";
 import { heroCopy, TodayHero } from "@/features/habits/TodayHero";
 import { useCheckIn } from "@/features/habits/useCheckIn";
 import { nextDueLabel, useHabitBoard } from "@/features/habits/useHabitBoard";
@@ -22,7 +22,7 @@ import { useHabitSettings } from "@/hooks/useHabitSettings";
 import { useNavBarSpace } from "@/hooks/useNavBarSpace";
 import { MAX_W } from "@/hooks/useResponsive";
 import { addDays, dateKey, formatDayLong } from "@/lib/dates";
-import { dayTabLabel, holdAmount, todayHint } from "@/lib/habit";
+import { dayTabLabel, todayHint } from "@/lib/habit";
 import { TOKEN_CAP } from "@/lib/tokens";
 import { readError } from "@/lib/utils";
 
@@ -198,54 +198,17 @@ export default function TodayScreen() {
                 </Text>
               ) : (
                 <View className="mt-3.5 gap-2.5">
-                  {tab.rows.map((row) => {
-                    return (
-                      <HabitCard
-                        key={row.habit.id}
-                        row={row}
-                        mode={settings.checkinMode}
-                        // The switch above already says which day this is.
-                        namesDay={!hasYesterday}
-                        onOpen={() => router.navigate(`/habit/${row.habit.id}`)}
-                        onHold={() =>
-                          void checkIn.hold(
-                            row.habit,
-                            row.streak.current + 1,
-                            holdAmount(row.habit, row.weekAmount),
-                            row.judged,
-                          )
-                        }
-                        onSkip={
-                          row.today === "due"
-                            ? () => void checkIn.skip(row.habit, row.judged)
-                            : undefined
-                        }
-                        onUndo={
-                          row.undoable
-                            ? () => void checkIn.undo(row.habit, row.judged)
-                            : undefined
-                        }
-                        onSlip={
-                          row.asksYesterday
-                            ? () =>
-                                void (row.entries[board.today] === "broke"
-                                  ? checkIn.clear(row.habit, board.today)
-                                  : checkIn.did(row.habit, board.today))
-                            : undefined
-                        }
-                        onAdd={(delta) =>
-                          void checkIn.add(
-                            row.habit,
-                            row.judged,
-                            row.amount,
-                            delta,
-                            row.headroom,
-                            row.weekAmount,
-                          )
-                        }
-                      />
-                    );
-                  })}
+                  {tab.rows.map((row) => (
+                    <TodayCard
+                      key={row.habit.id}
+                      row={row}
+                      mode={settings.checkinMode}
+                      checkIn={checkIn}
+                      today={board.today}
+                      // The switch above already says which day this is.
+                      namesDay={!hasYesterday}
+                    />
+                  ))}
                 </View>
               )}
 

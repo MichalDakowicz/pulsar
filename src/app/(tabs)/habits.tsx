@@ -12,6 +12,7 @@ import { useArchiveHabit, useHabits } from '@/features/habits/useHabits';
 import { useHabitBoard } from '@/features/habits/useHabitBoard';
 import { useNavBarSpace } from '@/hooks/useNavBarSpace';
 import { MAX_W } from '@/hooks/useResponsive';
+import { useCardLook } from '@/store/cardLook';
 import { COLORS } from '@/theme/colors';
 
 /**
@@ -30,6 +31,7 @@ export default function HabitsScreen() {
   const { say } = useToast();
   const bottom = useNavBarSpace();
   const [showArchive, setShowArchive] = useState(false);
+  const { layout, stepStyle } = useCardLook();
 
   const rowFor = (id: string) => board.rows.find((row) => row.habit.id === id);
 
@@ -71,7 +73,13 @@ export default function HabitsScreen() {
               const row = rowFor(habit.id);
               if (!row) return null;
               return (
-                <HabitCard key={habit.id} row={row} onOpen={() => router.navigate(`/habit/${habit.id}`)} />
+                <HabitCard
+                  key={habit.id}
+                  row={row}
+                  layout={layout}
+                  stepStyle={stepStyle}
+                  onOpen={() => router.navigate(`/habit/${habit.id}`)}
+                />
               );
             })}
           </View>

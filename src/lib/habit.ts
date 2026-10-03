@@ -1,5 +1,5 @@
 import { addDays } from '@/lib/dates';
-import { isTargetDayOn, type Phase } from '@/lib/phases';
+import { isTargetDayOn, targetOn, type Phase } from '@/lib/phases';
 import { cadenceLabel, type Cadence } from '@/lib/schedule';
 import { clampChecks, isMultiStep, stepsDone } from '@/lib/steps';
 import { silenceIsClean, type EntryMap, type EntryState } from '@/lib/streak';
@@ -92,6 +92,22 @@ export function dayProgress(
   const share = amount / habit.target;
   if (habit.allowExceed) return Math.max(0, share);
   return Math.min(1, Math.max(0, share));
+}
+
+/**
+ * Each logged day's share of the target that was in force on it — the wall's
+ * shading. A counter whose target was raised last month keeps its old full days
+ * full, and a day with one of two checks in is painted half.
+ */
+export function progressByDay(
+  habit: Pick<Habit, 'kind' | 'target'> & Partial<Pick<Habit, 'phases' | 'checksPerDay'>>,
+  amounts: Record<string, number>,
+): Record<string, number> {
+  const out: Record<string, number> = {};
+  for (const [day, amount] of Object.entries(amounts)) {
+    out[day] = dayProgress({ kind: habit.kind, target: targetOn(habit, day), checksPerDay: habit.checksPerDay }, amount);
+  }
+  return out;
 }
 
 /**

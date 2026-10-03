@@ -7,11 +7,13 @@
 - Sign-in screen: continue with bazaar when it is installed on this phone
 - Builder: type any unit for a counter, with the common ones underneath to tap
 - Habits: check a habit twice or three times a day, each check with its own streak
+- Settings: pick calendar, tagged rows or both for habits, and bars or sun and moon for checks
 
 ### Changed
 
 - Builder: a habit is one sentence, and tapping any part of it changes that part
 - Builder: a weekly total is an answer to when it is due, and each habit says what a miss is
+- Today: a counter shows a bar with its count on it, beside what it counts
 - Streaks: a counter day that ends under its target is a miss from today; the wall still shades it
 - Sign-in screen: ping apps on this phone sit behind one choose an app button
 - Today: holding plus or minus on a counter opens a sheet of bigger steps, like +5 and +10

@@ -7,6 +7,7 @@ import { ScreenTop } from '@/components/layout/ScreenTop';
 import { Overline, Segmented, SwitchRow } from '@/components/ui/controls';
 import { QrLoginControl } from '@/features/auth/qr/QrLoginControl';
 import { AppUpdateControl } from '@/features/settings/AppUpdateControl';
+import { CardLookControl } from '@/features/settings/CardLookControl';
 import { RemindersControl } from '@/features/settings/RemindersControl';
 import { SignOutSheet } from '@/features/settings/SignOutSheet';
 import { useHabitSettings } from '@/hooks/useHabitSettings';
@@ -103,6 +104,8 @@ export default function Settings() {
             />
           </View>
         </View>
+
+        <CardLookControl />
 
         <View className="mt-2 border-t border-border/50 px-4">
           <Pressable

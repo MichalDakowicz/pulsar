@@ -19,8 +19,8 @@ import { useArchiveHabit } from '@/features/habits/useHabits';
 import { useNavBarSpace } from '@/hooks/useNavBarSpace';
 import { MAX_W } from '@/hooks/useResponsive';
 import { formatDayShort } from '@/lib/dates';
-import { challengeComplete, challengeLabel, dayProgress, habitMeta } from '@/lib/habit';
-import { targetOn } from '@/lib/phases';
+import { challengeComplete, challengeLabel, habitMeta, progressByDay } from '@/lib/habit';
+import { missLine } from '@/lib/habitType';
 import { tokenWord } from '@/lib/tokens';
 import { buildWall, wallRate } from '@/lib/wall';
 
@@ -42,10 +42,7 @@ export default function HabitDetail() {
 
   const weeks = useMemo(() => {
     if (!row) return [];
-    const progress: Record<string, number> = {};
-    for (const [day, amount] of Object.entries(row.amounts)) {
-      progress[day] = dayProgress({ kind: row.habit.kind, target: targetOn(row.habit, day) }, amount);
-    }
+    const progress = progressByDay(row.habit, row.amounts);
     return buildWall(row.entries, row.habit, {
       weeks: WEEKS,
       startedOn: row.habit.startedOn,
@@ -112,6 +109,12 @@ export default function HabitDetail() {
           <Text className="mt-1.5 text-sm text-muted-foreground">{habitMeta(habit)}</Text>
           {!!habit.why.trim() && (
             <Text className="mt-2 text-sm text-muted-foreground">{habit.why.trim()}</Text>
+          )}
+          <Text className="mt-2 text-xs text-muted-foreground">a miss here is {missLine(habit)}.</Text>
+          {row.steps.length > 0 && (
+            <Text className="mt-1 text-xs font-semibold text-foreground">
+              {row.steps.map((step) => `${step.name} ${step.streak}d`).join(' · ')}
+            </Text>
           )}
         </View>
 

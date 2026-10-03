@@ -2,8 +2,8 @@ import { useMemo } from 'react';
 
 import { useHabitBoard } from '@/features/habits/useHabitBoard';
 import { addDays, dateKey, weekKey, WEEKDAY_INITIALS } from '@/lib/dates';
-import { dayProgress } from '@/lib/habit';
-import { isTargetDayOn, targetOn } from '@/lib/phases';
+import { progressByDay } from '@/lib/habit';
+import { isTargetDayOn } from '@/lib/phases';
 import { buildWall, weekdayShape } from '@/lib/wall';
 import { RANGE_WEEKS, useStatsRange } from '@/store/statsRange';
 
@@ -24,12 +24,9 @@ export function useStatsView() {
     // The combined wall across every habit, which is what the weekday shape and
     // the totals are scored from.
     const allWeeks = board.rows.flatMap((row) => {
-      const progress: Record<string, number> = {};
-      for (const [day, amount] of Object.entries(row.amounts)) {
-        // Against the target that day was set, not today's: raising a counter
-        // from 4 to 8 must not repaint every day you hit 4 as half done.
-        progress[day] = dayProgress({ kind: row.habit.kind, target: targetOn(row.habit, day) }, amount);
-      }
+      // Against the target that day was set, not today's: raising a counter
+      // from 4 to 8 must not repaint every day you hit 4 as half done.
+      const progress = progressByDay(row.habit, row.amounts);
       return buildWall(row.entries, row.habit, {
         weeks,
         startedOn: row.habit.startedOn,
