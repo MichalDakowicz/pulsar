@@ -136,3 +136,9 @@ export function slipLine(name: string, link: ScreenLink, days: string[], usage: 
   const more = days.length > 1 ? ` (${days.length} days)` : '';
   return `${name} slipped${more} — ${minutes} min on ${appNames(link)} ${when}, over ${link.limit}.`;
 }
+
+/** "45m", "4h" — a week of an app on a chip, rounded to what reads at a glance. */
+export function shortMinutes(minutes: number): string {
+  if (minutes < 60) return `${Math.max(1, Math.round(minutes))}m`;
+  return `${Math.round(minutes / 60)}h`;
+}

@@ -14,6 +14,7 @@ import { HandoffReplay } from '@/features/auth/HandoffReplay';
 import { UpdateNotice } from '@/features/updates/UpdateNotice';
 import { HabitsSync } from '@/features/habits/HabitsSync';
 import { HealthSync } from '@/features/health/HealthSync';
+import { ScreenSync } from '@/features/screen/ScreenSync';
 import { ReminderSync } from '@/features/notifications/ReminderSync';
 import { queryClient } from '@/lib/queryClient';
 import { useLastOpened } from '@/store/lastOpened';
@@ -59,6 +60,7 @@ export default function RootLayout() {
                   <ReminderSync />
                   <HabitsSync />
                   {Platform.OS === 'android' && <HealthSync />}
+                  {Platform.OS === 'android' && <ScreenSync />}
                   <UpdateNotice />
                   <HandoffReplay />
                   <Stack screenOptions={{ headerShown: false }} />

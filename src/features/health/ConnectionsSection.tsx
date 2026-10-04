@@ -7,18 +7,20 @@ import { useToast } from '@/components/ui/Toast';
 import { ConnectionRow } from '@/features/health/ConnectionRow';
 import { HealthLinkSheet } from '@/features/health/HealthLinkSheet';
 import { useHealthLink } from '@/features/health/useHealthLink';
+import { ScreenTimeRow } from '@/features/screen/ScreenTimeRow';
 import { HEALTH_SOURCES, linkLine, linkMisfit } from '@/lib/healthLink';
 import { logLink } from '@/lib/logLink';
 import type { Habit } from '@/types/habit';
 
 /**
- * What else can answer for this habit: Health Connect filling it in, and a
- * link that checks it in from an NFC tag or a shortcut.
+ * What else can answer for this habit: Health Connect filling it in, screen
+ * time slipping it, and a link that checks it in from an NFC tag or a shortcut.
  *
  * Each row only appears when it can do something. Health Connect is offered on
  * the phone for a habit one of its sources can fill, and shown on the web only
- * as a fact about the phone; the link is left off an avoid habit, which a tap
- * could only ever answer with a slip.
+ * as a fact about the phone; screen time only on an avoid habit, the one kind
+ * with a slip to log; the link is left off an avoid habit, which a tap could
+ * only ever answer with a slip.
  */
 export function ConnectionsSection({ habit }: { habit: Habit }) {
   const health = useHealthLink(habit);
@@ -29,8 +31,9 @@ export function ConnectionsSection({ habit }: { habit: Habit }) {
   const fits = HEALTH_SOURCES.some((source) => !linkMisfit(habit, source));
   const showHealth = !habit.archivedAt && ((android && fits) || !!link);
   const showTag = !habit.archivedAt && habit.kind !== 'avoid';
+  const showScreen = !habit.archivedAt && habit.kind === 'avoid' && (android || !!habit.screenLink);
 
-  if (!showHealth && !showTag) return null;
+  if (!showHealth && !showTag && !showScreen) return null;
 
   const healthSub = linkLine(habit, { onPhone: android, unshared: health.unshared, readAgo: health.readAgo });
 
@@ -46,6 +49,7 @@ export function ConnectionsSection({ habit }: { habit: Habit }) {
         {showHealth && (
           <ConnectionRow title="health connect" sub={healthSub} onPress={android ? () => setSheetOpen(true) : undefined} />
         )}
+        {showScreen && <ScreenTimeRow habit={habit} />}
         {showTag && <ConnectionRow title="nfc tag or shortcut" sub="copy a link that checks it in" onPress={() => void copyLink()} />}
       </View>
 

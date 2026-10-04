@@ -3,6 +3,7 @@ import {
   normalizeScreenLink,
   screenMisfit,
   screenSummary,
+  shortMinutes,
   slipDays,
   slipLine,
   usageByDay,
@@ -99,5 +100,13 @@ describe('screenSummary and slipLine', () => {
     expect(slipLine('scrolling', insta, [TODAY], { [TODAY]: 41.6 }, TODAY)).toBe(
       'scrolling slipped — 42 min on instagram today, over 30.',
     );
+  });
+});
+
+describe('shortMinutes', () => {
+  it('reads at a glance', () => {
+    expect(shortMinutes(0.4)).toBe('1m');
+    expect(shortMinutes(45)).toBe('45m');
+    expect(shortMinutes(250)).toBe('4h');
   });
 });

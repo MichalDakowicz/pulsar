@@ -9,6 +9,7 @@ import { QrLoginControl } from '@/features/auth/qr/QrLoginControl';
 import { AppUpdateControl } from '@/features/settings/AppUpdateControl';
 import { CardLookControl } from '@/features/settings/CardLookControl';
 import { HealthConnectControl } from '@/features/settings/HealthConnectControl';
+import { ScreenTimeControl } from '@/features/settings/ScreenTimeControl';
 import { RemindersControl } from '@/features/settings/RemindersControl';
 import { SignOutSheet } from '@/features/settings/SignOutSheet';
 import { useHabitSettings } from '@/hooks/useHabitSettings';
@@ -121,6 +122,7 @@ export default function Settings() {
         </View>
 
         <HealthConnectControl />
+        <ScreenTimeControl />
 
         <View className="gap-3 px-4 pt-7">
           <Overline>other devices</Overline>

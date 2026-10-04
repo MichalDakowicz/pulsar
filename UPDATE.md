@@ -9,11 +9,11 @@
 - Habits: check a habit two or three times a day — morning and night with a sun and moon, or plain
 - Builder: turn an existing habit into a twice-a-day one, and choose how far back it applies
 - Settings: show habits as the calendar, compact tagged rows, or both
-- Habit detail: Health Connect fills in steps, workouts or sleep; pick which workouts count
-- Habit detail: copy a link that checks the habit in from an NFC tag or a shortcut
-- Settings: see which habits Health Connect fills, and open what Pulsar may read there
-- Habit detail: Health Connect fills distance, water and mindfulness habits too
+- Habit detail: Health Connect fills steps, workouts, distance, sleep, water and mindful minutes
 - Habits: water and mindful minutes you log in Pulsar are written back to Health Connect
+- Habit detail: give an avoid habit a daily screen-time limit; going over it logs a slip
+- Habit detail: copy a link that checks the habit in from an NFC tag or a shortcut
+- Settings: see what Health Connect and screen time feed, and manage their access
 
 ### Changed
 
