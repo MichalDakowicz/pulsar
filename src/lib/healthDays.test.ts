@@ -1,4 +1,4 @@
-import { dayTotals, exerciseByDay, linkedAmounts, mindfulByDay, sessionKmByDay, sleepByDay, unionMinutes, wholeUnits } from '@/lib/healthDays';
+import { bedtimeByDay, bedtimeOffset, dayTotals, exerciseByDay, linkedAmounts, mindfulByDay, sessionKmByDay, sleepByDay, unionMinutes, wholeUnits } from '@/lib/healthDays';
 import type { HealthLink } from '@/lib/healthLink';
 
 /** A local wall-clock time as the ISO instant Health Connect hands over, whatever zone the test runs in. */
@@ -110,6 +110,41 @@ describe('sleepByDay', () => {
   });
 });
 
+describe('bedtimeByDay', () => {
+  it('measures a bedtime from the evening noon, past midnight too', () => {
+    expect(bedtimeOffset('23:00')).toBe(660);
+    expect(bedtimeOffset('00:30')).toBe(750);
+  });
+
+  it('holds the evening you were asleep by the time', () => {
+    const night = { start: at('2026-10-03', 22, 40), end: at('2026-10-04', 6, 30), stages: [] };
+    expect(bedtimeByDay([night], '23:00')).toEqual({ '2026-10-03': 1 });
+  });
+
+  it('gives a night that started after midnight to the evening before, unheld', () => {
+    const late = { start: at('2026-10-04', 0, 30), end: at('2026-10-04', 7), stages: [] };
+    expect(bedtimeByDay([late], '23:00')).toEqual({});
+    expect(bedtimeByDay([late], '01:00')).toEqual({ '2026-10-03': 1 });
+  });
+
+  it('starts the night at the first stage of sleep, not at lying down', () => {
+    const night = {
+      start: at('2026-10-03', 22, 30),
+      end: at('2026-10-04', 6, 30),
+      stages: [
+        { start: at('2026-10-03', 22, 30), end: at('2026-10-03', 23, 20), stage: 1 },
+        { start: at('2026-10-03', 23, 20), end: at('2026-10-04', 6, 30), stage: 4 },
+      ],
+    };
+    expect(bedtimeByDay([night], '23:00')).toEqual({});
+  });
+
+  it('never takes a nap for a night', () => {
+    const nap = { start: at('2026-10-03', 15), end: at('2026-10-03', 16), stages: [] };
+    expect(bedtimeByDay([nap], '23:00')).toEqual({});
+  });
+});
+
 describe('linkedAmounts', () => {
   const session = { start: at('2026-10-04', 18), end: at('2026-10-04', 18, 25, ), type: 70 };
 
@@ -129,6 +164,12 @@ describe('linkedAmounts', () => {
     expect(linkedAmounts({ kind: 'count', unit: 'km' }, distance, { distance: daily })).toEqual({ '2026-10-04': 5 });
     expect(linkedAmounts({ kind: 'count', unit: 'glasses' }, water, { hydration: ml })).toEqual({ '2026-10-04': 4 });
     expect(linkedAmounts({ kind: 'count', unit: 'ml' }, water, { hydration: ml })).toEqual({ '2026-10-04': 1200 });
+  });
+
+  it('holds a check from a bedtime link', () => {
+    const link: HealthLink = { source: 'sleep', mode: 'all', activities: [], bedtime: '23:00' };
+    const night = { start: at('2026-10-03', 22, 40), end: at('2026-10-04', 6, 30), stages: [] };
+    expect(linkedAmounts({ kind: 'do', unit: '' }, link, { sleep: [night] })).toEqual({ '2026-10-03': 1 });
   });
 
   it('reads only its own source', () => {

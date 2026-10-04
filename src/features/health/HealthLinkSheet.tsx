@@ -1,11 +1,13 @@
 import { useState } from 'react';
 import { Text, View } from 'react-native';
 
-import { Chip, Segmented } from '@/components/ui/controls';
+import { Chip, Overline, Segmented } from '@/components/ui/controls';
 import { SheetDialog } from '@/components/ui/SheetDialog';
 import { ACTIVITY_GROUPS, ACTIVITY_LABELS, type ActivityGroup, type ActivityMode } from '@/lib/healthActivities';
 import {
   ACCESS_LINES,
+  BEDTIMES,
+  DEFAULT_BEDTIME,
   FILTERED_SOURCES,
   HEALTH_SOURCES,
   linkMisfit,
@@ -41,6 +43,9 @@ export function HealthLinkSheet({ open, habit, access, saving, onSave, onDismiss
   const [source, setSource] = useState<HealthSource | null>(current?.source ?? null);
   const [mode, setMode] = useState<ActivityMode>(current?.mode ?? 'all');
   const [activities, setActivities] = useState<ActivityGroup[]>(current?.activities ?? []);
+  const [bedtime, setBedtime] = useState(current?.bedtime ?? DEFAULT_BEDTIME);
+  // Sleep on a check is a bedtime; on a timer it is how long you slept.
+  const byBedtime = source === 'sleep' && habit.kind === 'do';
 
   const misfits = HEALTH_SOURCES.map((item) => [item, linkMisfit(habit, item)] as const);
   const fitting = misfits.filter(([, reason]) => !reason).map(([item]) => SOURCE_LABELS[item].label);
@@ -71,7 +76,7 @@ export function HealthLinkSheet({ open, habit, access, saving, onSave, onDismiss
       confirmLabel={source ? 'link it' : 'fill it by hand'}
       dismissLabel="leave it"
       confirmDisabledReason={reason}
-      onConfirm={() => onSave(source ? { source, mode, activities } : null)}
+      onConfirm={() => onSave(source ? { source, mode, activities, ...(byBedtime ? { bedtime } : {}) } : null)}
       onDismiss={onDismiss}
     >
       {access && access !== 'ready' && <Text className="mt-3 text-sm text-foreground">{ACCESS_LINES[access]}</Text>}
@@ -85,11 +90,24 @@ export function HealthLinkSheet({ open, habit, access, saving, onSave, onDismiss
       </View>
       <Text className="mt-2 text-xs text-muted-foreground">
         {source
-          ? SOURCE_LABELS[source].sub
+          ? byBedtime
+            ? 'held on the evenings you were asleep by the time below. a sleep under three hours is a nap, not a night.'
+            : SOURCE_LABELS[source].sub
           : fitting.length > 0
             ? `${fitting.join(', ')} can fill this one. the rest need a habit of another shape.`
             : 'nothing health connect holds fits this habit.'}
       </Text>
+
+      {byBedtime && (
+        <View className="mt-4">
+          <Overline>asleep by</Overline>
+          <View className="mt-2 flex-row flex-wrap gap-2">
+            {BEDTIMES.map((time) => (
+              <Chip key={time} label={time} selected={bedtime === time} onPress={() => setBedtime(time)} />
+            ))}
+          </View>
+        </View>
+      )}
 
       {source && FILTERED_SOURCES.includes(source) && (
         <View className="mt-4">
