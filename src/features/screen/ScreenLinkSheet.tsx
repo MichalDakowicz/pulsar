@@ -50,7 +50,7 @@ export function ScreenLinkSheet({ open, current, access, apps, saving, onOpenAcc
       open={open}
       title="slip it on screen time"
       body="pulsar checks your screen time when you open it. going over the limit logs a slip for that day — it ends the streak like one you logged."
-      confirmLabel={chosen.length > 0 ? 'set the limit' : 'stop it'}
+      confirmLabel={chosen.length === 0 && current ? 'stop it' : 'set the limit'}
       dismissLabel="leave it"
       confirmDisabledReason={reason}
       onConfirm={() => onSave(chosen.length > 0 ? { apps: chosen, limit } : null)}
