@@ -1,4 +1,4 @@
-import { dateKey } from '@/lib/dates';
+import { dateKey, parseDay } from '@/lib/dates';
 import { counts } from '@/lib/healthActivities';
 import { WATER_ML, type HealthLink } from '@/lib/healthLink';
 import type { Habit } from '@/types/habit';
@@ -136,6 +136,44 @@ export function exerciseByDay(sessions: ExerciseReading[], link: Pick<HealthLink
 // SleepStageType: AWAKE and OUT_OF_BED are inside the session but not sleep.
 const NOT_ASLEEP = new Set([1, 3]);
 
+/** Shorter than this is a nap, and a nap at three in the afternoon is not going to bed early. */
+export const MIN_NIGHT_MINUTES = 180;
+
+const HALF_DAY_MS = 12 * 60 * 60 * 1000;
+
+/** Minutes after the evening's noon a bedtime falls: 23:00 is 660, 00:30 is 750. */
+export function bedtimeOffset(bedtime: string): number {
+  const [h, m] = bedtime.split(':').map(Number);
+  return (h * 60 + m - 720 + 1440) % 1440;
+}
+
+/**
+ * The evenings you were asleep by `bedtime`, as 1s. A night belongs to the
+ * evening it started — dropping off at 00:30 is Sunday's late night, not an
+ * early Monday — and only the longest sleep of an evening is the night.
+ * Sleep starts at the first stage that is sleep, when the source wrote stages,
+ * so lying awake in bed does not count as being asleep.
+ */
+export function bedtimeByDay(sessions: SleepReading[], bedtime: string): Record<string, number> {
+  const nights = new Map<string, { start: number; minutes: number }>();
+  for (const session of sessions) {
+    const asleep = session.stages.filter((stage) => !NOT_ASLEEP.has(stage.stage));
+    const spans = session.stages.length === 0 ? [spanOf(session.start, session.end)] : asleep.map((stage) => spanOf(stage.start, stage.end));
+    const minutes = unionMinutes(spans);
+    if (minutes < MIN_NIGHT_MINUTES || spans.length === 0) continue;
+    const start = Math.min(...spans.map((span) => span.start));
+    const evening = dateKey(start - HALF_DAY_MS);
+    const known = nights.get(evening);
+    if (!known || minutes > known.minutes) nights.set(evening, { start, minutes });
+  }
+  const out: Record<string, number> = {};
+  for (const [evening, night] of nights) {
+    const noon = parseDay(evening).getTime() + HALF_DAY_MS;
+    if (night.start <= noon + bedtimeOffset(bedtime) * 60_000) out[evening] = 1;
+  }
+  return out;
+}
+
 /**
  * Minutes asleep per day, a night belonging to the morning it ended on. That is
  * the day you would say you slept eight hours, and the only reading under
@@ -175,7 +213,7 @@ function rawByDay(link: HealthLink, readings: HealthReadings): Record<string, nu
     case 'exercise':
       return exerciseByDay(readings.exercise ?? [], link);
     case 'sleep':
-      return sleepByDay(readings.sleep ?? []);
+      return link.bedtime ? bedtimeByDay(readings.sleep ?? [], link.bedtime) : sleepByDay(readings.sleep ?? []);
     case 'distance':
       return link.mode === 'all' ? dayTotals(readings.distance ?? []) : sessionKmByDay(readings.distanceSessions ?? [], link);
     case 'hydration':
@@ -188,7 +226,7 @@ function rawByDay(link: HealthLink, readings: HealthReadings): Record<string, nu
 function inHabitUnits(habit: Pick<Habit, 'kind' | 'unit'>, link: HealthLink, value: number): number {
   // A check is held by any session at all — a zero-length one is still a
   // workout someone logged by hand, with no clock running.
-  if (habit.kind === 'do' && link.source === 'exercise') return 1;
+  if (habit.kind === 'do' && (link.source === 'exercise' || link.source === 'sleep')) return 1;
   if (link.source === 'distance') return wholeUnits(value);
   if (link.source === 'hydration') return wholeUnits(value / (WATER_ML[habit.unit] ?? 250));
   return Math.round(value);

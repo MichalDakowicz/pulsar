@@ -10,6 +10,7 @@
 - Builder: turn an existing habit into a twice-a-day one, and choose how far back it applies
 - Settings: show habits as the calendar, compact tagged rows, or both
 - Habit detail: Health Connect fills steps, workouts, distance, sleep, water and mindful minutes
+- Habit detail: a bedtime habit holds on the evenings Health Connect saw you asleep in time
 - Habits: water and mindful minutes you log in Pulsar are written back to Health Connect
 - Habit detail: give an avoid habit a daily screen-time limit; going over it logs a slip
 - Habit detail: copy a link that checks the habit in from an NFC tag or a shortcut

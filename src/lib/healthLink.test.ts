@@ -72,9 +72,17 @@ describe('linkMisfit', () => {
     expect(linkMisfit({ kind: 'count', unit: 'reps' }, 'exercise')).not.toBeNull();
   });
 
-  it('never fills a check, so sleep needs a measure', () => {
-    expect(linkMisfit({ kind: 'do', unit: '' }, 'sleep')).not.toBeNull();
+  it('fills a check with sleep as a bedtime, and a timer with time asleep', () => {
+    expect(linkMisfit({ kind: 'do', unit: '' }, 'sleep')).toBeNull();
     expect(linkMisfit({ kind: 'timer', unit: '' }, 'sleep')).toBeNull();
+    expect(linkMisfit({ kind: 'count', unit: 'pages' }, 'sleep')).not.toBeNull();
+  });
+
+  it('keeps a bedtime on sleep and nowhere else', () => {
+    expect(cleanLink({ source: 'sleep', mode: 'all', activities: [], bedtime: '23:00' }).bedtime).toBe('23:00');
+    expect(cleanLink({ source: 'steps', mode: 'all', activities: [], bedtime: '23:00' }).bedtime).toBeUndefined();
+    expect(normalizeHealthLink({ source: 'sleep', bedtime: '25:00' })?.bedtime).toBeUndefined();
+    expect(linkSummary({ source: 'sleep', mode: 'all', activities: [], bedtime: '23:00' })).toBe('sleep · asleep by 23:00');
   });
 
   it('refuses avoid habits and habits checked twice a day', () => {

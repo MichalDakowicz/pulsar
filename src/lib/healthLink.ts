@@ -51,7 +51,19 @@ export type HealthLink = {
   /** Exercise and distance only. Ignored, and stored as `all`, on the other sources. */
   mode: ActivityMode;
   activities: ActivityGroup[];
+  /**
+   * Sleep on a check habit only: `HH:MM` you have to be asleep by for the
+   * evening to hold. Absent on every other link.
+   */
+  bedtime?: string;
 };
+
+/** The times a bedtime can be set to — late evening through the small hours. */
+export const BEDTIMES = ['21:30', '22:00', '22:30', '23:00', '23:30', '00:00', '00:30', '01:00'];
+
+export const DEFAULT_BEDTIME = '23:00';
+
+const isBedtime = (value: unknown): value is string => typeof value === 'string' && /^([01]\d|2[0-3]):[0-5]\d$/.test(value);
 
 /**
  * The link as it should be stored. An `only` with nothing chosen would count
@@ -60,8 +72,9 @@ export type HealthLink = {
  */
 export function cleanLink(link: HealthLink): HealthLink {
   const activities = ACTIVITY_GROUPS.filter((group) => link.activities.includes(group));
+  const bedtime = link.source === 'sleep' && isBedtime(link.bedtime) ? { bedtime: link.bedtime } : {};
   if (!FILTERED_SOURCES.includes(link.source) || link.mode === 'all' || activities.length === 0) {
-    return { source: link.source, mode: 'all', activities: [] };
+    return { source: link.source, mode: 'all', activities: [], ...bedtime };
   }
   return { source: link.source, mode: link.mode, activities };
 }
@@ -75,7 +88,8 @@ export function normalizeHealthLink(value: unknown): HealthLink | null {
   const activities = Array.isArray(raw.activities)
     ? raw.activities.filter((item): item is ActivityGroup => ACTIVITY_GROUPS.includes(item as ActivityGroup))
     : [];
-  return cleanLink({ source: raw.source as HealthSource, mode, activities });
+  const bedtime = isBedtime(raw.bedtime) ? raw.bedtime : undefined;
+  return cleanLink({ source: raw.source as HealthSource, mode, activities, bedtime });
 }
 
 type Fittable = Pick<Habit, 'kind' | 'unit'> & Partial<Pick<Habit, 'checksPerDay'>>;
@@ -105,6 +119,10 @@ export function linkMisfit(habit: Fittable, source: HealthSource): string | null
     case 'hydration':
       return habit.kind === 'count' && habit.unit in WATER_ML ? null : 'needs a counter in glasses, cups, ml or litres';
     case 'sleep':
+      // A check is a bedtime — asleep by a time — and a measure is how long.
+      return habit.kind === 'do' || habit.kind === 'timer' || countsMinutes(habit)
+        ? null
+        : 'needs a check, a timer or a counter in minutes';
     case 'mindfulness':
       return habit.kind === 'timer' || countsMinutes(habit) ? null : 'needs a timer or a counter in minutes';
   }
@@ -120,6 +138,7 @@ export function activeLink(habit: Fittable & Pick<Habit, 'archivedAt'> & { healt
 /** "exercise · only strength, running" — the row on the habit's page. */
 export function linkSummary(link: HealthLink): string {
   const label = SOURCE_LABELS[link.source].label;
+  if (link.source === 'sleep' && link.bedtime) return `sleep · asleep by ${link.bedtime}`;
   if (!FILTERED_SOURCES.includes(link.source)) return label;
   if (link.mode === 'all') return link.source === 'exercise' ? 'exercise · every kind' : label;
   const names = link.activities.map((group) => ACTIVITY_LABELS[group]).join(', ');
