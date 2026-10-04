@@ -9,11 +9,12 @@
 - Habits: check a habit two or three times a day — morning and night with a sun and moon, or plain
 - Builder: turn an existing habit into a twice-a-day one, and choose how far back it applies
 - Settings: show habits as the calendar, compact tagged rows, or both
+- Builder: thirty more marks, from a pill and a phone switched off to a runner and a climber
 
 ### Changed
 
 - Builder: a habit is one sentence, and tapping any part of it changes that part
-- Builder: every mark is shown at once in rows, instead of a strip that scrolls sideways
+- Builder: every mark is shown at once, grouped under move, body, mind, life and quit
 - Builder: a weekly total is an answer to when it is due, and each habit says what a miss is
 - Today: a counter shows a bar with its count on it, beside what it counts
 - Streaks: a counter day that ends under its target is a miss from today; the wall still shades it
