@@ -2,11 +2,13 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useMemo } from 'react';
 
 import { useAuth } from '@/features/auth/AuthProvider';
+import { habitsKey } from '@/features/habits/useHabits';
+import { writeBack } from '@/features/health/healthWriteBack';
 import { addDays, dateKey } from '@/lib/dates';
 import { amountsByHabit, entriesByHabit, normalizeEntry, type HabitEntryRow } from '@/lib/habitRow';
 import { supabase } from '@/lib/supabase';
 import type { EntryState } from '@/lib/streak';
-import type { HabitEntry } from '@/types/habit';
+import type { Habit, HabitEntry } from '@/types/habit';
 
 /**
  * Every entry inside the history window, for every habit at once.
@@ -57,6 +59,12 @@ export function useEntries() {
   return { entries, byHabit, amounts, loading: query.isLoading, error: query.error };
 }
 
+/** What a day held before a change, in the habit's own units — 0 for anything but a hold. */
+function heldAmount(entries: HabitEntry[], habitId: string, day: string): number {
+  const entry = entries.find((candidate) => candidate.habitId === habitId && candidate.day === day);
+  return entry?.state === 'held' ? entry.amount : 0;
+}
+
 export type SetEntryInput = {
   habitId: string;
   day?: string;
@@ -100,10 +108,15 @@ export function useSetEntry() {
         at: new Date().toISOString(),
       });
       queryClient.setQueryData(queryKey, next);
-      return { previous };
+      return { previous, before: heldAmount(previous, input.habitId, day), day };
     },
     // No refetch on success: the optimistic row is what was written, and the
     // realtime echo swaps in the server's timestamp.
+    onSuccess: (_data, input, context) => {
+      const habit = queryClient.getQueryData<Habit[]>(habitsKey(user?.id))?.find((candidate) => candidate.id === input.habitId);
+      const after = input.state === 'held' ? (input.amount ?? 1) : 0;
+      if (habit && context) void writeBack(habit, context.day, context.before, after);
+    },
     onError: (_error, _input, context) => {
       if (context?.previous) queryClient.setQueryData(queryKey, context.previous);
     },
@@ -133,7 +146,11 @@ export function useClearEntry() {
         queryKey,
         previous.filter((entry) => !(entry.habitId === habitId && entry.day === target)),
       );
-      return { previous };
+      return { previous, before: heldAmount(previous, habitId, target), day: target };
+    },
+    onSuccess: (_data, { habitId }, context) => {
+      const habit = queryClient.getQueryData<Habit[]>(habitsKey(user?.id))?.find((candidate) => candidate.id === habitId);
+      if (habit && context) void writeBack(habit, context.day, context.before, 0);
     },
     onError: (_error, _input, context) => {
       if (context?.previous) queryClient.setQueryData(queryKey, context.previous);

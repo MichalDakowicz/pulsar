@@ -1,5 +1,6 @@
-import { dateKey } from '@/lib/dates';
-import { counts, type HealthLink } from '@/lib/healthLink';
+import { dateKey, parseDay } from '@/lib/dates';
+import { counts } from '@/lib/healthActivities';
+import { WATER_ML, type HealthLink } from '@/lib/healthLink';
 import type { Habit } from '@/types/habit';
 
 /**
@@ -23,13 +24,22 @@ export type SleepReading = {
   stages: { start: string; end: string; stage: number }[];
 };
 
-/** A daily step total from Health Connect's aggregate, keyed by its local start. */
-export type StepsGroup = { startTime: string; count: number };
+/** One day of a Health Connect aggregate — steps, km, ml — keyed by its local start. */
+export type DayTotal = { startTime: string; value: number };
+
+/** A workout with the distance covered inside it, for a distance link narrowed to some kinds. */
+export type DistanceSession = ExerciseReading & { km: number };
 
 export type HealthReadings = {
-  steps?: StepsGroup[];
+  steps?: DayTotal[];
   exercise?: ExerciseReading[];
   sleep?: SleepReading[];
+  /** Kilometres a day, every movement counted. */
+  distance?: DayTotal[];
+  distanceSessions?: DistanceSession[];
+  /** Millilitres a day. */
+  hydration?: DayTotal[];
+  mindfulness?: { start: string; end: string }[];
 };
 
 type Span = { start: number; end: number };
@@ -66,16 +76,45 @@ function pushTo(map: Map<string, Span[]>, day: string, span: Span) {
 
 /**
  * Health Connect's aggregate keys each group by local midnight
- * ("2026-10-04T00:00"), and it already de-duplicates steps across sources —
- * which is why steps are aggregated natively and never summed here.
+ * ("2026-10-04T00:00"), and it already de-duplicates across sources — which is
+ * why steps, distance and water are aggregated natively and never summed here.
  */
-export function stepsByDay(groups: StepsGroup[]): Record<string, number> {
+export function dayTotals(groups: DayTotal[]): Record<string, number> {
   const out: Record<string, number> = {};
   for (const group of groups) {
     const day = group.startTime.slice(0, 10);
-    if (/^\d{4}-\d{2}-\d{2}$/.test(day) && group.count > 0) out[day] = Math.round(group.count);
+    if (/^\d{4}-\d{2}-\d{2}$/.test(day) && group.value > 0) out[day] = group.value;
   }
   return out;
+}
+
+/** Kilometres in the counting workouts, a day's worth on the day each one started. */
+export function sessionKmByDay(sessions: DistanceSession[], link: Pick<HealthLink, 'mode' | 'activities'>): Record<string, number> {
+  const out: Record<string, number> = {};
+  for (const session of sessions) {
+    if (!counts(link, session.type) || session.km <= 0) continue;
+    const day = dateKey(session.start);
+    out[day] = (out[day] ?? 0) + session.km;
+  }
+  return out;
+}
+
+/** Mindful minutes per day, sessions from two apps counted once where they overlap. */
+export function mindfulByDay(sessions: { start: string; end: string }[]): Record<string, number> {
+  const byDay = new Map<string, Span[]>();
+  for (const session of sessions) pushTo(byDay, dateKey(session.start), spanOf(session.start, session.end));
+  const out: Record<string, number> = {};
+  for (const [day, spans] of byDay) out[day] = unionMinutes(spans);
+  return out;
+}
+
+/**
+ * A measured amount in whole units, the way a counter stores it. A run of 4.97
+ * km reaches its fifth kilometre — GPS loses that much on a corner — but 4.6
+ * does not, so the rounding gives a twentieth of a unit and no more.
+ */
+export function wholeUnits(value: number): number {
+  return Math.floor(value + 0.05);
 }
 
 /**
@@ -96,6 +135,44 @@ export function exerciseByDay(sessions: ExerciseReading[], link: Pick<HealthLink
 
 // SleepStageType: AWAKE and OUT_OF_BED are inside the session but not sleep.
 const NOT_ASLEEP = new Set([1, 3]);
+
+/** Shorter than this is a nap, and a nap at three in the afternoon is not going to bed early. */
+export const MIN_NIGHT_MINUTES = 180;
+
+const HALF_DAY_MS = 12 * 60 * 60 * 1000;
+
+/** Minutes after the evening's noon a bedtime falls: 23:00 is 660, 00:30 is 750. */
+export function bedtimeOffset(bedtime: string): number {
+  const [h, m] = bedtime.split(':').map(Number);
+  return (h * 60 + m - 720 + 1440) % 1440;
+}
+
+/**
+ * The evenings you were asleep by `bedtime`, as 1s. A night belongs to the
+ * evening it started — dropping off at 00:30 is Sunday's late night, not an
+ * early Monday — and only the longest sleep of an evening is the night.
+ * Sleep starts at the first stage that is sleep, when the source wrote stages,
+ * so lying awake in bed does not count as being asleep.
+ */
+export function bedtimeByDay(sessions: SleepReading[], bedtime: string): Record<string, number> {
+  const nights = new Map<string, { start: number; minutes: number }>();
+  for (const session of sessions) {
+    const asleep = session.stages.filter((stage) => !NOT_ASLEEP.has(stage.stage));
+    const spans = session.stages.length === 0 ? [spanOf(session.start, session.end)] : asleep.map((stage) => spanOf(stage.start, stage.end));
+    const minutes = unionMinutes(spans);
+    if (minutes < MIN_NIGHT_MINUTES || spans.length === 0) continue;
+    const start = Math.min(...spans.map((span) => span.start));
+    const evening = dateKey(start - HALF_DAY_MS);
+    const known = nights.get(evening);
+    if (!known || minutes > known.minutes) nights.set(evening, { start, minutes });
+  }
+  const out: Record<string, number> = {};
+  for (const [evening, night] of nights) {
+    const noon = parseDay(evening).getTime() + HALF_DAY_MS;
+    if (night.start <= noon + bedtimeOffset(bedtime) * 60_000) out[evening] = 1;
+  }
+  return out;
+}
 
 /**
  * Minutes asleep per day, a night belonging to the morning it ended on. That is
@@ -120,19 +197,37 @@ export function sleepByDay(sessions: SleepReading[]): Record<string, number> {
  * check that had any counting session, minutes for everything else. Days worth
  * nothing are left out rather than written as nought.
  */
-export function linkedAmounts(habit: Pick<Habit, 'kind'>, link: HealthLink, readings: HealthReadings): Record<string, number> {
-  const raw =
-    link.source === 'steps'
-      ? stepsByDay(readings.steps ?? [])
-      : link.source === 'exercise'
-        ? exerciseByDay(readings.exercise ?? [], link)
-        : sleepByDay(readings.sleep ?? []);
+export function linkedAmounts(habit: Pick<Habit, 'kind' | 'unit'>, link: HealthLink, readings: HealthReadings): Record<string, number> {
   const out: Record<string, number> = {};
-  for (const [day, value] of Object.entries(raw)) {
-    // A check is held by any session at all — a zero-length one is still a
-    // workout someone logged by hand, with no clock running.
-    const amount = habit.kind === 'do' && link.source === 'exercise' ? 1 : Math.round(value);
+  for (const [day, value] of Object.entries(rawByDay(link, readings))) {
+    const amount = inHabitUnits(habit, link, value);
     if (amount > 0) out[day] = amount;
   }
   return out;
+}
+
+function rawByDay(link: HealthLink, readings: HealthReadings): Record<string, number> {
+  switch (link.source) {
+    case 'steps':
+      return dayTotals(readings.steps ?? []);
+    case 'exercise':
+      return exerciseByDay(readings.exercise ?? [], link);
+    case 'sleep':
+      return link.bedtime ? bedtimeByDay(readings.sleep ?? [], link.bedtime) : sleepByDay(readings.sleep ?? []);
+    case 'distance':
+      return link.mode === 'all' ? dayTotals(readings.distance ?? []) : sessionKmByDay(readings.distanceSessions ?? [], link);
+    case 'hydration':
+      return dayTotals(readings.hydration ?? []);
+    case 'mindfulness':
+      return mindfulByDay(readings.mindfulness ?? []);
+  }
+}
+
+function inHabitUnits(habit: Pick<Habit, 'kind' | 'unit'>, link: HealthLink, value: number): number {
+  // A check is held by any session at all — a zero-length one is still a
+  // workout someone logged by hand, with no clock running.
+  if (habit.kind === 'do' && (link.source === 'exercise' || link.source === 'sleep')) return 1;
+  if (link.source === 'distance') return wholeUnits(value);
+  if (link.source === 'hydration') return wholeUnits(value / (WATER_ML[habit.unit] ?? 250));
+  return Math.round(value);
 }

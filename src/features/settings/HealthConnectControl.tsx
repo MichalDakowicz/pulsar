@@ -47,7 +47,7 @@ export function HealthConnectControl() {
       ))}
 
       {onPhone && access && access !== 'unavailable' && (
-        <ConnectionRow title="what pulsar may read" sub="steps, workouts and sleep — managed in health connect" onPress={openHealthSettings} />
+        <ConnectionRow title="what pulsar may read" sub="steps, workouts, distance, sleep, water and mindfulness — managed in health connect" onPress={openHealthSettings} />
       )}
 
       <Text className="text-xs text-muted-foreground">
