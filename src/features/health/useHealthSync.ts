@@ -10,7 +10,7 @@ import { useHabits } from '@/features/habits/useHabits';
 import { dateKey } from '@/lib/dates';
 import { linkedHabits, linkedSources, planSync, readFrom } from '@/lib/healthSync';
 import { supabase } from '@/lib/supabase';
-import type { HabitEntry } from '@/types/habit';
+import type { Habit, HabitEntry } from '@/types/habit';
 
 /**
  * Reads Health Connect and lifts the linked habits' days to what it says.
@@ -25,6 +25,10 @@ import type { HabitEntry } from '@/types/habit';
  */
 
 const MIN_GAP_MS = 2 * 60 * 1000;
+
+/** Whether a distance link is narrowed to some kinds of workout, which costs a read per workout. */
+const bySession = (habits: Habit[]) =>
+  habits.some((habit) => habit.healthLink?.source === 'distance' && habit.healthLink.mode !== 'all');
 
 export function useHealthSync() {
   const { user } = useAuth();
@@ -57,7 +61,7 @@ export function useHealthSync() {
         const granted = await grantedSources();
         const reading = new Set([...wanted].filter((source) => granted.has(source)));
         const today = dateKey();
-        const readings = reading.size > 0 ? await readHealth(reading, readFrom(linked, today), today) : {};
+        const readings = reading.size > 0 ? await readHealth(reading, readFrom(linked, today), today, { distanceBySession: bySession(linked) }) : {};
         const writes = planSync(linked, entries, readings, granted, today);
         finished([...wanted].filter((source) => !granted.has(source)));
         if (writes.length === 0) return;

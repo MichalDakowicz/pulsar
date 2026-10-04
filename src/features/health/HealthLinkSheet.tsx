@@ -3,15 +3,13 @@ import { Text, View } from 'react-native';
 
 import { Chip, Segmented } from '@/components/ui/controls';
 import { SheetDialog } from '@/components/ui/SheetDialog';
+import { ACTIVITY_GROUPS, ACTIVITY_LABELS, type ActivityGroup, type ActivityMode } from '@/lib/healthActivities';
 import {
   ACCESS_LINES,
-  ACTIVITY_GROUPS,
-  ACTIVITY_LABELS,
+  FILTERED_SOURCES,
   HEALTH_SOURCES,
   linkMisfit,
   SOURCE_LABELS,
-  type ActivityGroup,
-  type ActivityMode,
   type HealthAccess,
   type HealthLink,
   type HealthSource,
@@ -45,6 +43,7 @@ export function HealthLinkSheet({ open, habit, access, saving, onSave, onDismiss
   const [activities, setActivities] = useState<ActivityGroup[]>(current?.activities ?? []);
 
   const misfits = HEALTH_SOURCES.map((item) => [item, linkMisfit(habit, item)] as const);
+  const fitting = misfits.filter(([, reason]) => !reason).map(([item]) => SOURCE_LABELS[item].label);
   const toggle = (group: ActivityGroup) =>
     setActivities((list) => (list.includes(group) ? list.filter((item) => item !== group) : [...list, group]));
 
@@ -60,7 +59,7 @@ export function HealthLinkSheet({ open, habit, access, saving, onSave, onDismiss
         ? 'pick what fills it in'
         : misfit
           ? `${source} ${misfit}`
-          : source === 'exercise' && mode === 'only' && activities.length === 0
+          : source && FILTERED_SOURCES.includes(source) && mode === 'only' && activities.length === 0
             ? 'pick at least one kind of session'
             : null;
 
@@ -87,13 +86,12 @@ export function HealthLinkSheet({ open, habit, access, saving, onSave, onDismiss
       <Text className="mt-2 text-xs text-muted-foreground">
         {source
           ? SOURCE_LABELS[source].sub
-          : misfits
-              .filter(([, misfit]) => misfit)
-              .map(([item, misfit]) => `${item} ${misfit}`)
-              .join(' · ') || 'any of the three can fill this habit.'}
+          : fitting.length > 0
+            ? `${fitting.join(', ')} can fill this one. the rest need a habit of another shape.`
+            : 'nothing health connect holds fits this habit.'}
       </Text>
 
-      {source === 'exercise' && (
+      {source && FILTERED_SOURCES.includes(source) && (
         <View className="mt-4">
           <Segmented label="which sessions count" options={MODES} value={mode} onChange={setMode} />
           {mode !== 'all' && (
