@@ -476,3 +476,12 @@ alter table public.habits
 -- other habit keeps saving on a database this has not been run on.
 alter table public.habits
   add column if not exists health_link jsonb;
+
+-- The apps whose screen time slips an avoid habit, and the daily limit across
+-- them, or null. Shape: {"apps":[{"pkg":"com.instagram.android","label":"Instagram"}],
+-- "limit":30}. The labels are kept so the web can name the apps without the
+-- phone. Only the Android app reads usage and writes the slips it implies
+-- (src/lib/screenTime.ts); like health_link, the column is written only when a
+-- limit is set or removed.
+alter table public.habits
+  add column if not exists screen_link jsonb;

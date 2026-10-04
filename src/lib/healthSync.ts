@@ -34,8 +34,8 @@ export const SYNC_DAYS = 30;
  * that became a step counter must not have its old days filled with steps —
  * and never past the window.
  */
-export function syncFrom(habit: Pick<Habit, 'startedOn'> & Partial<Pick<Habit, 'phases'>>, today: string): string {
-  const floor = addDays(today, -(SYNC_DAYS - 1));
+export function syncFrom(habit: Pick<Habit, 'startedOn'> & Partial<Pick<Habit, 'phases'>>, today: string, days = SYNC_DAYS): string {
+  const floor = addDays(today, -(days - 1));
   return [habit.startedOn, currentPhaseFrom(habit), floor].reduce((latest, day) => (day > latest ? day : latest));
 }
 

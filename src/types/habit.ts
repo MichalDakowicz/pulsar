@@ -1,5 +1,6 @@
 import type { HealthLink } from '@/lib/healthLink';
 import type { Phase } from '@/lib/phases';
+import type { ScreenLink } from '@/lib/screenTime';
 import type { Cadence } from '@/lib/schedule';
 import type { EntryState, StreakRule } from '@/lib/streak';
 
@@ -90,6 +91,11 @@ export type Habit = {
    * from the habit's page, where the permission is asked for (lib/healthLink).
    */
   healthLink?: HealthLink | null;
+  /**
+   * The apps whose screen time slips this avoid habit, and the daily limit, or
+   * null. Optional for the same reason as `healthLink` (lib/screenTime).
+   */
+  screenLink?: ScreenLink | null;
   startedOn: string;
   archivedAt: string | null;
   sort: number;
