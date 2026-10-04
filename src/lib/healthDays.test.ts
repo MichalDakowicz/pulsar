@@ -1,4 +1,4 @@
-import { exerciseByDay, linkedAmounts, sleepByDay, stepsByDay, unionMinutes } from '@/lib/healthDays';
+import { dayTotals, exerciseByDay, linkedAmounts, mindfulByDay, sessionKmByDay, sleepByDay, unionMinutes, wholeUnits } from '@/lib/healthDays';
 import type { HealthLink } from '@/lib/healthLink';
 
 /** A local wall-clock time as the ISO instant Health Connect hands over, whatever zone the test runs in. */
@@ -28,11 +28,35 @@ describe('unionMinutes', () => {
   });
 });
 
-describe('stepsByDay', () => {
+describe('dayTotals', () => {
   it('keys each aggregate group by its local date', () => {
-    expect(stepsByDay([{ startTime: '2026-10-03T00:00', count: 8123.4 }, { startTime: '2026-10-04T00:00', count: 0 }])).toEqual({
-      '2026-10-03': 8123,
+    expect(dayTotals([{ startTime: '2026-10-03T00:00', value: 8123.4 }, { startTime: '2026-10-04T00:00', value: 0 }])).toEqual({
+      '2026-10-03': 8123.4,
     });
+  });
+});
+
+describe('wholeUnits', () => {
+  it('gives a twentieth of a unit and no more', () => {
+    expect(wholeUnits(4.97)).toBe(5);
+    expect(wholeUnits(4.6)).toBe(4);
+    expect(wholeUnits(5)).toBe(5);
+  });
+});
+
+describe('sessionKmByDay', () => {
+  it('counts the distance of the kinds the link takes', () => {
+    const run = { start: at('2026-10-04', 7), end: at('2026-10-04', 7, 30), type: 56, km: 5.2 };
+    const walk = { start: at('2026-10-04', 12), end: at('2026-10-04', 12, 40), type: 79, km: 3 };
+    expect(sessionKmByDay([run, walk], { mode: 'only', activities: ['running'] })).toEqual({ '2026-10-04': 5.2 });
+  });
+});
+
+describe('mindfulByDay', () => {
+  it('counts overlapping sessions from two apps once', () => {
+    const a = { start: at('2026-10-04', 7), end: at('2026-10-04', 7, 10) };
+    const b = { start: at('2026-10-04', 7, 5), end: at('2026-10-04', 7, 15) };
+    expect(mindfulByDay([a, b])).toEqual({ '2026-10-04': 15 });
   });
 });
 
@@ -90,15 +114,25 @@ describe('linkedAmounts', () => {
   const session = { start: at('2026-10-04', 18), end: at('2026-10-04', 18, 25, ), type: 70 };
 
   it('holds a check on any counting session', () => {
-    expect(linkedAmounts({ kind: 'do' }, ALL, { exercise: [session] })).toEqual({ '2026-10-04': 1 });
+    expect(linkedAmounts({ kind: 'do', unit: '' }, ALL, { exercise: [session] })).toEqual({ '2026-10-04': 1 });
   });
 
   it('gives a timer the minutes', () => {
-    expect(linkedAmounts({ kind: 'timer' }, ALL, { exercise: [session] })).toEqual({ '2026-10-04': 25 });
+    expect(linkedAmounts({ kind: 'timer', unit: '' }, ALL, { exercise: [session] })).toEqual({ '2026-10-04': 25 });
+  });
+
+  it('turns kilometres and millilitres into the habit unit', () => {
+    const distance: HealthLink = { source: 'distance', mode: 'all', activities: [] };
+    const water: HealthLink = { source: 'hydration', mode: 'all', activities: [] };
+    const daily = [{ startTime: '2026-10-04T00:00', value: 4.97 }];
+    const ml = [{ startTime: '2026-10-04T00:00', value: 1200 }];
+    expect(linkedAmounts({ kind: 'count', unit: 'km' }, distance, { distance: daily })).toEqual({ '2026-10-04': 5 });
+    expect(linkedAmounts({ kind: 'count', unit: 'glasses' }, water, { hydration: ml })).toEqual({ '2026-10-04': 4 });
+    expect(linkedAmounts({ kind: 'count', unit: 'ml' }, water, { hydration: ml })).toEqual({ '2026-10-04': 1200 });
   });
 
   it('reads only its own source', () => {
     const link: HealthLink = { source: 'steps', mode: 'all', activities: [] };
-    expect(linkedAmounts({ kind: 'count' }, link, { exercise: [session] })).toEqual({});
+    expect(linkedAmounts({ kind: 'count', unit: 'steps' }, link, { exercise: [session] })).toEqual({});
   });
 });

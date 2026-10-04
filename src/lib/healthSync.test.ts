@@ -84,7 +84,7 @@ describe('planSync', () => {
   const link = { source: 'steps' as const, mode: 'all' as const, activities: [] };
   const walk = { ...steps, id: 'walk', unit: 'steps', archivedAt: null, healthLink: link };
   const water = { ...steps, id: 'water', unit: 'glasses', archivedAt: null, healthLink: null };
-  const readings = { steps: [{ startTime: `${TODAY}T00:00`, count: 7000 }] };
+  const readings = { steps: [{ startTime: `${TODAY}T00:00`, value: 7000 }] };
 
   it('writes the linked habit and leaves the others', () => {
     expect(planSync([walk, water], [], readings, new Set(['steps']), TODAY)).toEqual([{ habitId: 'walk', day: TODAY, amount: 7000 }]);

@@ -1,4 +1,5 @@
-import { activeLink, activityGroup, cleanLink, counts, linkLine, linkMisfit, linkSummary, normalizeHealthLink, readLine } from '@/lib/healthLink';
+import { activityGroup, counts } from '@/lib/healthActivities';
+import { activeLink, cleanLink, linkLine, linkMisfit, linkSummary, normalizeHealthLink, readLine } from '@/lib/healthLink';
 
 describe('activityGroup', () => {
   it('files a type by what people call it', () => {
@@ -95,7 +96,36 @@ describe('activeLink', () => {
   });
 });
 
+describe('new sources', () => {
+  it('takes distance only into a counter in km', () => {
+    expect(linkMisfit({ kind: 'count', unit: 'km' }, 'distance')).toBeNull();
+    expect(linkMisfit({ kind: 'count', unit: 'steps' }, 'distance')).not.toBeNull();
+  });
+
+  it('takes water into a counter of glasses, cups, ml or litres', () => {
+    expect(linkMisfit({ kind: 'count', unit: 'glasses' }, 'hydration')).toBeNull();
+    expect(linkMisfit({ kind: 'count', unit: 'litres' }, 'hydration')).toBeNull();
+    expect(linkMisfit({ kind: 'count', unit: 'pages' }, 'hydration')).not.toBeNull();
+  });
+
+  it('takes mindfulness into a timer', () => {
+    expect(linkMisfit({ kind: 'timer', unit: '' }, 'mindfulness')).toBeNull();
+    expect(linkMisfit({ kind: 'do', unit: '' }, 'mindfulness')).not.toBeNull();
+  });
+
+  it('keeps a kinds filter on distance and drops one on water', () => {
+    expect(cleanLink({ source: 'distance', mode: 'only', activities: ['running'] }).activities).toEqual(['running']);
+    expect(cleanLink({ source: 'hydration', mode: 'only', activities: ['running'] }).mode).toBe('all');
+  });
+});
+
 describe('linkSummary', () => {
+  it('names a filtered distance link and the plain sources', () => {
+    expect(linkSummary({ source: 'distance', mode: 'only', activities: ['running'] })).toBe('distance · only running');
+    expect(linkSummary({ source: 'distance', mode: 'all', activities: [] })).toBe('distance');
+    expect(linkSummary({ source: 'hydration', mode: 'all', activities: [] })).toBe('water');
+  });
+
   it('says what counts', () => {
     expect(linkSummary({ source: 'steps', mode: 'all', activities: [] })).toBe('steps');
     expect(linkSummary({ source: 'exercise', mode: 'all', activities: [] })).toBe('exercise · every kind');
@@ -123,7 +153,7 @@ describe('linkLine', () => {
   const phone = { onPhone: true, unshared: false, readAgo: 'read 4m ago' };
 
   it('offers the link on a habit without one', () => {
-    expect(linkLine({ kind: 'count', unit: 'steps', healthLink: null }, phone)).toBe('fill it from steps, a workout or sleep');
+    expect(linkLine({ kind: 'count', unit: 'steps', healthLink: null }, phone)).toBe('fill it from steps, workouts, sleep, water and more');
   });
 
   it('says what fills it and when it was read', () => {

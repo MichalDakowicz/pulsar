@@ -1,3 +1,4 @@
+import { ACTIVITY_GROUPS, ACTIVITY_LABELS, type ActivityGroup, type ActivityMode } from '@/lib/healthActivities';
 import { isMultiStep } from '@/lib/steps';
 import type { Habit } from '@/types/habit';
 
@@ -14,7 +15,7 @@ import type { Habit } from '@/types/habit';
  * offers a source and the sync that reads one cannot disagree about it.
  */
 
-export type HealthSource = 'steps' | 'exercise' | 'sleep';
+export type HealthSource = 'steps' | 'exercise' | 'sleep' | 'distance' | 'hydration' | 'mindfulness';
 
 /** Whether Health Connect can be asked anything on this device. */
 export type HealthAccess = 'unavailable' | 'needs-update' | 'ready';
@@ -25,89 +26,32 @@ export const ACCESS_LINES: Record<Exclude<HealthAccess, 'ready'>, string> = {
   'needs-update': 'health connect needs an update before pulsar can read it.',
 };
 
-export const HEALTH_SOURCES: HealthSource[] = ['steps', 'exercise', 'sleep'];
+export const HEALTH_SOURCES: HealthSource[] = ['steps', 'exercise', 'distance', 'sleep', 'hydration', 'mindfulness'];
 
 export const SOURCE_LABELS: Record<HealthSource, { label: string; sub: string }> = {
   steps: { label: 'steps', sub: 'every step the phone or band counted' },
   exercise: { label: 'exercise', sub: 'workouts, with the kinds you choose' },
+  distance: { label: 'distance', sub: 'kilometres covered, or only in the kinds of workout you choose' },
   sleep: { label: 'sleep', sub: 'time asleep, on the day you woke' },
+  hydration: { label: 'water', sub: 'a glass or a cup is 250 ml. water you log here is written back to health connect' },
+  mindfulness: { label: 'mindfulness', sub: 'meditation minutes. minutes you log here are written back as a session' },
 };
 
-/**
- * Exercise types as people say them. Health Connect has ninety-odd, down to
- * the left-arm dumbbell curl; nobody filters a habit by those. The groups are
- * what the chips offer and what a link stores, so a type Health Connect adds
- * later lands in `other` instead of being lost.
- */
-export const ACTIVITY_GROUPS = [
-  'walking',
-  'running',
-  'cycling',
-  'strength',
-  'classes',
-  'yoga',
-  'swimming',
-  'hiking',
-  'machines',
-  'sports',
-  'other',
-] as const;
+/** Sources whose link can narrow to kinds of workout. */
+export const FILTERED_SOURCES: HealthSource[] = ['exercise', 'distance'];
 
-export type ActivityGroup = (typeof ACTIVITY_GROUPS)[number];
+/** Sources that take what you log in Pulsar back into Health Connect, so other apps see it. */
+export const WRITTEN_BACK: HealthSource[] = ['hydration', 'mindfulness'];
 
-export const ACTIVITY_LABELS: Record<ActivityGroup, string> = {
-  walking: 'walking',
-  running: 'running',
-  cycling: 'cycling',
-  strength: 'strength',
-  classes: 'hiit & classes',
-  yoga: 'yoga & stretching',
-  swimming: 'swimming',
-  hiking: 'hiking',
-  machines: 'cardio machines',
-  sports: 'sports',
-  other: 'anything else',
-};
-
-// Health Connect's ExerciseType numbers. Kept as numbers rather than imported
-// constants so this file stays free of the native module.
-const GROUP_TYPES: Record<Exclude<ActivityGroup, 'other'>, number[]> = {
-  walking: [79],
-  running: [56, 57],
-  cycling: [8, 9],
-  strength: [1, 3, 6, 7, 13, 15, 17, 18, 19, 20, 21, 22, 23, 24, 30, 42, 43, 49, 67, 70, 77, 81],
-  classes: [10, 12, 16, 26, 36, 40, 41],
-  yoga: [33, 48, 71, 83],
-  swimming: [73, 74],
-  hiking: [37],
-  machines: [25, 54, 68, 69],
-  sports: [2, 4, 5, 11, 14, 27, 28, 29, 31, 32, 34, 35, 38, 39, 44, 46, 47, 50, 51, 52, 53, 55, 58, 59, 60, 61, 62, 63, 64, 65, 66, 72, 75, 76, 78, 80],
-};
-
-const TYPE_GROUP = new Map<number, ActivityGroup>(
-  Object.entries(GROUP_TYPES).flatMap(([group, types]) => types.map((type) => [type, group as ActivityGroup] as const)),
-);
-
-export function activityGroup(exerciseType: number): ActivityGroup {
-  return TYPE_GROUP.get(exerciseType) ?? 'other';
-}
-
-/** Every session, only the chosen kinds, or everything but them. */
-export type ActivityMode = 'all' | 'only' | 'except';
+/** Water units a hydration link understands, and how many millilitres one of each is. */
+export const WATER_ML: Record<string, number> = { glasses: 250, cups: 250, ml: 1, litres: 1000 };
 
 export type HealthLink = {
   source: HealthSource;
-  /** Exercise only. Ignored, and stored as `all`, on the other sources. */
+  /** Exercise and distance only. Ignored, and stored as `all`, on the other sources. */
   mode: ActivityMode;
   activities: ActivityGroup[];
 };
-
-/** Whether a session of this type counts towards the link. */
-export function counts(link: Pick<HealthLink, 'mode' | 'activities'>, exerciseType: number): boolean {
-  if (link.mode === 'all') return true;
-  const listed = link.activities.includes(activityGroup(exerciseType));
-  return link.mode === 'only' ? listed : !listed;
-}
 
 /**
  * The link as it should be stored. An `only` with nothing chosen would count
@@ -116,7 +60,7 @@ export function counts(link: Pick<HealthLink, 'mode' | 'activities'>, exerciseTy
  */
 export function cleanLink(link: HealthLink): HealthLink {
   const activities = ACTIVITY_GROUPS.filter((group) => link.activities.includes(group));
-  if (link.source !== 'exercise' || link.mode === 'all' || activities.length === 0) {
+  if (!FILTERED_SOURCES.includes(link.source) || link.mode === 'all' || activities.length === 0) {
     return { source: link.source, mode: 'all', activities: [] };
   }
   return { source: link.source, mode: link.mode, activities };
@@ -156,7 +100,12 @@ export function linkMisfit(habit: Fittable, source: HealthSource): string | null
       return habit.kind === 'do' || habit.kind === 'timer' || countsMinutes(habit)
         ? null
         : 'needs a check, a timer or a counter in minutes';
+    case 'distance':
+      return habit.kind === 'count' && habit.unit === 'km' ? null : 'needs a counter in km';
+    case 'hydration':
+      return habit.kind === 'count' && habit.unit in WATER_ML ? null : 'needs a counter in glasses, cups, ml or litres';
     case 'sleep':
+    case 'mindfulness':
       return habit.kind === 'timer' || countsMinutes(habit) ? null : 'needs a timer or a counter in minutes';
   }
 }
@@ -170,11 +119,11 @@ export function activeLink(habit: Fittable & Pick<Habit, 'archivedAt'> & { healt
 
 /** "exercise · only strength, running" — the row on the habit's page. */
 export function linkSummary(link: HealthLink): string {
-  if (link.source !== 'exercise' || link.mode === 'all') {
-    return link.source === 'exercise' ? 'exercise · every kind' : link.source;
-  }
+  const label = SOURCE_LABELS[link.source].label;
+  if (!FILTERED_SOURCES.includes(link.source)) return label;
+  if (link.mode === 'all') return link.source === 'exercise' ? 'exercise · every kind' : label;
   const names = link.activities.map((group) => ACTIVITY_LABELS[group]).join(', ');
-  return `exercise · ${link.mode === 'only' ? 'only' : 'not'} ${names}`;
+  return `${label} · ${link.mode === 'only' ? 'only' : 'not'} ${names}`;
 }
 
 /** "read 4m ago" — when the sync last looked, so a number that has not moved can be trusted or not. */
@@ -200,7 +149,7 @@ export type LinkWhere = {
  */
 export function linkLine(habit: Fittable & { healthLink?: HealthLink | null }, where: LinkWhere): string {
   const link = habit.healthLink;
-  if (!link) return 'fill it from steps, a workout or sleep';
+  if (!link) return 'fill it from steps, workouts, sleep, water and more';
   const misfit = linkMisfit(habit, link.source);
   if (misfit) return `paused — ${link.source} ${misfit}`;
   if (!where.onPhone) return `${linkSummary(link)} · read on your phone`;
