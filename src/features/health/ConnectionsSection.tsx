@@ -88,7 +88,11 @@ export function ConnectionsSection({ habit }: { habit: Habit }) {
           saving={health.saving}
           onDismiss={() => setSheetOpen(false)}
           onSave={async (next) => {
-            const outcome = await health.save(next);
+            const outcome = await health.save(next).catch(() => 'failed' as const);
+            if (outcome === 'failed') {
+              say('the link did not save. try again in a moment.');
+              return;
+            }
             if (outcome === 'denied') {
               say('health connect did not share it. allow pulsar there, then link it again.', {
                 label: 'open',
