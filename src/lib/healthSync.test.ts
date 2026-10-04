@@ -1,4 +1,4 @@
-import { syncFrom, syncWrites, SYNC_DAYS } from '@/lib/healthSync';
+import { linkedHabits, linkedSources, planSync, readFrom, syncFrom, syncWrites, SYNC_DAYS } from '@/lib/healthSync';
 import type { Habit } from '@/types/habit';
 
 const TODAY = '2026-10-04';
@@ -77,5 +77,31 @@ describe('syncWrites', () => {
 
   it('writes nothing before the window opens', () => {
     expect(syncWrites(steps, { '2026-08-31': 9000 }, {}, TODAY)).toEqual([]);
+  });
+});
+
+describe('planSync', () => {
+  const link = { source: 'steps' as const, mode: 'all' as const, activities: [] };
+  const walk = { ...steps, id: 'walk', unit: 'steps', archivedAt: null, healthLink: link };
+  const water = { ...steps, id: 'water', unit: 'glasses', archivedAt: null, healthLink: null };
+  const readings = { steps: [{ startTime: `${TODAY}T00:00`, count: 7000 }] };
+
+  it('writes the linked habit and leaves the others', () => {
+    expect(planSync([walk, water], [], readings, new Set(['steps']), TODAY)).toEqual([{ habitId: 'walk', day: TODAY, amount: 7000 }]);
+  });
+
+  it('writes nothing for a source Health Connect is not sharing', () => {
+    expect(planSync([walk], [], readings, new Set(), TODAY)).toEqual([]);
+  });
+
+  it('reads each habit against its own entries', () => {
+    const entries = [{ habitId: 'other', day: TODAY, state: 'held' as const, amount: 9000 }];
+    expect(planSync([walk], entries, readings, new Set(['steps']), TODAY)).toHaveLength(1);
+  });
+
+  it('reads only what the linked habits need, from the earliest day any of them can take', () => {
+    expect(linkedHabits([walk, water]).map((habit) => habit.id)).toEqual(['walk']);
+    expect([...linkedSources([walk, water])]).toEqual(['steps']);
+    expect(readFrom([walk, { ...walk, startedOn: '2026-10-02' }], TODAY)).toBe('2026-09-05');
   });
 });

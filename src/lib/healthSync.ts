@@ -1,9 +1,11 @@
 import { addDays, dayRange } from '@/lib/dates';
 import { judgedByWeek } from '@/lib/habitType';
+import { linkedAmounts, type HealthReadings } from '@/lib/healthDays';
+import { activeLink, type HealthSource } from '@/lib/healthLink';
 import { currentPhaseFrom, isTargetDayOn } from '@/lib/phases';
 import type { EntryState } from '@/lib/streak';
 import { isWeeklyTarget, weekTarget } from '@/lib/weekTarget';
-import type { Habit } from '@/types/habit';
+import type { Habit, HabitEntry } from '@/types/habit';
 
 /**
  * What a Health Connect reading may do to the wall.
@@ -77,6 +79,54 @@ export function syncWrites(
     if (entry && entry.state !== 'held') continue;
     if (entry && entry.amount >= amount) continue;
     out.push({ day, amount });
+  }
+  return out;
+}
+
+/* ── across every linked habit ───────────────────────────────────────────── */
+
+type Linkable = Syncable & Pick<Habit, 'id' | 'unit' | 'archivedAt' | 'healthLink'> & Partial<Pick<Habit, 'checksPerDay'>>;
+
+/** The habits a sync acts on: linked, unarchived, and still the shape their source fills. */
+export function linkedHabits<T extends Linkable>(habits: T[]): T[] {
+  return habits.filter((habit) => activeLink(habit) !== null);
+}
+
+/** Which sources the linked habits read, so a sync asks Health Connect for nothing else. */
+export function linkedSources(habits: Linkable[]): Set<HealthSource> {
+  return new Set(habits.flatMap((habit) => activeLink(habit)?.source ?? []));
+}
+
+/** The earliest day any linked habit may be written, so one read covers all of them. */
+export function readFrom(habits: Linkable[], today: string): string {
+  return habits.reduce((earliest, habit) => {
+    const from = syncFrom(habit, today);
+    return from < earliest ? from : earliest;
+  }, today);
+}
+
+export type PlannedWrite = SyncWrite & { habitId: string };
+
+/**
+ * Every write one read implies, across all linked habits. A habit whose source
+ * Health Connect is not sharing is left alone: no reading is not a reading of
+ * nothing.
+ */
+export function planSync(
+  habits: Linkable[],
+  entries: Pick<HabitEntry, 'habitId' | 'day' | 'state' | 'amount'>[],
+  readings: HealthReadings,
+  granted: Set<HealthSource>,
+  today: string,
+): PlannedWrite[] {
+  const out: PlannedWrite[] = [];
+  for (const habit of habits) {
+    const link = activeLink(habit);
+    if (!link || !granted.has(link.source)) continue;
+    const existing: Record<string, DayEntry> = {};
+    for (const entry of entries) if (entry.habitId === habit.id) existing[entry.day] = entry;
+    const found = linkedAmounts(habit, link, readings);
+    for (const write of syncWrites(habit, found, existing, today)) out.push({ habitId: habit.id, ...write });
   }
   return out;
 }

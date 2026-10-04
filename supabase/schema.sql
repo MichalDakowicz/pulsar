@@ -464,3 +464,15 @@ alter table public.habits
 -- write when it holds the default, so ordinary habits save without it.
 alter table public.habits
   add column if not exists checks_named boolean not null default true;
+
+-- The Health Connect source that fills a habit in, or null for one you check by
+-- hand. Shape: {"source":"steps"|"exercise"|"sleep","mode":"all"|"only"|"except",
+-- "activities":["strength","running",...]} — the activities only on exercise.
+--
+-- On the habit rather than on the phone, so the web build can say a habit is
+-- filled from the phone and a reinstall does not forget it. Only the Android
+-- app reads Health Connect and writes the entries it implies (src/lib/healthSync.ts);
+-- the column itself is written only when a link is made or removed, so every
+-- other habit keeps saving on a database this has not been run on.
+alter table public.habits
+  add column if not exists health_link jsonb;

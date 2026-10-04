@@ -76,7 +76,7 @@ all RLS'd with the same owner-writes / visible-reads shape the others use:
 
 | Table                   | Holds                                                              |
 | ----------------------- | ------------------------------------------------------------------ |
-| `public.habits`         | One row per habit: name, kind, cadence, rule, pledge.              |
+| `public.habits`         | One row per habit: name, kind, cadence, rule, pledge, Health Connect source. |
 | `public.habit_entries`  | One row per habit per resolved day (`held`/`frozen`/`repaired`/`skipped`). |
 | `public.habit_tokens`   | The freeze-token ledger. Spends only; earning is derived.          |
 | `public.habit_pacts`    | Two people, one habit each, mutual visibility.                     |

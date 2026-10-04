@@ -15,7 +15,12 @@
       },
       "predictiveBackGestureEnabled": false,
       "package": "com.michaldakowicz.pulsar",
-      "versionCode": 8
+      "versionCode": 8,
+      "permissions": [
+        "android.permission.health.READ_STEPS",
+        "android.permission.health.READ_EXERCISE",
+        "android.permission.health.READ_SLEEP"
+      ]
     },
     "web": {
       "output": "single",
@@ -46,7 +51,16 @@
         }
       ],
       "./plugins/withPingSiblings",
-      "./plugins/withPingSigning"
+      "./plugins/withPingSigning",
+      "react-native-health-connect",
+      [
+        "expo-build-properties",
+        {
+          "android": {
+            "minSdkVersion": 26
+          }
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": false,
