@@ -1,3 +1,4 @@
+import { normalizeHealthLink } from '@/lib/healthLink';
 import { normalizePhases } from '@/lib/phases';
 import { clampChecks } from '@/lib/steps';
 import type { Cadence } from '@/lib/schedule';
@@ -44,6 +45,8 @@ export type HabitRow = {
   public_shelf: boolean;
   pledge: string | null;
   why: string | null;
+  /** The Health Connect source, or null. Missing on a database the column has not been added to yet. */
+  health_link?: unknown;
   started_on: string;
   archived_at: string | null;
   sort: number;
@@ -131,6 +134,7 @@ export function normalizeHabit(row: HabitRow): Habit {
     publicShelf: row.public_shelf,
     pledge: row.pledge ?? '',
     why: row.why ?? '',
+    healthLink: normalizeHealthLink(row.health_link),
     startedOn: row.started_on,
     archivedAt: row.archived_at,
     sort: row.sort,
@@ -166,6 +170,7 @@ export function habitToRow(habit: Partial<Habit>): Record<string, unknown> {
   if (habit.publicShelf !== undefined) row.public_shelf = habit.publicShelf;
   if (habit.pledge !== undefined) row.pledge = habit.pledge.trim();
   if (habit.why !== undefined) row.why = habit.why.trim();
+  if (habit.healthLink !== undefined) row.health_link = habit.healthLink;
   if (habit.startedOn !== undefined) row.started_on = habit.startedOn;
   if (habit.archivedAt !== undefined) row.archived_at = habit.archivedAt;
   if (habit.sort !== undefined) row.sort = habit.sort;
