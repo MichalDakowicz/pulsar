@@ -12,9 +12,9 @@ import {
 
 import { addDays, parseDay } from '@/lib/dates';
 import type { ExerciseReading, HealthReadings, SleepReading } from '@/lib/healthDays';
-import type { HealthSource } from '@/lib/healthLink';
+import type { HealthAccess, HealthSource } from '@/lib/healthLink';
 
-import type { HealthAccess } from '@/features/health/healthConnect';
+export type { HealthAccess };
 
 /**
  * The Android side of Health Connect: the one file that touches the native

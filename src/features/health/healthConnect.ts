@@ -1,5 +1,7 @@
 import type { HealthReadings } from '@/lib/healthDays';
-import type { HealthSource } from '@/lib/healthLink';
+import type { HealthAccess, HealthSource } from '@/lib/healthLink';
+
+export type { HealthAccess };
 
 /**
  * Health Connect everywhere it does not exist: the web build and the tests.
@@ -9,9 +11,6 @@ import type { HealthSource } from '@/lib/healthLink';
  * The real calls are in `healthConnect.android.ts`, which Metro picks on
  * Android; the two must keep the same exports.
  */
-
-/** Whether Health Connect can be asked anything on this device. */
-export type HealthAccess = 'unavailable' | 'needs-update' | 'ready';
 
 export async function healthAccess(): Promise<HealthAccess> {
   return 'unavailable';

@@ -16,6 +16,15 @@ import type { Habit } from '@/types/habit';
 
 export type HealthSource = 'steps' | 'exercise' | 'sleep';
 
+/** Whether Health Connect can be asked anything on this device. */
+export type HealthAccess = 'unavailable' | 'needs-update' | 'ready';
+
+/** What to say when it cannot. */
+export const ACCESS_LINES: Record<Exclude<HealthAccess, 'ready'>, string> = {
+  unavailable: 'health connect is not on this device. link it from your android phone.',
+  'needs-update': 'health connect needs an update before pulsar can read it.',
+};
+
 export const HEALTH_SOURCES: HealthSource[] = ['steps', 'exercise', 'sleep'];
 
 export const SOURCE_LABELS: Record<HealthSource, { label: string; sub: string }> = {
@@ -175,4 +184,26 @@ export function readLine(lastRead: number | null, now: number): string | null {
   if (minutes < 1) return 'read just now';
   if (minutes < 60) return `read ${minutes}m ago`;
   return `read ${Math.floor(minutes / 60)}h ago`;
+}
+
+export type LinkWhere = {
+  /** On the Android phone, where Health Connect is actually read. */
+  onPhone: boolean;
+  /** Health Connect is not sharing the link's source with Pulsar. */
+  unshared: boolean;
+  readAgo: string | null;
+};
+
+/**
+ * The one line a habit's link is summed up in, wherever it is listed: what
+ * fills it, and the first reason it is not being filled, if there is one.
+ */
+export function linkLine(habit: Fittable & { healthLink?: HealthLink | null }, where: LinkWhere): string {
+  const link = habit.healthLink;
+  if (!link) return 'fill it from steps, a workout or sleep';
+  const misfit = linkMisfit(habit, link.source);
+  if (misfit) return `paused — ${link.source} ${misfit}`;
+  if (!where.onPhone) return `${linkSummary(link)} · read on your phone`;
+  if (where.unshared) return `${linkSummary(link)} · health connect is not sharing it`;
+  return [linkSummary(link), where.readAgo].filter(Boolean).join(' · ');
 }

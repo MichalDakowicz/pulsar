@@ -1,4 +1,4 @@
-import { activeLink, activityGroup, cleanLink, counts, linkMisfit, linkSummary, normalizeHealthLink, readLine } from '@/lib/healthLink';
+import { activeLink, activityGroup, cleanLink, counts, linkLine, linkMisfit, linkSummary, normalizeHealthLink, readLine } from '@/lib/healthLink';
 
 describe('activityGroup', () => {
   it('files a type by what people call it', () => {
@@ -114,5 +114,29 @@ describe('readLine', () => {
     expect(readLine(now - 20_000, now)).toBe('read just now');
     expect(readLine(now - 4 * 60_000, now)).toBe('read 4m ago');
     expect(readLine(now - 130 * 60_000, now)).toBe('read 2h ago');
+  });
+});
+
+describe('linkLine', () => {
+  const steps = { source: 'steps' as const, mode: 'all' as const, activities: [] };
+  const walk = { kind: 'count' as const, unit: 'steps', healthLink: steps };
+  const phone = { onPhone: true, unshared: false, readAgo: 'read 4m ago' };
+
+  it('offers the link on a habit without one', () => {
+    expect(linkLine({ kind: 'count', unit: 'steps', healthLink: null }, phone)).toBe('fill it from steps, a workout or sleep');
+  });
+
+  it('says what fills it and when it was read', () => {
+    expect(linkLine(walk, phone)).toBe('steps · read 4m ago');
+    expect(linkLine(walk, { ...phone, readAgo: null })).toBe('steps');
+  });
+
+  it('says why a link is not filling anything, most basic reason first', () => {
+    expect(linkLine({ ...walk, unit: 'km' }, phone)).toBe('paused — steps needs a counter in steps');
+    expect(linkLine(walk, { ...phone, unshared: true })).toBe('steps · health connect is not sharing it');
+  });
+
+  it('points off the phone at the phone', () => {
+    expect(linkLine(walk, { onPhone: false, unshared: false, readAgo: null })).toBe('steps · read on your phone');
   });
 });

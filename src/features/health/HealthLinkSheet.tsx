@@ -3,8 +3,8 @@ import { Text, View } from 'react-native';
 
 import { Chip, Segmented } from '@/components/ui/controls';
 import { SheetDialog } from '@/components/ui/SheetDialog';
-import type { HealthAccess } from '@/features/health/healthConnect';
 import {
+  ACCESS_LINES,
   ACTIVITY_GROUPS,
   ACTIVITY_LABELS,
   HEALTH_SOURCES,
@@ -12,6 +12,7 @@ import {
   SOURCE_LABELS,
   type ActivityGroup,
   type ActivityMode,
+  type HealthAccess,
   type HealthLink,
   type HealthSource,
 } from '@/lib/healthLink';
@@ -31,11 +32,6 @@ const MODES: { value: ActivityMode; label: string }[] = [
   { value: 'only', label: 'only' },
   { value: 'except', label: 'all but' },
 ];
-
-const ACCESS_LINES: Record<Exclude<HealthAccess, 'ready'>, string> = {
-  unavailable: 'health connect is not on this device. link it from your android phone.',
-  'needs-update': 'health connect needs an update before pulsar can read it.',
-};
 
 /**
  * Choosing what fills a habit in: a source, and for exercise which kinds of

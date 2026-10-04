@@ -8,6 +8,7 @@ import { Overline, Segmented, SwitchRow } from '@/components/ui/controls';
 import { QrLoginControl } from '@/features/auth/qr/QrLoginControl';
 import { AppUpdateControl } from '@/features/settings/AppUpdateControl';
 import { CardLookControl } from '@/features/settings/CardLookControl';
+import { HealthConnectControl } from '@/features/settings/HealthConnectControl';
 import { RemindersControl } from '@/features/settings/RemindersControl';
 import { SignOutSheet } from '@/features/settings/SignOutSheet';
 import { useHabitSettings } from '@/hooks/useHabitSettings';
@@ -118,6 +119,8 @@ export default function Settings() {
             <Text className="text-xs text-muted-foreground">the first-run tour, again</Text>
           </Pressable>
         </View>
+
+        <HealthConnectControl />
 
         <View className="gap-3 px-4 pt-7">
           <Overline>other devices</Overline>

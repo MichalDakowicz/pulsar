@@ -11,6 +11,7 @@
 - Settings: show habits as the calendar, compact tagged rows, or both
 - Habit detail: Health Connect fills in steps, workouts or sleep; pick which workouts count
 - Habit detail: copy a link that checks the habit in from an NFC tag or a shortcut
+- Settings: see which habits Health Connect fills, and open what Pulsar may read there
 
 ### Changed
 

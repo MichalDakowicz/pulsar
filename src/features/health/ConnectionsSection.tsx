@@ -1,36 +1,15 @@
 import * as Clipboard from 'expo-clipboard';
-import { ChevronRight } from 'lucide-react-native';
 import { useState } from 'react';
-import { Platform, Pressable, Text, View } from 'react-native';
+import { Platform, View } from 'react-native';
 
 import { SectionHeader } from '@/components/ui/states';
 import { useToast } from '@/components/ui/Toast';
+import { ConnectionRow } from '@/features/health/ConnectionRow';
 import { HealthLinkSheet } from '@/features/health/HealthLinkSheet';
 import { useHealthLink } from '@/features/health/useHealthLink';
-import { HEALTH_SOURCES, linkMisfit, linkSummary } from '@/lib/healthLink';
+import { HEALTH_SOURCES, linkLine, linkMisfit } from '@/lib/healthLink';
 import { logLink } from '@/lib/logLink';
-import { COLORS } from '@/theme/colors';
 import type { Habit } from '@/types/habit';
-
-type ConnectionRowProps = { title: string; sub: string; onPress?: () => void };
-
-function ConnectionRow({ title, sub, onPress }: ConnectionRowProps) {
-  return (
-    <Pressable
-      accessibilityRole={onPress ? 'button' : undefined}
-      accessibilityLabel={`${title}: ${sub}`}
-      disabled={!onPress}
-      onPress={onPress}
-      className="flex-row items-center gap-3 rounded-xl border border-border p-3.5"
-    >
-      <View className="min-w-0 flex-1">
-        <Text className="text-base font-bold text-foreground">{title}</Text>
-        <Text className="text-xs text-muted-foreground">{sub}</Text>
-      </View>
-      {onPress && <ChevronRight size={18} color={COLORS.muted} />}
-    </Pressable>
-  );
-}
 
 /**
  * What else can answer for this habit: Health Connect filling it in, and a
@@ -53,16 +32,7 @@ export function ConnectionsSection({ habit }: { habit: Habit }) {
 
   if (!showHealth && !showTag) return null;
 
-  const misfit = link ? linkMisfit(habit, link.source) : null;
-  const healthSub = !link
-    ? 'fill it from steps, a workout or sleep'
-    : misfit
-      ? `paused — ${link.source} ${misfit}`
-      : !android
-        ? `${linkSummary(link)} · read on your phone`
-        : health.unshared
-          ? `${linkSummary(link)} · health connect is not sharing it`
-          : [linkSummary(link), health.readAgo].filter(Boolean).join(' · ');
+  const healthSub = linkLine(habit, { onPhone: android, unshared: health.unshared, readAgo: health.readAgo });
 
   const copyLink = async () => {
     await Clipboard.setStringAsync(logLink(habit.id));
