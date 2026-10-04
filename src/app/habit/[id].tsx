@@ -12,6 +12,8 @@ import { CommitmentSection } from '@/features/habits/CommitmentSection';
 import { StreakSummary } from '@/features/habits/StreakSummary';
 import { TierLadder } from '@/features/habits/TierLadder';
 import { Wall, WallLegend } from '@/features/habits/Wall';
+import { StatusChip } from '@/features/habits/StatusChip';
+import { ConnectionsSection } from '@/features/health/ConnectionsSection';
 import { useBackfill } from '@/features/habits/useBackfill';
 import { useCheckIn } from '@/features/habits/useCheckIn';
 import { useHabitBoard } from '@/features/habits/useHabitBoard';
@@ -166,6 +168,7 @@ export default function HabitDetail() {
           />
         )}
 
+        <ConnectionsSection habit={habit} />
 
         <View className="px-4 py-6">
           <Pressable
@@ -275,25 +278,5 @@ export default function HabitDetail() {
         onDismiss={() => setDialog(null)}
       />
     </ScrollView>
-  );
-}
-
-function StatusChip({ label, tone }: { label: string; tone: 'accent' | 'muted' }) {
-  return (
-    <View
-      className={[
-        'rounded-full border px-2.5 py-1',
-        tone === 'accent' ? 'border-primary/40 bg-primary/10' : 'border-border',
-      ].join(' ')}
-    >
-      <Text
-        className={[
-          'text-[10px] font-semibold uppercase tracking-widest',
-          tone === 'accent' ? 'text-primary' : 'text-muted-foreground',
-        ].join(' ')}
-      >
-        {label}
-      </Text>
-    </View>
   );
 }

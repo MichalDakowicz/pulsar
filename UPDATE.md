@@ -10,6 +10,9 @@
 - Builder: turn an existing habit into a twice-a-day one, and choose how far back it applies
 - Settings: show habits as the calendar, compact tagged rows, or both
 - Builder: thirty more marks, from a pill and a phone switched off to a runner and a climber
+- Habit detail: Health Connect fills in steps, workouts or sleep; pick which workouts count
+- Habit detail: copy a link that checks the habit in from an NFC tag or a shortcut
+- Settings: see which habits Health Connect fills, and open what Pulsar may read there
 
 ### Changed
 

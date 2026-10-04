@@ -1,3 +1,4 @@
+import type { HealthLink } from '@/lib/healthLink';
 import type { Phase } from '@/lib/phases';
 import type { Cadence } from '@/lib/schedule';
 import type { EntryState, StreakRule } from '@/lib/streak';
@@ -83,6 +84,12 @@ export type Habit = {
   /** The "mark my word" line, read back on the night a streak is about to break. */
   pledge: string;
   why: string;
+  /**
+   * The Health Connect source that fills this habit in, or null. Optional on
+   * the type because a draft from the builder never carries one — it is set
+   * from the habit's page, where the permission is asked for (lib/healthLink).
+   */
+  healthLink?: HealthLink | null;
   startedOn: string;
   archivedAt: string | null;
   sort: number;
