@@ -9,6 +9,8 @@
 - Habits: check a habit two or three times a day — morning and night with a sun and moon, or plain
 - Builder: turn an existing habit into a twice-a-day one, and choose how far back it applies
 - Settings: show habits as the calendar, compact tagged rows, or both
+- Habit detail: Health Connect fills in steps, workouts or sleep; pick which workouts count
+- Habit detail: copy a link that checks the habit in from an NFC tag or a shortcut
 
 ### Changed
 

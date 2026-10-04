@@ -167,3 +167,12 @@ export function linkSummary(link: HealthLink): string {
   const names = link.activities.map((group) => ACTIVITY_LABELS[group]).join(', ');
   return `exercise · ${link.mode === 'only' ? 'only' : 'not'} ${names}`;
 }
+
+/** "read 4m ago" — when the sync last looked, so a number that has not moved can be trusted or not. */
+export function readLine(lastRead: number | null, now: number): string | null {
+  if (lastRead === null) return null;
+  const minutes = Math.floor((now - lastRead) / 60_000);
+  if (minutes < 1) return 'read just now';
+  if (minutes < 60) return `read ${minutes}m ago`;
+  return `read ${Math.floor(minutes / 60)}h ago`;
+}

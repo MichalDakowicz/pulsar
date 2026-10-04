@@ -1,4 +1,4 @@
-import { activeLink, activityGroup, cleanLink, counts, linkMisfit, linkSummary, normalizeHealthLink } from '@/lib/healthLink';
+import { activeLink, activityGroup, cleanLink, counts, linkMisfit, linkSummary, normalizeHealthLink, readLine } from '@/lib/healthLink';
 
 describe('activityGroup', () => {
   it('files a type by what people call it', () => {
@@ -100,5 +100,19 @@ describe('linkSummary', () => {
     expect(linkSummary({ source: 'steps', mode: 'all', activities: [] })).toBe('steps');
     expect(linkSummary({ source: 'exercise', mode: 'all', activities: [] })).toBe('exercise · every kind');
     expect(linkSummary({ source: 'exercise', mode: 'except', activities: ['walking'] })).toBe('exercise · not walking');
+  });
+});
+
+describe('readLine', () => {
+  const now = Date.parse('2026-10-04T12:00:00Z');
+
+  it('says nothing before the first read', () => {
+    expect(readLine(null, now)).toBeNull();
+  });
+
+  it('counts minutes, then hours', () => {
+    expect(readLine(now - 20_000, now)).toBe('read just now');
+    expect(readLine(now - 4 * 60_000, now)).toBe('read 4m ago');
+    expect(readLine(now - 130 * 60_000, now)).toBe('read 2h ago');
   });
 });
