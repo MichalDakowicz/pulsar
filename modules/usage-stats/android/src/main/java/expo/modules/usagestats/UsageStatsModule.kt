@@ -27,18 +27,7 @@ class UsageStatsModule : Module() {
     Function("hasAccess") { hasAccess() }
 
     /** Opens Settings → usage access, on Pulsar's own switch where Android allows it. */
-    Function("openAccessSettings") {
-      val context = appContext.reactContext ?: return@Function
-      val intent = Intent(Settings.ACTION_USAGE_ACCESS_SETTINGS).apply {
-        data = Uri.parse("package:${context.packageName}")
-        addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-      }
-      try {
-        context.startActivity(intent)
-      } catch (_: Exception) {
-        context.startActivity(Intent(Settings.ACTION_USAGE_ACCESS_SETTINGS).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
-      }
-    }
+    Function("openAccessSettings") { openAccessSettings() }
 
     /** Foreground stretches of the given packages, `{ pkg, start, end }` in ms. */
     AsyncFunction("sessions") { packages: List<String>, from: Double, to: Double ->
@@ -65,6 +54,20 @@ class UsageStatsModule : Module() {
       appOps.checkOpNoThrow(AppOpsManager.OPSTR_GET_USAGE_STATS, Process.myUid(), context.packageName)
     }
     return mode == AppOpsManager.MODE_ALLOWED
+  }
+
+  private fun openAccessSettings() {
+    val context = context ?: return
+    val intent = Intent(Settings.ACTION_USAGE_ACCESS_SETTINGS).apply {
+      data = Uri.parse("package:${context.packageName}")
+      addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+    }
+    try {
+      context.startActivity(intent)
+    } catch (_: Exception) {
+      // Some builds of Android have no per-app page for usage access.
+      context.startActivity(Intent(Settings.ACTION_USAGE_ACCESS_SETTINGS).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
+    }
   }
 
   private fun collect(from: Long, to: Long, keep: (String) -> Boolean): List<Map<String, Any>> {
