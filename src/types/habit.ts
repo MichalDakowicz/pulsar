@@ -36,7 +36,7 @@ export type Habit = {
   id: string;
   userId: string;
   name: string;
-  /** Key into MARKS (components/marks). */
+  /** Key into MARKS (components/markTable). */
   mark: string;
   kind: HabitKind;
   /** Amount for `count`, minutes for `timer`, 1 for `do` / `avoid`. */
