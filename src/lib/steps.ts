@@ -6,7 +6,9 @@ import type { EntryMap } from '@/lib/streak';
  * Habits checked more than once a day — meds in the morning and at night.
  *
  * One habit, up to three steps. A day's entry keeps which steps were ticked as a
- * bitmask in `amount`: bit 0 is the first step, bit 1 the second. A bitmask
+ * bitmask in `amount`: bit 0 is the first step, bit 1 the second. The three bits
+ * above those say which steps were set aside (`ASIDE_SHIFT`) — the night dose
+ * a doctor stopped for a day is answered, not missed. A bitmask
  * rather than a count, because the steps are not interchangeable — the night
  * dose does not stand in for a missed morning one, and each step walks a streak
  * of its own (`stepEntries`). The habit's own streak is the full day: every step
@@ -14,6 +16,9 @@ import type { EntryMap } from '@/lib/streak';
  */
 
 export const MAX_CHECKS = 3;
+
+/** Where a step's set-aside bit sits: step 0 at bit 3, step 1 at bit 4. */
+export const ASIDE_SHIFT = MAX_CHECKS;
 
 /** 1–3, whatever a row or a draft says. */
 export function clampChecks(checks: number | null | undefined): number {
@@ -99,13 +104,46 @@ export function allStepsDone(amount: number, checks: number): boolean {
   return stepsDone(amount, checks) >= clampChecks(checks);
 }
 
-export function toggleStep(amount: number, step: number): number {
-  return Math.max(0, amount) ^ (1 << step);
+export function isAside(amount: number, step: number): boolean {
+  return (Math.max(0, amount) & (1 << (step + ASIDE_SHIFT))) !== 0;
 }
 
-/** The first step still open, which is what a swipe ticks. Null once the day is full. */
+/** Whether every step is either in or set aside — the day has its whole answer. */
+export function allStepsAnswered(amount: number, checks: number): boolean {
+  for (let step = 0; step < clampChecks(checks); step++) {
+    if (!hasStep(amount, step) && !isAside(amount, step)) return false;
+  }
+  return true;
+}
+
+/**
+ * Whether a multi-step day was kept: something was done, and nothing is still
+ * open. A step set aside is owed nothing, but a day with every step set aside
+ * is a day set aside, and is written as one (`skipped`) rather than as held.
+ */
+export function stepsKept(amount: number, checks: number): boolean {
+  return stepsDone(amount, checks) > 0 && allStepsAnswered(amount, checks);
+}
+
+/** Flips a step in or out. Ticking one that was set aside takes it off the aside list. */
+export function toggleStep(amount: number, step: number): number {
+  return (Math.max(0, amount) ^ (1 << step)) & ~(1 << (step + ASIDE_SHIFT));
+}
+
+/** Sets aside every step still open, keeping the ones already in. */
+export function setRestAside(amount: number, checks: number): number {
+  let next = Math.max(0, amount);
+  for (let step = 0; step < clampChecks(checks); step++) {
+    if (!hasStep(next, step)) next |= 1 << (step + ASIDE_SHIFT);
+  }
+  return next;
+}
+
+/** The first step still open, which is what a swipe ticks. Null once the day is answered. */
 export function nextOpenStep(amount: number, checks: number): number | null {
-  for (let step = 0; step < clampChecks(checks); step++) if (!hasStep(amount, step)) return step;
+  for (let step = 0; step < clampChecks(checks); step++) {
+    if (!hasStep(amount, step) && !isAside(amount, step)) return step;
+  }
   return null;
 }
 
@@ -118,16 +156,18 @@ export function lastDoneStep(amount: number, checks: number): number | null {
 /**
  * One step's own record — what its streak is walked over.
  *
- * A held day is held for the step only if its bit is set. Everything else a day
- * can say applies to all of them at once: a freeze, a repair or a set-aside day
- * is about the day, and a step cannot have been frozen while its sibling was
- * not.
+ * A held day is held for the step only if its bit is set, and set aside for it
+ * if its aside bit is. Everything else a day can say applies to all of them at
+ * once: a freeze, a repair or a set-aside day is about the day, and a step
+ * cannot have been frozen while its sibling was not.
  */
 export function stepEntries(entries: EntryMap, amounts: Record<string, number>, step: number): EntryMap {
   const out: EntryMap = {};
   for (const [day, state] of Object.entries(entries)) {
     if (state === 'held') {
-      if (hasStep(amounts[day] ?? 0, step)) out[day] = 'held';
+      const amount = amounts[day] ?? 0;
+      if (hasStep(amount, step)) out[day] = 'held';
+      else if (isAside(amount, step)) out[day] = 'skipped';
     } else {
       out[day] = state;
     }

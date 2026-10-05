@@ -1,7 +1,7 @@
 import { Pressable, View } from 'react-native';
 
 import { Mark } from '@/components/marks';
-import { hasStep, stepNames } from '@/lib/steps';
+import { hasStep, isAside, stepNames } from '@/lib/steps';
 import { COLORS } from '@/theme/colors';
 
 type StepControlProps = {
@@ -30,12 +30,15 @@ export function StepControl({ name, checks, amount, named, onToggle }: StepContr
     <View className={['flex-row items-center', named ? 'gap-1.5' : 'gap-1'].join(' ')}>
       {steps.map((step, index) => {
         const done = hasStep(amount, index);
+        // Set aside reads as answered but empty: dashed and dim, and a tap on
+        // it ticks it after all.
+        const aside = !done && isAside(amount, index);
         return (
           <Pressable
             key={step}
             accessibilityRole={onToggle ? 'checkbox' : undefined}
             accessibilityState={{ checked: done }}
-            accessibilityLabel={`${step} on ${name}, ${done ? 'done' : 'open'}`}
+            accessibilityLabel={`${step} on ${name}, ${done ? 'done' : aside ? 'set aside' : 'open'}`}
             disabled={!onToggle}
             // A bar is narrow, so its target reaches up and down rather than
             // sideways into the next one.
@@ -47,13 +50,18 @@ export function StepControl({ name, checks, amount, named, onToggle }: StepContr
                 // The same rounded square as every other button in a card's corner.
                 className={[
                   'h-11 w-11 items-center justify-center rounded-xl border',
-                  done ? 'border-primary bg-primary' : 'border-border',
+                  done ? 'border-primary bg-primary' : aside ? 'border-dashed border-border opacity-40' : 'border-border',
                 ].join(' ')}
               >
                 <Mark mark={step === 'night' ? 'moon' : 'sun'} size={17} color={done ? COLORS.accentInk : COLORS.muted} />
               </View>
             ) : (
-              <View className={['h-7 w-2.5 rounded-full', done ? 'bg-primary' : 'bg-white/15'].join(' ')} />
+              <View
+                className={[
+                  'h-7 w-2.5 rounded-full',
+                  done ? 'bg-primary' : aside ? 'border border-dashed border-white/25' : 'bg-white/15',
+                ].join(' ')}
+              />
             )}
           </Pressable>
         );

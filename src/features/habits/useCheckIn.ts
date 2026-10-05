@@ -8,7 +8,7 @@ import { useClearEntry, useSetEntry } from '@/features/habits/useEntries';
 import { useTokens } from '@/features/habits/useTokens';
 import { formatDayShort } from '@/lib/dates';
 import { fullDayAmount } from '@/lib/habit';
-import { allStepsDone, clampChecks, hasStep, stepNames, stepsDone, toggleStep } from '@/lib/steps';
+import { allStepsDone, clampChecks, hasStep, isAside, setRestAside, stepNames, stepsDone, toggleStep } from '@/lib/steps';
 import { isWeeklyTarget, weekTarget } from '@/lib/weekTarget';
 import type { EntryState } from '@/lib/streak';
 import { clearedTier, TIER_NAMES } from '@/lib/tiers';
@@ -186,6 +186,28 @@ export function useCheckIn(rows: BoardHabit[]) {
   );
 
   /**
+   * The X beside a twice-a-day habit's checks: the day set aside while nothing
+   * is in, and once something is, the checks still open set aside and the ones
+   * already done kept — morning taken, the night dose stopped for a day, and
+   * the day held on what it actually owed.
+   */
+  const setAside = useCallback(
+    async (habit: Habit, day: string, current: number) => {
+      const checks = clampChecks(habit.checksPerDay);
+      if (stepsDone(current, checks) === 0) return skip(habit, day);
+      const next = setRestAside(current, checks);
+      await setEntry.mutateAsync({ habitId: habit.id, day, state: 'held', amount: next });
+      const aside = stepNames(checks, habit.checksNamed).filter((_, step) => !isAside(current, step) && isAside(next, step));
+      const said = habit.checksNamed ? `${aside.join(' & ')} set aside` : `the last ${aside.length} set aside`;
+      say(`${habit.name} · ${said}. the day is held.`, {
+        label: 'undo',
+        onPress: () => void setEntry.mutateAsync({ habitId: habit.id, day, state: 'held', amount: current }),
+      });
+    },
+    [setEntry, skip, say],
+  );
+
+  /**
    * "I did the thing I am avoiding" — logged while the day is still running.
    *
    * It is the only answer an avoid habit can give about today, because the
@@ -255,5 +277,5 @@ export function useCheckIn(rows: BoardHabit[]) {
     [clearEntry, say],
   );
 
-  return { hold, add, tick, freeze, repair, skip, did, backfill, clear, undo };
+  return { hold, add, tick, freeze, repair, skip, setAside, did, backfill, clear, undo };
 }

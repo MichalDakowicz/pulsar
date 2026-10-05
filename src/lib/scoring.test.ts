@@ -39,6 +39,12 @@ describe('dayReachedTarget', () => {
     expect(dayReachedTarget(meds, D0, 0b11)).toBe(true);
   });
 
+  it('keeps a multi-step day with one check in and the other set aside', () => {
+    const meds = { kind: 'do', checksPerDay: 2 };
+    expect(dayReachedTarget(meds, D0, 0b01 | (1 << 4))).toBe(true);
+    expect(dayReachedTarget(meds, D0, (1 << 3) | (1 << 4))).toBe(false);
+  });
+
   it('judges each day by the checks it owed then', () => {
     const madeTwice = {
       kind: 'do',

@@ -7,7 +7,7 @@ import { useHabitSettings } from '@/hooks/useHabitSettings';
 import { hasReminders, targetLabel } from '@/lib/habit';
 import { planReminders, type ReminderHabit } from '@/lib/reminderPlan';
 import { clearReminders, syncReminders } from '@/lib/reminderScheduler';
-import { hasStep, isMultiStep, stepNames } from '@/lib/steps';
+import { hasStep, isAside, isMultiStep, stepNames } from '@/lib/steps';
 
 /**
  * Keeps Android's reminder queue in step with the habits.
@@ -55,7 +55,8 @@ export function useReminders() {
               names: row.habit.checksNamed ? stepNames(row.habit.checksPerDay) : [],
               doneToday: stepNames(row.habit.checksPerDay)
                 .map((_, step) => step)
-                .filter((step) => hasStep(row.amount, step)),
+                // A check set aside needs no nudge either.
+                .filter((step) => hasStep(row.amount, step) || isAside(row.amount, step)),
             }
           : undefined,
       })),

@@ -23,6 +23,7 @@ type TodayCardProps = {
  * A habit checked twice a day answers one check at a time: the swipe ticks the
  * first one still open and the swipe back takes off the latest, so the gesture
  * still means "done" and "not done" — just for this check rather than the day.
+ * Its X sets the day aside, or once a check is in, the checks still open.
  */
 export function TodayCard({ row, mode, checkIn, today, namesDay }: TodayCardProps) {
   const router = useRouter();
@@ -46,7 +47,11 @@ export function TodayCard({ row, mode, checkIn, today, namesDay }: TodayCardProp
           ? tick(nextOpenStep(row.amount, habit.checksPerDay))
           : void checkIn.hold(habit, row.streak.current + 1, holdAmount(habit, row.weekAmount), judged)
       }
-      onSkip={row.today === 'due' ? () => void checkIn.skip(habit, judged) : undefined}
+      onSkip={
+        row.today === 'due'
+          ? () => void (multi ? checkIn.setAside(habit, judged, row.amount) : checkIn.skip(habit, judged))
+          : undefined
+      }
       onUndo={
         row.undoable
           ? () => (multi ? tick(lastDoneStep(row.amount, habit.checksPerDay)) : void checkIn.undo(habit, judged))

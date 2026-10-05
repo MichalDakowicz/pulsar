@@ -1,7 +1,7 @@
 import { addDays } from '@/lib/dates';
 import { checksOn, isTargetDayOn, targetOn, type Phase } from '@/lib/phases';
 import { cadenceLabel, type Cadence } from '@/lib/schedule';
-import { clampChecks, isMultiStep, stepsDone } from '@/lib/steps';
+import { clampChecks, isAside, isMultiStep, stepsDone } from '@/lib/steps';
 import { silenceIsClean, type EntryMap, type EntryState } from '@/lib/streak';
 import { dayShareOfWeek, isWeeklyTarget, weekTarget } from '@/lib/weekTarget';
 import type { Habit, HabitKind, NudgeWindow } from '@/types/habit';
@@ -85,7 +85,13 @@ export function dayProgress(
   habit: Pick<Habit, 'kind' | 'target'> & Partial<Pick<Habit, 'targetPeriod' | 'allowExceed' | 'checksPerDay'>>,
   amount: number,
 ): number {
-  if (isMultiStep(habit)) return stepsDone(amount, clampChecks(habit.checksPerDay)) / clampChecks(habit.checksPerDay);
+  if (isMultiStep(habit)) {
+    // A step set aside is owed nothing, so it comes off the bottom of the share.
+    const checks = clampChecks(habit.checksPerDay);
+    let owed = checks;
+    for (let step = 0; step < checks; step++) if (isAside(amount, step)) owed -= 1;
+    return owed > 0 ? stepsDone(amount, checks) / owed : 0;
+  }
   if (habit.kind === 'do' || habit.kind === 'avoid') return amount > 0 ? 1 : 0;
   if (isWeeklyTarget(habit)) return dayShareOfWeek(habit, amount);
   if (habit.target <= 0) return amount > 0 ? 1 : 0;

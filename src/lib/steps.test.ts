@@ -1,5 +1,9 @@
 import {
+  allStepsAnswered,
   allStepsDone,
+  isAside,
+  setRestAside,
+  stepsKept,
   checksWords,
   clampChecks,
   hasStep,
@@ -129,5 +133,44 @@ describe('stepStartsOn', () => {
 
   it('has no start for a check the habit no longer has', () => {
     expect(stepStartsOn({ startedOn: '2026-09-01', checksPerDay: 2 }, 2)).toBeNull();
+  });
+});
+
+describe('setting a check aside', () => {
+  it('sets aside the checks still open and keeps the ones in', () => {
+    const next = setRestAside(0b01, 2);
+    expect(hasStep(next, 0)).toBe(true);
+    expect(isAside(next, 0)).toBe(false);
+    expect(isAside(next, 1)).toBe(true);
+    expect(stepsDone(next, 2)).toBe(1);
+  });
+
+  it('keeps a day with one check in and the rest set aside', () => {
+    expect(stepsKept(setRestAside(0b01, 2), 2)).toBe(true);
+    expect(stepsKept(0b01, 2)).toBe(false);
+    expect(allStepsAnswered(0b01, 2)).toBe(false);
+  });
+
+  it('does not keep a day with nothing in, however much is set aside', () => {
+    expect(stepsKept(setRestAside(0, 2), 2)).toBe(false);
+  });
+
+  it('ticks a set-aside check after all, and takes it off the aside list', () => {
+    const next = toggleStep(setRestAside(0b01, 2), 1);
+    expect(hasStep(next, 1)).toBe(true);
+    expect(isAside(next, 1)).toBe(false);
+    expect(allStepsDone(next, 2)).toBe(true);
+  });
+
+  it('skips a set-aside check when a swipe looks for the next one', () => {
+    expect(nextOpenStep(setRestAside(0b001, 3), 3)).toBeNull();
+    expect(nextOpenStep(0b001 | (1 << 4), 3)).toBe(2);
+  });
+
+  it('reads a set-aside check as set aside on its own streak', () => {
+    const amount = setRestAside(0b01, 2);
+    const entries = { '2026-10-01': 'held' as const };
+    expect(stepEntries(entries, { '2026-10-01': amount }, 0)['2026-10-01']).toBe('held');
+    expect(stepEntries(entries, { '2026-10-01': amount }, 1)['2026-10-01']).toBe('skipped');
   });
 });

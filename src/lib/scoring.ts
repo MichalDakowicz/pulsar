@@ -1,5 +1,5 @@
 import { checksOn, targetOn, targetPeriodOn, type Phased } from '@/lib/phases';
-import { allStepsDone } from '@/lib/steps';
+import { stepsKept } from '@/lib/steps';
 import type { EntryMap } from '@/lib/streak';
 import type { TargetPeriod } from '@/types/habit';
 
@@ -15,7 +15,7 @@ import type { TargetPeriod } from '@/types/habit';
  * keeps the wall's gradient on that day.
  *
  * A multi-step habit is the same question asked of its steps: the day is kept
- * once every step is in (`lib/steps`). Each step still keeps its own streak.
+ * once every step is in or set aside, with at least one in (`lib/steps`). Each step still keeps its own streak.
  */
 
 /**
@@ -42,7 +42,7 @@ export function dayReachedTarget(habit: Scorable, day: string, amount: number): 
   // days it lived as once a day, unless the change was applied to the whole run.
   if (habit.kind === 'do') {
     const checks = checksOn(habit, day);
-    return checks > 1 ? allStepsDone(amount, checks) : true;
+    return checks > 1 ? stepsKept(amount, checks) : true;
   }
   if (habit.kind !== 'count' && habit.kind !== 'timer') return true;
   if (day < PARTIAL_MISS_FROM) return true;

@@ -168,6 +168,7 @@ export function HabitCard({
               onAction={actionPress}
               onAdd={onAdd}
               onStep={onStep}
+              onAside={stepping ? onSkip : undefined}
             />
           </View>
 
