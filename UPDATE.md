@@ -26,6 +26,7 @@
 - Streaks: a counter day that ends under its target is a miss from today; the wall still shades it
 - Sign-in screen: ping apps on this phone sit behind one choose an app button
 - Today: holding plus or minus on a counter opens a sheet of bigger steps, like +5 and +10
+- Today: a counter's bigger steps are up to four round numbers — a goal of 90 offers +10 +20 +30 +45
 
 ### Fixed
 
