@@ -40,7 +40,7 @@ export function useLogLink(id: string | undefined, requested: number | null) {
   const router = useRouter();
   const { user } = useAuth();
   const board = useHabitBoard();
-  const checkIn = useCheckIn(board.perfectCount);
+  const checkIn = useCheckIn(board.rows);
   const { say } = useToast();
   const handled = useRef(false);
 

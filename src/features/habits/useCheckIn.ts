@@ -3,6 +3,7 @@ import { useCallback } from 'react';
 import { Platform } from 'react-native';
 
 import { useToast } from '@/components/ui/Toast';
+import type { BoardHabit } from '@/features/habits/boardRow';
 import { useClearEntry, useSetEntry } from '@/features/habits/useEntries';
 import { useTokens } from '@/features/habits/useTokens';
 import { formatDayShort } from '@/lib/dates';
@@ -11,6 +12,7 @@ import { allStepsDone, clampChecks, hasStep, stepNames, stepsDone, toggleStep } 
 import { isWeeklyTarget, weekTarget } from '@/lib/weekTarget';
 import type { EntryState } from '@/lib/streak';
 import { clearedTier, TIER_NAMES } from '@/lib/tiers';
+import { DAYS_PER_TOKEN } from '@/lib/tokens';
 import type { Habit } from '@/types/habit';
 
 /**
@@ -20,11 +22,17 @@ import type { Habit } from '@/types/habit';
  * fat-finger a swipe; spending a freeze token is not, because the token is
  * gone and offering to un-spend it would be a lie about what the ledger did.
  */
-export function useCheckIn(perfectCount: number) {
+export function useCheckIn(rows: BoardHabit[]) {
   const { say } = useToast();
   const setEntry = useSetEntry();
   const clearEntry = useClearEntry();
-  const { spendToken, tokens } = useTokens(perfectCount);
+  const { spendToken } = useTokens();
+  // A token is spent out of the habit's own wallet, so the balance checked is
+  // that habit's, never the total across them.
+  const walletOf = useCallback(
+    (habit: Habit) => rows.find((row) => row.habit.id === habit.id)?.tokens ?? 0,
+    [rows],
+  );
 
   const hold = useCallback(
     async (habit: Habit, nextStreak: number, amount = 1, day?: string) => {
@@ -131,15 +139,15 @@ export function useCheckIn(perfectCount: number) {
         say('hard mode. this habit does not take freeze tokens.');
         return;
       }
-      if (tokens < 1) {
-        say('no tokens left. one lands every 14 perfect days.');
+      if (walletOf(habit) < 1) {
+        say(`no tokens on ${habit.name}. one lands every ${DAYS_PER_TOKEN} held days.`);
         return;
       }
       await setEntry.mutateAsync({ habitId: habit.id, day, state: 'frozen', amount: 0 });
       await spendToken({ reason: 'freeze', habitId: habit.id, day });
       say('frozen. the streak survives, the day does not count.');
     },
-    [setEntry, spendToken, tokens, say],
+    [setEntry, spendToken, walletOf, say],
   );
 
   const repair = useCallback(
@@ -148,15 +156,15 @@ export function useCheckIn(perfectCount: number) {
         say('hard mode. a missed day on this habit stays missed.');
         return;
       }
-      if (tokens < 1) {
-        say('repairing a day costs a token, and you have none.');
+      if (walletOf(habit) < 1) {
+        say(`repairing a day costs a token, and ${habit.name} has none.`);
         return;
       }
       await setEntry.mutateAsync({ habitId: habit.id, day, state: 'repaired', amount: 1 });
       await spendToken({ reason: 'repair', habitId: habit.id, day });
       say('day repaired. one token spent.');
     },
-    [setEntry, spendToken, tokens, say],
+    [setEntry, spendToken, walletOf, say],
   );
 
   /**
@@ -247,5 +255,5 @@ export function useCheckIn(perfectCount: number) {
     [clearEntry, say],
   );
 
-  return { hold, add, tick, freeze, repair, skip, did, backfill, clear, undo, tokens };
+  return { hold, add, tick, freeze, repair, skip, did, backfill, clear, undo };
 }

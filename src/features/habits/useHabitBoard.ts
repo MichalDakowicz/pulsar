@@ -65,8 +65,6 @@ export type HabitBoard = {
   cleanRun: number;
   rebuilt: boolean;
   perfectToday: boolean;
-  tokens: number;
-  tokensToNext: number;
   tokensSpent: number;
   today: string;
   hoursLeft: number;
@@ -133,7 +131,7 @@ export function useHabitBoard(): HabitBoard {
     return perfectDays(schedules, scored, earliest, today);
   }, [schedules, scored, today]);
 
-  const tokens = useTokens(perfect.count);
+  const tokens = useTokens();
 
   const rows = useMemo<BoardHabit[]>(
     () =>
@@ -144,9 +142,10 @@ export function useHabitBoard(): HabitBoard {
           amounts: amounts.get(habit.id) ?? {},
           today,
           hoursLeft,
+          spent: tokens.spentByHabit.get(habit.id) ?? 0,
         }),
       ),
-    [active, byHabit, scored, amounts, today, hoursLeft],
+    [active, byHabit, scored, amounts, today, hoursLeft, tokens.spentByHabit],
   );
 
   // Split by the calendar day, not the day each row asks about — these are the
@@ -203,8 +202,6 @@ export function useHabitBoard(): HabitBoard {
     cleanRun: perfect.cleanRun,
     rebuilt,
     perfectToday: isPerfectToday(schedules, scored, today),
-    tokens: tokens.tokens,
-    tokensToNext: tokens.toNext,
     tokensSpent: tokens.spent,
     today,
     hoursLeft,
