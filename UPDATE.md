@@ -1,6 +1,6 @@
 # Update notes
 
-## 1.5.0 — Unreleased
+## 1.5.0 — 2026-10-05
 
 ### Added
 
