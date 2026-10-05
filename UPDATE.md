@@ -27,6 +27,7 @@
 - Sign-in screen: ping apps on this phone sit behind one choose an app button
 - Today: holding plus or minus on a counter opens a sheet of bigger steps, like +5 and +10
 - Streaks: each habit earns its own freeze tokens, one every 14 held days, and spends only those
+- Today: a counter's bigger steps are up to four round numbers — a goal of 90 offers +10 +20 +30 +45
 
 ### Fixed
 

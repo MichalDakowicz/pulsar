@@ -148,6 +148,19 @@ describe('stepSizes', () => {
     expect(stepSizes(8)).toEqual([1, 2, 4]);
   });
 
+  it('snaps the jumps to round numbers from ten up', () => {
+    expect(stepSizes(90)).toEqual([1, 10, 20, 30, 45]);
+    expect(stepSizes(30)).toEqual([1, 5, 10, 15]);
+    expect(stepSizes(12)).toEqual([1, 5]);
+    expect(stepSizes(200)).toEqual([1, 20, 50, 75, 100]);
+    expect(stepSizes(10000)).toEqual([1, 1000, 2500, 3000, 5000]);
+  });
+
+  it('never offers a number off the round ladder from ten up', () => {
+    const round = (n: number) => n === 1 || n % 5 === 0;
+    for (let goal = 10; goal <= 500; goal++) expect(stepSizes(goal).every(round)).toBe(true);
+  });
+
   it('always offers one, and never a jump past the target', () => {
     expect(stepSizes(1)).toEqual([1]);
     expect(stepSizes(2)).toEqual([1]);
