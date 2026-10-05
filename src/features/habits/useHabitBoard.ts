@@ -65,10 +65,6 @@ export type HabitBoard = {
   cleanRun: number;
   rebuilt: boolean;
   perfectToday: boolean;
-  /** Freeze tokens held across every habit's own wallet. */
-  tokens: number;
-  /** The fewest held days any habit still owes for its next token; 0 when none is earning. */
-  tokensToNext: number;
   tokensSpent: number;
   today: string;
   hoursLeft: number;
@@ -164,8 +160,6 @@ export function useHabitBoard(): HabitBoard {
       row.ring === 'broke',
   );
   const resting = rows.filter((row) => row.ring === 'rest');
-  // Hard mode refuses tokens, so its wallet is never counted toward the total.
-  const wallets = rows.filter((row) => !row.habit.hard);
 
 
   // The most valuable streak on the line, not the first one found — if only one
@@ -208,11 +202,6 @@ export function useHabitBoard(): HabitBoard {
     cleanRun: perfect.cleanRun,
     rebuilt,
     perfectToday: isPerfectToday(schedules, scored, today),
-    tokens: wallets.reduce((total, row) => total + row.tokens, 0),
-    tokensToNext: wallets.reduce(
-      (fewest, row) => (row.tokensToNext > 0 && (fewest === 0 || row.tokensToNext < fewest) ? row.tokensToNext : fewest),
-      0,
-    ),
     tokensSpent: tokens.spent,
     today,
     hoursLeft,

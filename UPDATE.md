@@ -35,6 +35,10 @@
 - Sign-in screen: continuing with an app that is already open now signs you in
 - The app icon, splash and web favicon are the same size as the other Ping apps
 
+### Removed
+
+- Today: the freezes tile — each habit's tokens are on its own page now
+
 ## 1.4.0 — 2026-10-01
 
 ### Added

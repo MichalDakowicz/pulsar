@@ -114,22 +114,6 @@ export default function TodayScreen() {
 
             <View className="flex-row gap-2 px-4 pb-4 pt-3.5">
               <Stat label="longest live" value={`${board.longestLive}d`} />
-              {/* The token tile is only worth its width once tokens are in
-                  play. Before the first one is earned it would be a permanent
-                  "0 left", which teaches nothing and takes a third of the row.
-                  Each habit has its own wallet, so this is what they hold
-                  between them, and the countdown is the nearest one. */}
-              {board.tokens > 0 || (board.tokensToNext > 0 && board.tokensToNext <= 7) ? (
-                <Stat
-                  label="freezes"
-                  value={
-                    board.tokens > 0
-                      ? String(board.tokens)
-                      : `${board.tokensToNext}d`
-                  }
-                  tone="accent"
-                />
-              ) : null}
               <Stat label="perfect days" value={String(board.perfectCount)} />
             </View>
 
