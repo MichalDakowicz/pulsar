@@ -27,6 +27,8 @@
 - Streaks: a counter day that ends under its target is a miss from today; the wall still shades it
 - Sign-in screen: ping apps on this phone sit behind one choose an app button
 - Today: holding plus or minus on a counter opens a sheet of bigger steps, like +5 and +10
+- Streaks: each habit earns its own freeze tokens, one every 14 held days, and spends only those
+- Today: a counter's bigger steps are up to four round numbers — a goal of 90 offers +10 +20 +30 +45
 
 ### Fixed
 
@@ -34,6 +36,10 @@
 - Today: the bars under radar's streak are blue for films and purple for episodes, not amber
 - Sign-in screen: continuing with an app that is already open now signs you in
 - The app icon, splash and web favicon are the same size as the other Ping apps
+
+### Removed
+
+- Today: the freezes tile — each habit's tokens are on its own page now
 
 ## 1.4.0 — 2026-10-01
 

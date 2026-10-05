@@ -151,17 +151,43 @@ export function weekOnTheLine(habit: Targeted, amounts: Record<string, number>, 
 }
 
 /**
+ * The numbers a jump may land on once a goal reaches ten: five, then the round
+ * steps of each power of ten — 10 15 20 25 30 40 45 50 75, 100 150 200 …
+ * Nobody counts in twenty-threes, so a quarter of ninety is offered as twenty.
+ */
+const ROUND_STEPS = [1, 1.5, 2, 2.5, 3, 4, 4.5, 5, 7.5];
+
+function roundStep(n: number): number {
+  let best = 5;
+  for (let scale = 10; scale <= n * 10; scale *= 10) {
+    for (const step of ROUND_STEPS) {
+      const candidate = step * scale;
+      // Ties go to the smaller step: a jump that overshoots is the one that
+      // fills a counter past where the person actually is.
+      if (Math.abs(candidate - n) < Math.abs(best - n)) best = candidate;
+    }
+  }
+  return best;
+}
+
+/**
  * The quick-add buttons a counter should offer, smallest first.
  *
  * Scaled to the target rather than fixed, because the same three chips cannot
  * serve eight glasses and two hundred press-ups: on the first, +10 is absurd;
  * on the second, +1 means twenty taps. One is always offered — every counter
- * needs a way to add exactly one — and the rest are a quarter and a half of
- * what is owed, which is the granularity someone actually thinks in.
+ * needs a way to add exactly one.
+ *
+ * Under ten the rest are a quarter and a half of what is owed. From ten up
+ * they are a tenth, a quarter, a third and a half, each snapped to a round
+ * number (`roundStep`), so ninety offers +10 +20 +30 +45 rather than +23.
  */
 export function stepSizes(target: number): number[] {
   const owed = Math.max(1, Math.round(target));
-  const sizes = [1, Math.round(owed / 4), Math.round(owed / 2)];
+  const sizes =
+    owed < 10
+      ? [1, Math.round(owed / 4), Math.round(owed / 2)]
+      : [1, ...[10, 4, 3, 2].map((part) => roundStep(owed / part))];
   return [...new Set(sizes)].filter((n) => n >= 1 && n <= owed).sort((a, b) => a - b);
 }
 

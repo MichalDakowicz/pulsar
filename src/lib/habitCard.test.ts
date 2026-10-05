@@ -134,7 +134,7 @@ describe('jumps', () => {
 
   it('scales with the target and never offers a one', () => {
     expect(deltas(jumps(20, 'more', 0, Infinity))).toEqual([5, 10]);
-    expect(deltas(jumps(200, 'more', 0, Infinity))).toEqual([50, 100]);
+    expect(deltas(jumps(200, 'more', 0, Infinity))).toEqual([20, 50, 75, 100]);
     expect(deltas(jumps(8, 'more', 0, Infinity))).toEqual([2, 4]);
   });
 

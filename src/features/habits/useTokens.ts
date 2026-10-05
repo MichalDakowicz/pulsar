@@ -4,16 +4,17 @@ import { useMemo } from 'react';
 import { useAuth } from '@/features/auth/AuthProvider';
 import { dateKey } from '@/lib/dates';
 import { supabase } from '@/lib/supabase';
-import { availableTokens, daysToNextToken, earnedTokens } from '@/lib/tokens';
+import { spentByHabit } from '@/lib/tokens';
 
 /**
- * The freeze token balance, out of the ledger.
+ * What has been spent out of each habit's wallet, from the ledger.
  *
- * Earning is derived rather than written: the number of perfect days is already
- * computed for the awards, so a nightly job that inserts `earned` rows would be
+ * Earning is derived rather than written: each habit's held days are already
+ * walked for its streak, so a nightly job that inserts `earned` rows would be
  * a second source of the same truth and would drift the first time it was
  * skipped. Only *spending* is a row, because a spend is an event with a day and
- * a habit attached, and the wall shows it.
+ * a habit attached, and the wall shows it. The balance itself is the board's
+ * to work out (`boardRow`), beside the held days it is earned on.
  */
 
 function tokensKey(userId: string | undefined) {
@@ -32,7 +33,7 @@ async function fetchSpent(userId: string): Promise<TokenRow[]> {
   return data as TokenRow[];
 }
 
-export function useTokens(perfectDayCount: number) {
+export function useTokens() {
   const { user } = useAuth();
   const queryClient = useQueryClient();
   const queryKey = tokensKey(user?.id);
@@ -43,8 +44,8 @@ export function useTokens(perfectDayCount: number) {
     enabled: !!user,
   });
 
-  const spentRows = useMemo(() => query.data ?? [], [query.data]);
-  const spent = spentRows.length;
+  const byHabit = useMemo(() => spentByHabit(query.data ?? []), [query.data]);
+  const spent = query.data?.length ?? 0;
 
   const spend = useMutation({
     mutationFn: async ({ reason, habitId, day }: { reason: 'freeze' | 'repair'; habitId: string; day?: string }) => {
@@ -61,14 +62,10 @@ export function useTokens(perfectDayCount: number) {
     onSuccess: () => queryClient.invalidateQueries({ queryKey }),
   });
 
-  const available = availableTokens(perfectDayCount, spent);
-
   return {
-    tokens: available,
-    earned: earnedTokens(perfectDayCount),
+    /** Tokens spent per habit id. */
+    spentByHabit: byHabit,
     spent,
-    /** Perfect days still owed before the next one lands. 0 at the cap. */
-    toNext: daysToNextToken(perfectDayCount, spent),
     loading: query.isLoading,
     spendToken: spend.mutateAsync,
     spending: spend.isPending,

@@ -10,6 +10,7 @@ import {
   type EntryMap,
   type StreakResult,
 } from '@/lib/streak';
+import { availableTokens, daysToNextToken, earningDays } from '@/lib/tokens';
 import type { Habit } from '@/types/habit';
 
 /**
@@ -75,6 +76,10 @@ export type BoardHabit = {
    * plain checks, which are drawn unlabelled. Empty on a habit checked once.
    */
   steps: { name: string | null; streak: number }[];
+  /** This habit's own freeze tokens, earned on its held days and spent only on it. */
+  tokens: number;
+  /** Held days on this habit before its next token. 0 at the cap. */
+  tokensToNext: number;
 };
 
 type RowInput = {
@@ -85,9 +90,11 @@ type RowInput = {
   amounts: Record<string, number>;
   today: string;
   hoursLeft: number;
+  /** Tokens already spent on this habit. */
+  spent?: number;
 };
 
-export function boardRow(habit: Habit, { raw, entries, amounts: habitAmounts, today, hoursLeft }: RowInput): BoardHabit {
+export function boardRow(habit: Habit, { raw, entries, amounts: habitAmounts, today, hoursLeft, spent = 0 }: RowInput): BoardHabit {
   // Everything about this row keys off the day it is asking about, not off
   // the calendar: for an avoid habit those are different days, and mixing
   // them is how a clean day gets scored twice or not at all.
@@ -99,6 +106,7 @@ export function boardRow(habit: Habit, { raw, entries, amounts: habitAmounts, to
   const state = dayState(habit, entries, judged);
   const amount = habitAmounts[judged] ?? 0;
   const weekly = isWeeklyTarget(habit);
+  const earning = earningDays(streak.heldCount, entries);
 
   return {
     habit,
@@ -148,5 +156,7 @@ export function boardRow(habit: Habit, { raw, entries, amounts: habitAmounts, to
           ).current,
         }))
       : [],
+    tokens: availableTokens(earning, spent),
+    tokensToNext: daysToNextToken(earning, spent),
   };
 }

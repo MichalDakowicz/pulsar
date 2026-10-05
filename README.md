@@ -16,8 +16,8 @@ also shows the streaks you already have in Radar and Lidar, read-only
   actually due, so a habit you do three days a week does not read as missed on the other
   four.
 - **Streaks** — strict, one forgiven miss a week, or a miss that costs three days. Freeze
-  tokens hold a streak through one missed day; you earn one every 14 perfect days and
-  cannot buy them.
+  tokens hold a streak through one missed day; each habit earns its own, one every 14
+  held days, and they cannot be bought.
 - **Pacts** — one habit each with a friend, both sides visible, either side can end it.
 - **The wall** — every day since the habit started, with rest days drawn as rest rather
   than as holes.
