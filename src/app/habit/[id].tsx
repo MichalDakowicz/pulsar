@@ -32,7 +32,7 @@ export default function HabitDetail() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
   const board = useHabitBoard();
-  const checkIn = useCheckIn(board.perfectCount);
+  const checkIn = useCheckIn(board.rows);
   const archive = useArchiveHabit();
   const { say } = useToast();
   const bottom = useNavBarSpace();
@@ -158,8 +158,8 @@ export default function HabitDetail() {
         {!archived && (
           <CommitmentSection
             row={row}
-            tokens={board.tokens}
-            tokensToNext={board.tokensToNext}
+            tokens={row.tokens}
+            tokensToNext={row.tokensToNext}
             onFreeze={() => setDialog('freeze')}
             onRepair={(day) => {
               setRepairDay(day);
@@ -214,7 +214,7 @@ export default function HabitDetail() {
       <SheetDialog
         open={dialog === 'freeze'}
         title="spend a freeze token?"
-        body={`the streak keeps counting and today stays empty on the wall. ${tokenWord(board.tokens - 1)} left after this.`}
+        body={`the streak keeps counting and today stays empty on the wall. ${tokenWord(row.tokens - 1)} left after this.`}
         confirmLabel="freeze today"
         dismissLabel="keep the token"
         onConfirm={async () => {
@@ -227,7 +227,7 @@ export default function HabitDetail() {
       <SheetDialog
         open={dialog === 'repair'}
         title={repairDay ? `repair ${formatDayShort(repairDay)}?` : 'repair a day?'}
-        body={`that day fills in and the streak reads unbroken. it costs one token — ${tokenWord(board.tokens - 1)} left after this.`}
+        body={`that day fills in and the streak reads unbroken. it costs one token — ${tokenWord(row.tokens - 1)} left after this.`}
         confirmLabel="repair the day"
         dismissLabel="leave the gap"
         onConfirm={async () => {

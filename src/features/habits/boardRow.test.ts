@@ -63,3 +63,39 @@ describe('boardRow ring', () => {
     expect(row('do', { [YESTERDAY]: 'broke' }).ring).toBe('due');
   });
 });
+
+describe('boardRow tokens', () => {
+  // Fourteen held days, 2026-09-20 through today.
+  const fortnight: EntryMap = {};
+  for (let day = 20; day <= 33; day++) {
+    const date = day <= 30 ? `2026-09-${day}` : `2026-10-0${day - 30}`;
+    fortnight[date] = 'held';
+  }
+
+  function wallet(entries: EntryMap, spent: number) {
+    return boardRow(normalizeHabit({ ...ROW, kind: 'check' }), {
+      raw: entries,
+      entries,
+      amounts: {},
+      today: TODAY,
+      hoursLeft: 10,
+      spent,
+    });
+  }
+
+  it('earns a token on fourteen held days of its own', () => {
+    const earned = wallet(fortnight, 0);
+    expect(earned.tokens).toBe(1);
+    expect(earned.tokensToNext).toBe(14);
+  });
+
+  it('pays only out of its own wallet', () => {
+    expect(wallet(fortnight, 1).tokens).toBe(0);
+  });
+
+  it('does not earn on a day a token repaired', () => {
+    const patched = wallet({ ...fortnight, '2026-09-25': 'repaired' }, 1);
+    expect(patched.tokens).toBe(0);
+    expect(patched.tokensToNext).toBe(1);
+  });
+});
