@@ -16,10 +16,13 @@ const SLOT = 'h-11 w-11 items-center justify-center rounded-xl';
 export function CardActionButton({
   action,
   name,
+  label: spoken,
   onPress,
 }: {
   action: CardAction;
   name: string;
+  /** What a screen reader says instead, when the button means more than its action. */
+  label?: string;
   onPress?: () => void;
 }) {
   if (action === 'none') return null;
@@ -51,7 +54,8 @@ export function CardActionButton({
   }
 
   const label =
-    action === 'slip'
+    spoken ??
+    (action === 'slip'
       ? `log a slip on ${name} today`
       : action === 'unslip'
       ? `clear today's slip on ${name}`
@@ -61,7 +65,7 @@ export function CardActionButton({
         ? `undo ${name}`
         : action === 'undo-skip'
           ? `take back setting ${name} aside`
-          : `clear the slip on ${name}`;
+          : `clear the slip on ${name}`);
 
   return (
     <Pressable

@@ -5,6 +5,7 @@ import { ShapeMeter } from '@/features/habits/ShapeMeter';
 import { StepControl } from '@/features/habits/StepControl';
 import type { BoardHabit } from '@/features/habits/useHabitBoard';
 import { jumps, type CardAction } from '@/lib/habitCard';
+import { nextOpenStep, stepsDone } from '@/lib/steps';
 
 type CardTrailingProps = {
   row: BoardHabit;
@@ -15,6 +16,8 @@ type CardTrailingProps = {
   onAction?: () => void;
   onAdd?: (delta: number) => void;
   onStep?: (step: number) => void;
+  /** The X after a twice-a-day habit's checks: the day, or what is left of it, set aside. */
+  onAside?: () => void;
 };
 
 /**
@@ -23,7 +26,7 @@ type CardTrailingProps = {
  * else — and, on the read-only Habits tab, the streak, with the habit's shape
  * meter beside it when the row is tagged.
  */
-export function CardTrailing({ row, mode, action, tagged, onAction, onAdd, onStep }: CardTrailingProps) {
+export function CardTrailing({ row, mode, action, tagged, onAction, onAdd, onStep, onAside }: CardTrailingProps) {
   const { habit } = row;
 
   if (mode === 'count' && onAdd) {
@@ -42,14 +45,27 @@ export function CardTrailing({ row, mode, action, tagged, onAction, onAdd, onSte
     );
   }
   if (mode === 'steps' && onStep) {
+    // The X is there while a check is still open — the same "not today" every
+    // other habit has, and the way to drop the rest of a day already begun.
+    const aside = onAside && nextOpenStep(row.amount, habit.checksPerDay) !== null;
     return (
-      <StepControl
-        name={habit.name}
-        checks={habit.checksPerDay}
-        named={habit.checksNamed}
-        amount={row.amount}
-        onToggle={onStep}
-      />
+      <View className="flex-row items-center gap-1.5">
+        <StepControl
+          name={habit.name}
+          checks={habit.checksPerDay}
+          named={habit.checksNamed}
+          amount={row.amount}
+          onToggle={onStep}
+        />
+        {aside && (
+          <CardActionButton
+            action="skip"
+            name={habit.name}
+            label={stepsDone(row.amount, habit.checksPerDay) > 0 ? `set aside the rest of ${habit.name} today` : undefined}
+            onPress={onAside}
+          />
+        )}
+      </View>
     );
   }
   if (mode === 'action') return <CardActionButton action={action} name={habit.name} onPress={onAction} />;
