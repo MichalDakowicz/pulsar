@@ -23,7 +23,6 @@ import { useNavBarSpace } from "@/hooks/useNavBarSpace";
 import { MAX_W } from "@/hooks/useResponsive";
 import { addDays, dateKey, formatDayLong } from "@/lib/dates";
 import { dayTabLabel, todayHint } from "@/lib/habit";
-import { TOKEN_CAP } from "@/lib/tokens";
 import { readError } from "@/lib/utils";
 
 /**
@@ -34,7 +33,7 @@ export default function TodayScreen() {
   const router = useRouter();
   const board = useHabitBoard();
   const { settings } = useHabitSettings();
-  const checkIn = useCheckIn(board.perfectCount);
+  const checkIn = useCheckIn(board.rows);
   const bottom = useNavBarSpace();
   const [showResting, setShowResting] = useState(false);
   // Which day the list is showing. Today always; yesterday only once there is
@@ -117,13 +116,15 @@ export default function TodayScreen() {
               <Stat label="longest live" value={`${board.longestLive}d`} />
               {/* The token tile is only worth its width once tokens are in
                   play. Before the first one is earned it would be a permanent
-                  "0 left", which teaches nothing and takes a third of the row. */}
-              {board.tokens > 0 || board.perfectCount >= 7 ? (
+                  "0 left", which teaches nothing and takes a third of the row.
+                  Each habit has its own wallet, so this is what they hold
+                  between them, and the countdown is the nearest one. */}
+              {board.tokens > 0 || (board.tokensToNext > 0 && board.tokensToNext <= 7) ? (
                 <Stat
                   label="freezes"
                   value={
                     board.tokens > 0
-                      ? `${board.tokens}/${TOKEN_CAP}`
+                      ? String(board.tokens)
                       : `${board.tokensToNext}d`
                   }
                   tone="accent"

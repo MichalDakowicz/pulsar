@@ -5,7 +5,7 @@ import { SectionHeader } from '@/components/ui/states';
 import type { BoardHabit } from '@/features/habits/useHabitBoard';
 import { PactPanel } from '@/features/social/PactPanel';
 import { formatDayShort } from '@/lib/dates';
-import { TOKEN_CAP } from '@/lib/tokens';
+import { DAYS_PER_TOKEN, TOKEN_CAP } from '@/lib/tokens';
 import { COLORS } from '@/theme/colors';
 
 type CommitmentSectionProps = {
@@ -62,9 +62,9 @@ export function CommitmentSection({ row, tokens, tokensToNext, onFreeze, onRepai
               </Text>
             </View>
             <Text className="my-2 text-xs text-muted-foreground">
-              one token holds a streak through one missed day. you earn one every 14 perfect days and you
-              cannot buy them.
-              {tokens < TOKEN_CAP && ` next one in ${tokensToNext} perfect days.`}
+              one token holds this streak through one missed day. this habit earns one every{' '}
+              {DAYS_PER_TOKEN} held days, keeps up to {TOKEN_CAP}, and you cannot buy them.
+              {tokens < TOKEN_CAP && ` next one in ${tokensToNext} held days.`}
             </Text>
             {canFreezeToday && (
               <Pressable
@@ -78,7 +78,7 @@ export function CommitmentSection({ row, tokens, tokensToNext, onFreeze, onRepai
             )}
             {!canFreezeToday && row.today === 'due' && tokens === 0 && (
               <Text className="text-xs text-muted-foreground">
-                nothing to spend yet — {tokensToNext} perfect days to the first one.
+                nothing to spend yet — {tokensToNext} held days to the next one.
               </Text>
             )}
           </View>

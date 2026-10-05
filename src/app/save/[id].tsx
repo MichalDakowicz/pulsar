@@ -26,7 +26,7 @@ export default function SaveStreak() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
   const board = useHabitBoard();
-  const checkIn = useCheckIn(board.perfectCount);
+  const checkIn = useCheckIn(board.rows);
   const bottom = useNavBarSpace();
   const [dialog, setDialog] = useState<'freeze' | 'break' | null>(null);
 
@@ -67,7 +67,7 @@ export default function SaveStreak() {
     );
   }
 
-  const canFreeze = !habit.hard && board.tokens > 0;
+  const canFreeze = !habit.hard && row.tokens > 0;
   const elapsed = Math.min(100, Math.max(0, ((24 - board.hoursLeft) / 24) * 100));
 
   return (
@@ -157,19 +157,19 @@ export default function SaveStreak() {
             {canFreeze ? (
               <Pressable
                 accessibilityRole="button"
-                accessibilityLabel={`spend a freeze token, ${board.tokens} left`}
+                accessibilityLabel={`spend a freeze token, ${row.tokens} left`}
                 onPress={() => setDialog('freeze')}
                 className="items-center rounded-full border border-border py-4"
               >
                 <Text className="text-sm font-semibold text-foreground">
-                  spend a freeze token · {board.tokens} left
+                  spend a freeze token · {row.tokens} left
                 </Text>
               </Pressable>
             ) : (
               <Text className="py-1 text-center text-xs text-muted-foreground">
                 {habit.hard
                   ? 'hard mode — no freeze token can save this one.'
-                  : `no tokens. the next one lands after ${board.tokensToNext} more perfect days.`}
+                  : `no tokens. the next one lands after ${row.tokensToNext} more held days.`}
               </Text>
             )}
 
@@ -188,7 +188,7 @@ export default function SaveStreak() {
       <SheetDialog
         open={dialog === 'freeze'}
         title="freeze tonight?"
-        body={`the ${streak.current}-day streak holds and today stays empty on the wall. ${tokenWord(board.tokens - 1)} left after this.`}
+        body={`the ${streak.current}-day streak holds and today stays empty on the wall. ${tokenWord(row.tokens - 1)} left after this.`}
         confirmLabel="spend one token"
         dismissLabel="not yet"
         onConfirm={async () => {

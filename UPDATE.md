@@ -26,6 +26,7 @@
 - Streaks: a counter day that ends under its target is a miss from today; the wall still shades it
 - Sign-in screen: ping apps on this phone sit behind one choose an app button
 - Today: holding plus or minus on a counter opens a sheet of bigger steps, like +5 and +10
+- Streaks: each habit earns its own freeze tokens, one every 14 held days, and spends only those
 
 ### Fixed
 
