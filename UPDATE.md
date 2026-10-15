@@ -4,6 +4,8 @@
 
 ### Added
 
+- Reminders: check Health Connect before delivery, including while Pulsar is closed
+- Settings: allow background health access to skip reminders for completed targets
 - Habit detail: require minimum workout minutes in one session or across the day
 
 ### Changed

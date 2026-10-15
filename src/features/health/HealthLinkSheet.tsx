@@ -77,7 +77,7 @@ export function HealthLinkSheet({ open, habit, access, saving, onSave, onDismiss
     <SheetDialog
       open={open}
       title="fill it from health connect"
-      body="pulsar reads it when you open the app and only ever adds to a day. it never marks a miss."
+      body="pulsar fills days when you open the app and never marks a miss. allow background health access to skip reminders when health already met the target."
       confirmLabel={source ? 'link it' : 'fill it by hand'}
       dismissLabel="leave it"
       confirmDisabledReason={reason}

@@ -57,6 +57,7 @@
       ],
       "./plugins/withPingSiblings",
       "./plugins/withPingSigning",
+      "./plugins/withHealthReminders",
       "react-native-health-connect",
       [
         "expo-build-properties",
