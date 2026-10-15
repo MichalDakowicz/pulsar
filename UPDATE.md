@@ -1,6 +1,10 @@
 # Update notes
 
-## 1.6.0 — Unreleased
+## 1.6.2 — Unreleased
+
+### Fixed
+
+- Inputs stay above the Android keyboard on full-screen forms
 
 ## 1.5.0 — 2026-10-05
 
