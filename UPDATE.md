@@ -1,6 +1,6 @@
 # Update notes
 
-## 1.6.1 — Unreleased
+## 1.6.1 — 2026-10-15
 
 ### Fixed
 
