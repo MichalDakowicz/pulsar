@@ -60,6 +60,7 @@ export type ReminderHabit = {
 };
 
 export type PlannedReminder = {
+  healthGate?: ReturnType<typeof import('@/lib/healthReminder').healthReminderGate>;
   /** Stable across replans of the same day, so a queue can be reasoned about. */
   id: string;
   habitId: string;

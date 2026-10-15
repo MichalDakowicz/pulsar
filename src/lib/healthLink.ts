@@ -56,6 +56,9 @@ export type HealthLink = {
    * evening to hold. Absent on every other link.
    */
   bedtime?: string;
+  /** Exercise checks only: threshold in minutes, judged per session or per day. */
+  minimumMinutes?: number;
+  minimumMode?: 'session' | 'day';
 };
 
 /** The times a bedtime can be set to — late evening through the small hours. */
@@ -73,10 +76,13 @@ const isBedtime = (value: unknown): value is string => typeof value === 'string'
 export function cleanLink(link: HealthLink): HealthLink {
   const activities = ACTIVITY_GROUPS.filter((group) => link.activities.includes(group));
   const bedtime = link.source === 'sleep' && isBedtime(link.bedtime) ? { bedtime: link.bedtime } : {};
+  const minimum = link.source === 'exercise' && Number.isInteger(link.minimumMinutes) && link.minimumMinutes! > 0 && link.minimumMinutes! <= 1440
+    ? { minimumMinutes: link.minimumMinutes, minimumMode: link.minimumMode === 'day' ? 'day' as const : 'session' as const }
+    : {};
   if (!FILTERED_SOURCES.includes(link.source) || link.mode === 'all' || activities.length === 0) {
-    return { source: link.source, mode: 'all', activities: [], ...bedtime };
+    return { source: link.source, mode: 'all', activities: [], ...bedtime, ...minimum };
   }
-  return { source: link.source, mode: link.mode, activities };
+  return { source: link.source, mode: link.mode, activities, ...minimum };
 }
 
 /** The column read back. Anything it cannot make sense of is no link at all. */
@@ -89,7 +95,9 @@ export function normalizeHealthLink(value: unknown): HealthLink | null {
     ? raw.activities.filter((item): item is ActivityGroup => ACTIVITY_GROUPS.includes(item as ActivityGroup))
     : [];
   const bedtime = isBedtime(raw.bedtime) ? raw.bedtime : undefined;
-  return cleanLink({ source: raw.source as HealthSource, mode, activities, bedtime });
+  const minimumMinutes = typeof raw.minimumMinutes === 'number' ? raw.minimumMinutes : undefined;
+  const minimumMode = raw.minimumMode === 'day' ? 'day' : 'session';
+  return cleanLink({ source: raw.source as HealthSource, mode, activities, bedtime, minimumMinutes, minimumMode });
 }
 
 type Fittable = Pick<Habit, 'kind' | 'unit'> & Partial<Pick<Habit, 'checksPerDay'>>;
@@ -138,11 +146,13 @@ export function activeLink(habit: Fittable & Pick<Habit, 'archivedAt'> & { healt
 /** "exercise · only strength, running" — the row on the habit's page. */
 export function linkSummary(link: HealthLink): string {
   const label = SOURCE_LABELS[link.source].label;
+  const minimum = link.source === 'exercise' && link.minimumMinutes
+    ? ` · at least ${link.minimumMinutes} min ${link.minimumMode === 'day' ? 'per day' : 'in one session'}` : '';
   if (link.source === 'sleep' && link.bedtime) return `sleep · asleep by ${link.bedtime}`;
   if (!FILTERED_SOURCES.includes(link.source)) return label;
-  if (link.mode === 'all') return link.source === 'exercise' ? 'exercise · every kind' : label;
+  if (link.mode === 'all') return link.source === 'exercise' ? `exercise · every kind${minimum}` : label;
   const names = link.activities.map((group) => ACTIVITY_LABELS[group]).join(', ');
-  return `${label} · ${link.mode === 'only' ? 'only' : 'not'} ${names}`;
+  return `${label} · ${link.mode === 'only' ? 'only' : 'not'} ${names}${minimum}`;
 }
 
 /** "read 4m ago" — when the sync last looked, so a number that has not moved can be trusted or not. */

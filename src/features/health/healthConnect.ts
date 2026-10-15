@@ -36,6 +36,9 @@ export async function requestSources(_sources: HealthSource[]): Promise<Set<Heal
 
 export function openHealthSettings(): void {}
 
+export async function backgroundHealthAccess(): Promise<'unavailable' | 'allowed' | 'denied'> { return 'unavailable'; }
+export async function requestBackgroundHealth(): Promise<boolean> { return false; }
+
 export async function readHealth(
   _sources: Set<HealthSource>,
   _from: string,

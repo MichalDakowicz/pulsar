@@ -1,6 +1,25 @@
 # Update notes
 
-## 1.6.0 — Unreleased
+## 1.6.2 — Unreleased
+
+## 1.6.1 — 2026-10-15
+
+### Fixed
+
+- Builder: carry full count and timer targets when switching between daily and weekly rhythms
+
+## 1.6.0 — 2026-10-15
+
+### Added
+
+- Reminders: check Health Connect before delivery, including while Pulsar is closed
+- Settings: allow background health access to skip reminders for completed targets
+- Habit detail: require minimum workout minutes in one session or across the day
+
+### Changed
+
+- Builder: type count targets and timer minutes when creating or editing a habit
+- Habit detail: bedtime allows 15 minutes of grace for Health Connect sleep readings
 
 ## 1.5.0 — 2026-10-05
 

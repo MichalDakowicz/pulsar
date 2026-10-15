@@ -30,7 +30,7 @@ async function schedule(item: PlannedReminder): Promise<void> {
       body: item.body,
       color: NOTIFICATION_ACCENT,
       // Read by the tap handler to open the habit rather than just the app.
-      data: { habitId: item.habitId, kind: item.kind },
+      data: { habitId: item.habitId, kind: item.kind, ...(item.healthGate ? { pulsarHealth: item.healthGate } : {}) },
     },
     trigger: {
       type: Notifications.SchedulableTriggerInputTypes.DATE,
@@ -58,7 +58,7 @@ export async function syncReminders(plan: PlannedReminder[], force = false): Pro
     return 0;
   }
 
-  const fingerprint = planFingerprint(plan);
+  const fingerprint = planFingerprint(plan) + JSON.stringify(plan.map((item) => item.healthGate ?? null));
   if (!force && fingerprint === current) return plan.length;
 
   try {
