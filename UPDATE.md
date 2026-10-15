@@ -2,6 +2,10 @@
 
 ## 1.6.1 — Unreleased
 
+### Fixed
+
+- Builder: carry full count and timer targets when switching between daily and weekly rhythms
+
 ## 1.6.0 — 2026-10-15
 
 ### Added

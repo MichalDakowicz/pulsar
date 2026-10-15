@@ -90,6 +90,27 @@ describe('rhythm', () => {
     expect(withRhythm(weekdays, 'total').amount).toBe(40);
   });
 
+  it.each(['count', 'timer'] as const)('carries large %s targets to the week and back', (kind) => {
+    for (const amount of [200, 8000]) {
+      const daily = named({ kind, amount, minutes: amount });
+      const week = withRhythm(daily, 'total');
+      expect(builderTarget(week)).toBe(amount * 7);
+      expect(toHabitDraft(week).target).toBe(amount * 7);
+      expect(builderTarget(withRhythm(week, 'daily'))).toBe(amount);
+
+      const weekdays = withRhythm(daily, 'weekdays');
+      const weekdayTotal = withRhythm(weekdays, 'total');
+      expect(builderTarget(weekdayTotal)).toBe(amount * 5);
+      expect(builderTarget(withRhythm(weekdayTotal, 'weekdays'))).toBe(amount);
+    }
+  });
+
+  it('reports an overflowing weekly conversion without silently reducing the target', () => {
+    const week = withRhythm(named({ kind: 'count', amount: 2_147_483_647 }), 'total');
+    expect(week.amount).toBe(2_147_483_647 * 7);
+    expect(blocker(week)).toBe('enter a whole target from 1 to 2147483647.');
+  });
+
   it('walks a total back to a day when the kind can no longer add up', () => {
     const checked = withKind(withRhythm(water(), 'total'), 'do');
     expect(checked.targetPeriod).toBe('day');
