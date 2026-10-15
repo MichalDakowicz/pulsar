@@ -201,6 +201,13 @@ export function sleepByDay(sessions: SleepReading[]): Record<string, number> {
  * nothing are left out rather than written as nought.
  */
 export function linkedAmounts(habit: Pick<Habit, 'kind' | 'unit'>, link: HealthLink, readings: HealthReadings): Record<string, number> {
+  if (habit.kind === 'do' && link.source === 'exercise' && link.minimumMinutes) {
+    const minimum = link.minimumMinutes;
+    const sessions = (readings.exercise ?? []).filter((session) => link.minimumMode === 'day' ||
+      (Date.parse(session.end) - Date.parse(session.start)) / 60_000 >= minimum);
+    return Object.fromEntries(Object.entries(exerciseByDay(sessions, link))
+      .filter(([, minutes]) => minutes >= minimum).map(([day]) => [day, 1]));
+  }
   const out: Record<string, number> = {};
   for (const [day, value] of Object.entries(rawByDay(link, readings))) {
     const amount = inHabitUnits(habit, link, value);

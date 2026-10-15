@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Text, View } from 'react-native';
 
-import { Chip, Overline, Segmented } from '@/components/ui/controls';
+import { Chip, Field, Overline, Segmented } from '@/components/ui/controls';
 import { SheetDialog } from '@/components/ui/SheetDialog';
 import { ACTIVITY_GROUPS, ACTIVITY_LABELS, type ActivityGroup, type ActivityMode } from '@/lib/healthActivities';
 import {
@@ -44,6 +44,9 @@ export function HealthLinkSheet({ open, habit, access, saving, onSave, onDismiss
   const [mode, setMode] = useState<ActivityMode>(current?.mode ?? 'all');
   const [activities, setActivities] = useState<ActivityGroup[]>(current?.activities ?? []);
   const [bedtime, setBedtime] = useState(current?.bedtime ?? DEFAULT_BEDTIME);
+  const [minimumMinutes, setMinimumMinutes] = useState(String(current?.minimumMinutes ?? ''));
+  const [minimumMode, setMinimumMode] = useState<'session' | 'day'>(current?.minimumMode ?? 'session');
+  const exerciseCheck = source === 'exercise' && habit.kind === 'do';
   // Sleep on a check is a bedtime; on a timer it is how long you slept.
   const byBedtime = source === 'sleep' && habit.kind === 'do';
 
@@ -64,6 +67,8 @@ export function HealthLinkSheet({ open, habit, access, saving, onSave, onDismiss
         ? 'pick what fills it in'
         : misfit
           ? `${source} ${misfit}`
+          : exerciseCheck && minimumMinutes !== '' && (!Number.isInteger(Number(minimumMinutes)) || Number(minimumMinutes) < 1 || Number(minimumMinutes) > 1440)
+            ? 'enter a minimum from 1 to 1440 minutes, or leave it empty'
           : source && FILTERED_SOURCES.includes(source) && mode === 'only' && activities.length === 0
             ? 'pick at least one kind of session'
             : null;
@@ -76,7 +81,8 @@ export function HealthLinkSheet({ open, habit, access, saving, onSave, onDismiss
       confirmLabel={source ? 'link it' : 'fill it by hand'}
       dismissLabel="leave it"
       confirmDisabledReason={reason}
-      onConfirm={() => onSave(source ? { source, mode, activities, ...(byBedtime ? { bedtime } : {}) } : null)}
+      onConfirm={() => onSave(source ? { source, mode, activities, ...(byBedtime ? { bedtime } : {}),
+        ...(exerciseCheck && minimumMinutes ? { minimumMinutes: Number(minimumMinutes), minimumMode } : {}) } : null)}
       onDismiss={onDismiss}
     >
       {access && access !== 'ready' && <Text className="mt-3 text-sm text-foreground">{ACCESS_LINES[access]}</Text>}
@@ -106,6 +112,18 @@ export function HealthLinkSheet({ open, habit, access, saving, onSave, onDismiss
               <Chip key={time} label={time} selected={bedtime === time} onPress={() => setBedtime(time)} />
             ))}
           </View>
+        </View>
+      )}
+
+      {exerciseCheck && (
+        <View className="mt-4 gap-2.5">
+          <Overline>at least this many minutes</Overline>
+          <Field accessibilityLabel="minimum exercise minutes" value={minimumMinutes} placeholder="any duration"
+            keyboardType="number-pad" inputMode="numeric" maxLength={4}
+            onChangeText={(text) => { if (/^\d*$/.test(text)) setMinimumMinutes(text); }} />
+          {!!minimumMinutes && <Segmented label="how minutes count" value={minimumMode} onChange={setMinimumMode}
+            options={[{ value: 'session', label: 'one session' }, { value: 'day', label: 'daily total' }]} />}
+          <Text className="text-xs text-muted-foreground">leave empty to count any workout. the minimum uses only the kinds chosen below.</Text>
         </View>
       )}
 

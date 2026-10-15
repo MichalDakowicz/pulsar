@@ -2,6 +2,10 @@
 
 ## 1.6.0 — Unreleased
 
+### Added
+
+- Habit detail: require minimum workout minutes in one session or across the day
+
 ### Changed
 
 - Builder: type count targets and timer minutes when creating or editing a habit
