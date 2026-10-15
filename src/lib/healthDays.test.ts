@@ -121,6 +121,14 @@ describe('bedtimeByDay', () => {
     expect(bedtimeByDay([night], '23:00')).toEqual({ '2026-10-03': 1 });
   });
 
+  it('allows fifteen minutes of bedtime grace, including across midnight', () => {
+    const night = (day: string, hh: number, mm: number) => ({ start: at(day, hh, mm), end: at('2026-10-04', 7), stages: [] });
+    expect(bedtimeByDay([night('2026-10-03', 23, 8)], '23:00')).toEqual({ '2026-10-03': 1 });
+    expect(bedtimeByDay([night('2026-10-03', 23, 15)], '23:00')).toEqual({ '2026-10-03': 1 });
+    expect(bedtimeByDay([night('2026-10-03', 23, 16)], '23:00')).toEqual({});
+    expect(bedtimeByDay([night('2026-10-04', 0, 8)], '23:55')).toEqual({ '2026-10-03': 1 });
+  });
+
   it('gives a night that started after midnight to the evening before, unheld', () => {
     const late = { start: at('2026-10-04', 0, 30), end: at('2026-10-04', 7), stages: [] };
     expect(bedtimeByDay([late], '23:00')).toEqual({});

@@ -91,7 +91,7 @@ export function HealthLinkSheet({ open, habit, access, saving, onSave, onDismiss
       <Text className="mt-2 text-xs text-muted-foreground">
         {source
           ? byBedtime
-            ? 'held on the evenings you were asleep by the time below. a sleep under three hours is a nap, not a night.'
+            ? 'held if you fall asleep within 15 minutes after the time below. a sleep under three hours is a nap, not a night.'
             : SOURCE_LABELS[source].sub
           : fitting.length > 0
             ? `${fitting.join(', ')} can fill this one. the rest need a habit of another shape.`
