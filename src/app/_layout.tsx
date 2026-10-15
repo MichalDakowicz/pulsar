@@ -8,6 +8,7 @@ import { Platform } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
+import { KeyboardFrame } from '@/components/layout/KeyboardFrame';
 import { ToastProvider } from '@/components/ui/Toast';
 import { AuthProvider, useAuth } from '@/features/auth/AuthProvider';
 import { HandoffReplay } from '@/features/auth/HandoffReplay';
@@ -63,7 +64,9 @@ export default function RootLayout() {
                   {Platform.OS === 'android' && <ScreenSync />}
                   <UpdateNotice />
                   <HandoffReplay />
-                  <Stack screenOptions={{ headerShown: false }} />
+                  <KeyboardFrame>
+                    <Stack screenOptions={{ headerShown: false }} />
+                  </KeyboardFrame>
                 </AuthGate>
               </ToastProvider>
             </ThemeProvider>
