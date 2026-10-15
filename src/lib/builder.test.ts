@@ -19,6 +19,14 @@ const named = (patch: Partial<BuilderState> = {}): BuilderState => ({ ...blankBu
 const water = () => withKind(named({ name: 'water' }), 'count');
 
 describe('clause gates', () => {
+  it('blocks empty, fractional and overflowing typed targets', () => {
+    for (const kind of ['count', 'timer'] as const) {
+      for (const target of [0, -1, 1.5, NaN, Infinity, 2_147_483_648]) {
+        expect(clauseBlocker(named({ kind, amount: target, minutes: target }), 'measure')).not.toBeNull();
+      }
+      expect(clauseBlocker(named({ kind, amount: 8000, minutes: 37 }), 'measure')).toBeNull();
+    }
+  });
   it('will not leave the name clause unnamed', () => {
     expect(clauseBlocker(named({ name: '  ' }), 'name')).toBe('give it a name first.');
     expect(clauseBlocker(named(), 'name')).toBeNull();

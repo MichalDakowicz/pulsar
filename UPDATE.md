@@ -4,6 +4,7 @@
 
 ### Changed
 
+- Builder: type count targets and timer minutes when creating or editing a habit
 - Habit detail: bedtime allows 15 minutes of grace for Health Connect sleep readings
 
 ## 1.5.0 — 2026-10-05

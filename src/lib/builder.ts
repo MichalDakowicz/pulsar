@@ -127,7 +127,13 @@ export function draftShape(state: BuilderState): Pick<Habit, 'kind' | 'target' |
 /** Why this clause cannot be left, or null. Shown, never silently enforced. */
 export function clauseBlocker(state: BuilderState, clause: Clause): string | null {
   if (clause === 'name') return state.name.trim() ? null : 'give it a name first.';
-  if (clause === 'measure') return state.kind === 'count' && !cleanUnit(state.unit) ? 'say what you are counting.' : null;
+  if (clause === 'measure') {
+    const target = state.kind === 'count' ? state.amount : state.minutes;
+    if (isMeasured(state.kind) && (!Number.isSafeInteger(target) || target < 1 || target > 2_147_483_647)) {
+      return 'enter a whole target from 1 to 2147483647.';
+    }
+    return state.kind === 'count' && !cleanUnit(state.unit) ? 'say what you are counting.' : null;
+  }
   if (clause === 'rhythm') return isEmptyCadence(state.cadence) ? 'pick at least one day, or it can never come due.' : null;
   if (clause === 'nudge') {
     return state.window !== 'anytime' && state.times.length === 0 ? 'pick a time, or switch nudges off.' : null;
