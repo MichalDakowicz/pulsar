@@ -4,6 +4,7 @@ import { Platform, Text, View } from 'react-native';
 import { Overline } from '@/components/ui/controls';
 import { useHabits } from '@/features/habits/useHabits';
 import { ConnectionRow } from '@/features/health/ConnectionRow';
+import { BackgroundHealthRow } from '@/features/health/BackgroundHealthRow';
 import { openHealthSettings } from '@/features/health/healthConnect';
 import { useHealthStatus } from '@/features/health/healthStatus';
 import { useHealthAccess, useReadAgo } from '@/features/health/useHealthAccess';
@@ -50,10 +51,12 @@ export function HealthConnectControl() {
         <ConnectionRow title="what pulsar may read" sub="steps, workouts, distance, sleep, water and mindfulness — managed in health connect" onPress={openHealthSettings} />
       )}
 
+      {onPhone && access === 'ready' && <BackgroundHealthRow />}
+
       <Text className="text-xs text-muted-foreground">
         {linked.length === 0
           ? 'no habit is filled from it yet. open a steps, workout or sleep habit and link it under connections.'
-          : 'pulsar reads it when you open the app and only ever adds to a day. link or change a habit from its page.'}
+          : 'pulsar fills days when you open the app. with background access, it also checks health before each reminder. link or change a habit from its page.'}
       </Text>
     </View>
   );

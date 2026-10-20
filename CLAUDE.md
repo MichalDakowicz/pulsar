@@ -158,6 +158,12 @@ error; do not describe the change as shipped.
 Go binary, so a reminder silently never fires there. Anything touching reminders is only
 verified on a dev or release build.
 
+Health-linked reminders are checked by `modules/health-reminders` before Android delivers
+them, even without React running. `plugins/withHealthReminders.js` replaces Expo's receiver;
+keep it enabled. Native completion rules mirror `healthDays.ts` and need both JS and native
+tests when changed. Background Health Connect access is optional (Settings → health connect);
+missing permission, unsupported providers and failed reads must still deliver the reminder.
+
 **The QR scanner needs a real build.** `expo-camera`'s native module is not in the Expo Go
 binary, so a scan silently never fires there. The sign-in QR screens (`qr-scan`, `qr-show`;
 PING.md §9.14) are only verified on a dev or release build, and the approve step needs a

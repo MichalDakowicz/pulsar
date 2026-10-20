@@ -1,0 +1,29 @@
+plugins {
+  id 'com.android.library'
+  id 'expo-module-gradle-plugin'
+}
+
+group = 'com.michaldakowicz.pulsar.healthreminders'
+version = '1.0.0'
+
+android {
+  namespace 'expo.modules.healthreminders'
+  defaultConfig {
+    versionCode 1
+    versionName '1.0.0'
+  }
+}
+
+dependencies {
+  def notifications = findProject(':expo-notifications')
+  if (notifications != null) {
+    implementation notifications
+  } else {
+    def publication = new groovy.json.JsonSlurper().parse(file('../../../node_modules/expo-notifications/expo-module.config.json')).android.publication
+    implementation "${publication.groupId}:${publication.artifactId}:${publication.version}"
+  }
+  implementation 'androidx.health.connect:connect-client:1.1.0'
+  implementation 'org.jetbrains.kotlinx:kotlinx-coroutines-android:1.7.3'
+  testImplementation 'junit:junit:4.13.2'
+  testImplementation 'org.json:json:20240303'
+}

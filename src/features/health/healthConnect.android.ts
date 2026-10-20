@@ -10,6 +10,7 @@ import {
   SdkAvailabilityStatus,
   type RecordType,
 } from 'react-native-health-connect';
+import { requireOptionalNativeModule } from 'expo-modules-core';
 
 import { addDays, parseDay } from '@/lib/dates';
 import type { DistanceSession, ExerciseReading, HealthReadings, SleepReading } from '@/lib/healthDays';
@@ -103,6 +104,9 @@ export async function requestSources(sources: HealthSource[]): Promise<Set<Healt
   });
   try {
     await requestPermission([...reads, ...writes]);
+    // Separate request: an unsupported background permission must not reject
+    // ordinary foreground linking on older Health Connect providers.
+    await requestBackgroundHealth();
   } catch {
     // A record type this phone's Health Connect does not have yet — mindfulness
     // before Android 14's module update — refuses the whole request.
@@ -112,6 +116,22 @@ export async function requestSources(sources: HealthSource[]): Promise<Set<Healt
 
 export function openHealthSettings(): void {
   openHealthConnectSettings();
+}
+
+export async function backgroundHealthAccess(): Promise<'unavailable' | 'allowed' | 'denied'> {
+  const reminders = requireOptionalNativeModule<{ supportsBackgroundReads(): Promise<boolean> }>('HealthReminders');
+  if (!reminders || !await reminders.supportsBackgroundReads()) return 'unavailable';
+  return has(await granted(), 'read', 'BackgroundAccessPermission') ? 'allowed' : 'denied';
+}
+
+export async function requestBackgroundHealth(): Promise<boolean> {
+  try {
+    const access = await backgroundHealthAccess();
+    if (access === 'unavailable') return false;
+    if (access === 'allowed') return true;
+    await requestPermission([{ accessType: 'read', recordType: 'BackgroundAccessPermission' }]);
+    return await backgroundHealthAccess() === 'allowed';
+  } catch { return false; }
 }
 
 const iso = (day: string) => parseDay(day).toISOString();

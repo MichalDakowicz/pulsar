@@ -1,12 +1,12 @@
-import { Ban, Check, Hash, Minus, Plus, Timer, type LucideIcon } from 'lucide-react-native';
+import { Ban, Check, Hash, Timer, type LucideIcon } from 'lucide-react-native';
 import { Pressable, Text, View } from 'react-native';
 
-import { Chip, Overline, SwitchRow } from '@/components/ui/controls';
+import { Field, Overline, SwitchRow } from '@/components/ui/controls';
 import { ChecksPicker } from '@/features/builder/clauses/ChecksPicker';
 import { Note, Question, type ClauseProps } from '@/features/builder/clauses/shared';
 import { UnitField } from '@/features/builder/clauses/UnitField';
 import { isMeasured } from '@/lib/builder';
-import { amountOptions, minuteOptions, withChecks, withKind } from '@/lib/builderEdits';
+import { withChecks, withKind } from '@/lib/builderEdits';
 import { COLORS } from '@/theme/colors';
 import type { HabitKind } from '@/types/habit';
 
@@ -69,20 +69,15 @@ export function MeasureClause({ state, apply, choose, editing, kindLocked }: Cla
       {state.kind === 'count' && (
         <View className="gap-2.5">
           <Overline>{week ? 'how many a week' : 'how many a day'}</Overline>
-          <View className="flex-row flex-wrap items-center gap-2">
-            {amountOptions(state).map((amount) => (
-              <Chip
-                key={amount}
-                label={String(amount)}
-                selected={state.amount === amount}
-                onPress={() => apply((current) => ({ ...current, amount }))}
-              />
-            ))}
-            <Stepper
-              onLess={() => apply((current) => ({ ...current, amount: Math.max(1, current.amount - 1) }))}
-              onMore={() => apply((current) => ({ ...current, amount: Math.min(999, current.amount + 1) }))}
-            />
-          </View>
+          <Field
+            accessibilityLabel={week ? 'count target per week' : 'count target per day'}
+            value={state.amount === 0 ? '' : String(state.amount)}
+            keyboardType="number-pad"
+            inputMode="numeric"
+            maxLength={10}
+            onChangeText={(text) => { if (/^\d*$/.test(text)) apply((current) => ({ ...current, amount: Number(text) })); }}
+            placeholder="enter a count"
+          />
           <Overline className="mt-2">of what</Overline>
           <UnitField unit={state.unit} onChange={(unit) => apply((current) => ({ ...current, unit }))} />
         </View>
@@ -91,16 +86,15 @@ export function MeasureClause({ state, apply, choose, editing, kindLocked }: Cla
       {state.kind === 'timer' && (
         <View className="gap-2.5">
           <Overline>{week ? 'minutes a week' : 'minutes a day'}</Overline>
-          <View className="flex-row flex-wrap gap-2">
-            {minuteOptions(state).map((minutes) => (
-              <Chip
-                key={minutes}
-                label={`${minutes} min`}
-                selected={state.minutes === minutes}
-                onPress={() => choose((current) => ({ ...current, minutes }))}
-              />
-            ))}
-          </View>
+          <Field
+            accessibilityLabel={week ? 'minutes per week' : 'minutes per day'}
+            value={state.minutes === 0 ? '' : String(state.minutes)}
+            keyboardType="number-pad"
+            inputMode="numeric"
+            maxLength={10}
+            onChangeText={(text) => { if (/^\d*$/.test(text)) apply((current) => ({ ...current, minutes: Number(text) })); }}
+            placeholder="enter minutes"
+          />
         </View>
       )}
 
@@ -122,15 +116,3 @@ export function MeasureClause({ state, apply, choose, editing, kindLocked }: Cla
   );
 }
 
-function Stepper({ onLess, onMore }: { onLess: () => void; onMore: () => void }) {
-  return (
-    <View className="flex-row gap-1">
-      <Pressable accessibilityRole="button" accessibilityLabel="one fewer" onPress={onLess} className="h-8 w-9 items-center justify-center rounded-full bg-secondary">
-        <Minus size={15} color={COLORS.foreground} />
-      </Pressable>
-      <Pressable accessibilityRole="button" accessibilityLabel="one more" onPress={onMore} className="h-8 w-9 items-center justify-center rounded-full bg-secondary">
-        <Plus size={15} color={COLORS.foreground} />
-      </Pressable>
-    </View>
-  );
-}

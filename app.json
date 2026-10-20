@@ -2,7 +2,7 @@
   "expo": {
     "name": "Pulsar",
     "slug": "pulsar",
-    "version": "1.6.0",
+    "version": "1.7.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
     "scheme": "pulsar",
@@ -15,7 +15,7 @@
       },
       "predictiveBackGestureEnabled": false,
       "package": "com.michaldakowicz.pulsar",
-      "versionCode": 9,
+      "versionCode": 12,
       "permissions": [
         "android.permission.health.READ_STEPS",
         "android.permission.health.READ_EXERCISE",
@@ -57,6 +57,7 @@
       ],
       "./plugins/withPingSiblings",
       "./plugins/withPingSigning",
+      "./plugins/withHealthReminders",
       "react-native-health-connect",
       [
         "expo-build-properties",

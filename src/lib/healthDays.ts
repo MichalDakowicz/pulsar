@@ -139,6 +139,9 @@ const NOT_ASLEEP = new Set([1, 3]);
 /** Shorter than this is a nap, and a nap at three in the afternoon is not going to bed early. */
 export const MIN_NIGHT_MINUTES = 180;
 
+/** Trackers estimate when sleep starts; a quarter-hour delay still holds bedtime. */
+export const BEDTIME_GRACE_MINUTES = 15;
+
 const HALF_DAY_MS = 12 * 60 * 60 * 1000;
 
 /** Minutes after the evening's noon a bedtime falls: 23:00 is 660, 00:30 is 750. */
@@ -169,7 +172,7 @@ export function bedtimeByDay(sessions: SleepReading[], bedtime: string): Record<
   const out: Record<string, number> = {};
   for (const [evening, night] of nights) {
     const noon = parseDay(evening).getTime() + HALF_DAY_MS;
-    if (night.start <= noon + bedtimeOffset(bedtime) * 60_000) out[evening] = 1;
+    if (night.start <= noon + (bedtimeOffset(bedtime) + BEDTIME_GRACE_MINUTES) * 60_000) out[evening] = 1;
   }
   return out;
 }
@@ -198,6 +201,13 @@ export function sleepByDay(sessions: SleepReading[]): Record<string, number> {
  * nothing are left out rather than written as nought.
  */
 export function linkedAmounts(habit: Pick<Habit, 'kind' | 'unit'>, link: HealthLink, readings: HealthReadings): Record<string, number> {
+  if (habit.kind === 'do' && link.source === 'exercise' && link.minimumMinutes) {
+    const minimum = link.minimumMinutes;
+    const sessions = (readings.exercise ?? []).filter((session) => link.minimumMode === 'day' ||
+      (Date.parse(session.end) - Date.parse(session.start)) / 60_000 >= minimum);
+    return Object.fromEntries(Object.entries(exerciseByDay(sessions, link))
+      .filter(([, minutes]) => minutes >= minimum).map(([day]) => [day, 1]));
+  }
   const out: Record<string, number> = {};
   for (const [day, value] of Object.entries(rawByDay(link, readings))) {
     const amount = inHabitUnits(habit, link, value);

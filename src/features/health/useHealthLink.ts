@@ -1,6 +1,6 @@
 import { useCallback } from 'react';
 
-import { grantedSources, openHealthSettings, requestSources } from '@/features/health/healthConnect';
+import { openHealthSettings, requestSources } from '@/features/health/healthConnect';
 import { useHealthStatus } from '@/features/health/healthStatus';
 import { useHealthAccess, useReadAgo } from '@/features/health/useHealthAccess';
 import { useUpdateHabit } from '@/features/habits/useHabits';
@@ -27,8 +27,7 @@ export function useHealthLink(habit: Habit) {
   const save = useCallback(
     async (link: HealthLink | null): Promise<LinkOutcome> => {
       if (link) {
-        const granted = await grantedSources();
-        const now = granted.has(link.source) ? granted : await requestSources([link.source]);
+        const now = await requestSources([link.source]);
         if (!now.has(link.source)) return 'denied';
       }
       await update.mutateAsync({ id: habit.id, patch: { healthLink: link ? cleanLink(link) : null } });

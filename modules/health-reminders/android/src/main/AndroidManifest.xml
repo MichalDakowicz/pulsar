@@ -1,0 +1,16 @@
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+  <uses-permission android:name="android.permission.health.READ_HEALTH_DATA_IN_BACKGROUND" />
+  <application>
+    <receiver android:name="expo.modules.healthreminders.HealthNotificationsService"
+      android:enabled="true" android:exported="false">
+      <intent-filter>
+        <action android:name="expo.modules.notifications.NOTIFICATION_EVENT" />
+        <action android:name="android.intent.action.BOOT_COMPLETED" />
+        <action android:name="android.intent.action.REBOOT" />
+        <action android:name="android.intent.action.QUICKBOOT_POWERON" />
+        <action android:name="com.htc.intent.action.QUICKBOOT_POWERON" />
+        <action android:name="android.intent.action.MY_PACKAGE_REPLACED" />
+      </intent-filter>
+    </receiver>
+  </application>
+</manifest>

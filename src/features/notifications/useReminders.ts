@@ -5,6 +5,7 @@ import { useAuth } from '@/features/auth/AuthProvider';
 import { useHabitBoard } from '@/features/habits/useHabitBoard';
 import { useHabitSettings } from '@/hooks/useHabitSettings';
 import { hasReminders, targetLabel } from '@/lib/habit';
+import { healthReminderGate } from '@/lib/healthReminder';
 import { planReminders, type ReminderHabit } from '@/lib/reminderPlan';
 import { clearReminders, syncReminders } from '@/lib/reminderScheduler';
 import { hasStep, isAside, isMultiStep, stepNames } from '@/lib/steps';
@@ -64,8 +65,11 @@ export function useReminders() {
   );
 
   const plan = useMemo(
-    () => (ready ? planReminders({ habits, settings }) : []),
-    [ready, habits, settings],
+    () => (ready ? planReminders({ habits, settings }).map((item) => {
+      const row = board.rows.find((candidate) => candidate.habit.id === item.habitId);
+      return { ...item, healthGate: row ? healthReminderGate(row.habit, row.entries, row.amounts, item.at) : null };
+    }) : []),
+    [ready, habits, settings, board.rows],
   );
 
   useEffect(() => {

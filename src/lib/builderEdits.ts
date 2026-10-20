@@ -96,7 +96,7 @@ function cadenceFor(rhythm: Exclude<Rhythm, 'total'>, current: Cadence): Cadence
 export function withRhythm(state: BuilderState, rhythm: Rhythm): BuilderState {
   const from = rhythmOf(state);
   if (rhythm === from && rhythm !== 'total') return state;
-  const scale = (value: number, factor: number) => Math.max(1, Math.min(999, Math.round(value * factor)));
+  const scale = (value: number, factor: number) => Math.max(1, Math.round(value * factor));
   if (rhythm === 'total') {
     if (from === 'total') return state;
     const factor = daysPerWeek(state.cadence);
