@@ -45,6 +45,16 @@ describe('cleanLink', () => {
 });
 
 describe('normalizeHealthLink', () => {
+  it('persists a valid exercise minimum and ignores malformed or unrelated thresholds', () => {
+    const link = { source: 'exercise' as const, mode: 'only' as const, activities: ['strength' as const], minimumMinutes: 30, minimumMode: 'day' as const };
+    expect(normalizeHealthLink(link)).toEqual(link);
+    expect(linkSummary(link)).toContain('at least 30 min per day');
+    expect(normalizeHealthLink({ ...link, minimumMode: 'unknown' })?.minimumMode).toBe('session');
+    for (const minimumMinutes of [0, -1, 1.5, 1441, '30']) {
+      expect(normalizeHealthLink({ ...link, minimumMinutes })?.minimumMinutes).toBeUndefined();
+    }
+    expect(normalizeHealthLink({ ...link, source: 'sleep' })?.minimumMinutes).toBeUndefined();
+  });
   it('reads nothing as no link', () => {
     expect(normalizeHealthLink(null)).toBeNull();
     expect(normalizeHealthLink({ source: 'heartbeat' })).toBeNull();
