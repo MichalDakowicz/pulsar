@@ -326,7 +326,7 @@ create policy habit_nudges_insert on public.habit_nudges for insert
     and exists (
       select 1 from public.habit_pacts p
       where p.state = 'active'
-        and (p.habit_id = habit_id or p.partner_habit_id = habit_id)
+        and (p.habit_id = habit_nudges.habit_id or p.partner_habit_id = habit_nudges.habit_id)
         and ((p.owner_id = from_id and p.partner_id = to_id)
           or (p.partner_id = from_id and p.owner_id = to_id))
     )

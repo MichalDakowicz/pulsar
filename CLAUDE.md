@@ -4,10 +4,11 @@ React Native / Expo (SDK 57) app for habit tracking. Expo Router, NativeWind, Su
 TanStack Query, Zustand + MMKV. Source lives in `src/`; routes in `src/app/`. Android is
 the practical target — the user tests on a physical device over ADB.
 
-**Pulsar, Radar (`../radar`), Lidar (`../lidar`) and Sonar (`../sonar`) share one Supabase
-project.** Accounts, profiles, friendships, the privacy setting and the theme preference
-are the same rows in all four apps. Read `docs/shared-database.md` before touching
-anything under `supabase/` or any table Radar owns.
+Ping consists of Pulsar, Lidar, Sonar and Bazaar. Radar and Cellar are separate
+products. The cutover uses Ping's shared backend for Pulsar, Lidar and Sonar;
+Bazaar remains on cloud until its own migration. Keep the existing Firebase URL.
+Read `docs/shared-database.md` before touching schema or shared data. Never restore
+a full cloud snapshot over populated Ping or replace existing Auth/session rows.
 
 Structure rules (they are why the siblings are maintainable):
 

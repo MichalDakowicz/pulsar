@@ -1,6 +1,17 @@
 # Update notes
 
-## 1.7.1 — Unreleased
+## 1.7.2 — Unreleased
+
+## 1.7.1 — 2026-11-01
+
+### Changed
+
+- Sign in again to keep your habits on Ping's own server
+- Today: the elsewhere strip shows streaks from apps using the same server
+
+### Fixed
+
+- Social: partner nudges stay limited to the habits in your pact
 
 ## 1.7.0 — 2026-10-20
 
