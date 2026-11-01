@@ -1,5 +1,29 @@
 # One database, four apps
 
+## Ping backend cutover
+
+Ping consists of Lidar, Sonar, Pulsar and Bazaar; Radar and Cellar remain separate
+cloud products. The Pulsar cutover joins Lidar and Sonar on Ping's backend.
+Bazaar stays on cloud until its own migration. Keep the existing Firebase URLs.
+The historical schema ownership below describes preserved dependencies, not
+current product membership. Shared rows no longer replicate from cloud.
+
+The client uses a new Pulsar auth-storage namespace and requires fresh sign-in.
+Sibling handoff is allowed only between apps on the same backend, with the
+existing certificate, state, expiry and one-time-token checks. Radar/Cellar are
+excluded. Ping hosts its own sign-in-handoff and qr-login functions.
+
+Today shows Lidar's local published streak. Radar's copied cloud streak is hidden
+because it no longer receives updates here. Preserve the historical fields.
+Only theme/friends_visibility and profile username/display_name are shared
+Pulsar writes. Existing Auth identities/sessions and sibling data must be preserved.
+Never use a full cloud restore to migrate a remaining app into populated Ping.
+
+The nudge insert policy qualifies the outer habit_nudges.habit_id, so an active
+pact cannot authorize a nudge for an unrelated habit.
+
+The following pre-cutover description is historical where it differs above.
+
 Radar (films), Sonar (records), Lidar (books) and Pulsar (habits) run on the **same
 Supabase project**. Not copies, not a sync — the same rows. This is a deliberate
 constraint: the free plan is one project, and all four apps belong to the same person, so
