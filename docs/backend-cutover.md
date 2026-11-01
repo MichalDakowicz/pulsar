@@ -14,5 +14,9 @@ before web deployment. Release acceptance requires same-account habit reads,
 owner/non-owner/anonymous RLS, pact nudges, Realtime, QR and native sign-in,
 plus device checks for reminders and optional health/screen integrations.
 
-Operational evidence and backup details are kept privately. This document does
-not claim release or device acceptance before those checks finish.
+Android 1.7.1 installed in place and launched without startup errors. The user
+confirmed it works after the Google/habit-history check. All 24 exported web
+files match the existing Firebase site. The release includes APK/checksum assets.
+Reciprocal Lidar/Sonar updates are being finished separately. Native reminders
+and optional health/screen integrations were not separately exercised; their
+code is unchanged. Operational evidence and backup details stay private.
