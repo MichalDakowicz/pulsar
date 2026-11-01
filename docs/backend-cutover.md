@@ -17,6 +17,7 @@ plus device checks for reminders and optional health/screen integrations.
 Android 1.7.1 installed in place and launched without startup errors. The user
 confirmed it works after the Google/habit-history check. All 24 exported web
 files match the existing Firebase site. The release includes APK/checksum assets.
-Reciprocal Lidar/Sonar updates are being finished separately. Native reminders
+Reciprocal Lidar 1.6.3 and Sonar 2.4.2 updates are installed and deployed; actual
+Pulsar handoff passed in both directions with each on Android. Native reminders
 and optional health/screen integrations were not separately exercised; their
 code is unchanged. Operational evidence and backup details stay private.
